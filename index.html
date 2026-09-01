@@ -28,7 +28,7 @@
             <a href="#session-stats"><img class="pixel-icon" src="gambarpixel/log-book-1.svg" alt="" />SESSION LOG</a>
             <a href="#calibration"><img class="pixel-icon" src="gambarpixel/settings-gear.svg" alt="" />SETTINGS</a>
           </nav>
-          <div class="side-tool"><img class="pixel-icon" src="gambarpixel/calibration-tool.svg" alt="Calibration tools" /></div>
+          <div class="side-tool"><img class="pixel-icon" src="gambarpixel/ph-probe-gear.svg" alt="pH probe gear" /></div>
         </aside>
         <main class="dashboard-grid">
           <section class="data-panel ph-panel" id="current-ph">
@@ -49,7 +49,7 @@
             <section class="data-panel stats-panel" id="session-stats">
               <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/log-book-2.svg" alt="" /></div>
               <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd id="lastUpdate">--:--:--</dd></div><div><dt>READINGS</dt><dd id="sessionReadings">0</dd></div><div><dt>AVG. PH</dt><dd id="avgPh">--</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
-              <p class="terminal-note" id="connectionStatus">&gt; CONNECTING TO SENSOR LINK...</p>
+              <p class="terminal-note"><img class="pixel-icon wifi-icon is-connecting" id="wifiIcon" src="gambarpixel/wifi-icon.svg" alt="Wi-Fi connection status" /><span id="connectionStatus">CONNECTING TO SENSOR LINK...</span></p>
             </section>
             <section class="data-panel calibration-panel" id="calibration">
               <div class="panel-heading"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/settings-gear.svg" alt="" /></div>
@@ -113,8 +113,8 @@
           updateLatest(latest || {}); updateCalibration(points || {}); paintChart(entries);
           document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); document.querySelector("#sessionReadings").textContent = entries.length;
           document.querySelector("#avgPh").textContent = entries.length ? (entries.reduce((total, entry) => total + Number(entry.ph), 0) / entries.length).toFixed(2) : "--";
-          document.querySelector("#connectionStatus").textContent = "> SENSOR LINK ESTABLISHED"; document.querySelector(".chart-line").hidden = true;
-        } catch (error) { document.querySelector("#connectionStatus").textContent = "> SENSOR LINK OFFLINE — RETRYING"; console.warn("Firebase refresh failed:", error); }
+          document.querySelector("#connectionStatus").textContent = "SENSOR LINK ESTABLISHED"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online"; document.querySelector(".chart-line").hidden = true;
+        } catch (error) { document.querySelector("#connectionStatus").textContent = "SENSOR LINK OFFLINE — RETRYING"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; console.warn("Firebase refresh failed:", error); }
       }
       updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
     </script>
