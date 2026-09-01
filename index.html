@@ -15,6 +15,7 @@
         </a>
         <div class="header-status">
           <div class="date-block"><span id="dateNow">DATE // --.--.----</span><strong id="timeNow">--:--:-- WIB</strong></div>
+          <div class="wifi-status"><img class="pixel-icon wifi-icon is-connecting" id="wifiIcon" src="gambarpixel/wifi-icon.svg" alt="Wi-Fi connection status" /><span id="connectionStatus">CONNECTING</span></div>
           <div class="score-box"><span>READINGS</span><strong id="readingCount">000000</strong></div>
         </div>
       </header>
@@ -49,7 +50,7 @@
             <section class="data-panel stats-panel" id="session-stats">
               <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/log-book-2.svg" alt="" /></div>
               <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd id="lastUpdate">--:--:--</dd></div><div><dt>READINGS</dt><dd id="sessionReadings">0</dd></div><div><dt>AVG. PH</dt><dd id="avgPh">--</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
-              <p class="terminal-note"><img class="pixel-icon wifi-icon is-connecting" id="wifiIcon" src="gambarpixel/wifi-icon.svg" alt="Wi-Fi connection status" /><span id="connectionStatus">CONNECTING TO SENSOR LINK...</span></p>
+              <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
             </section>
             <section class="data-panel calibration-panel" id="calibration">
               <div class="panel-heading"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/settings-gear.svg" alt="" /></div>
@@ -113,8 +114,8 @@
           updateLatest(latest || {}); updateCalibration(points || {}); paintChart(entries);
           document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); document.querySelector("#sessionReadings").textContent = entries.length;
           document.querySelector("#avgPh").textContent = entries.length ? (entries.reduce((total, entry) => total + Number(entry.ph), 0) / entries.length).toFixed(2) : "--";
-          document.querySelector("#connectionStatus").textContent = "SENSOR LINK ESTABLISHED"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online"; document.querySelector(".chart-line").hidden = true;
-        } catch (error) { document.querySelector("#connectionStatus").textContent = "SENSOR LINK OFFLINE — RETRYING"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; console.warn("Firebase refresh failed:", error); }
+          document.querySelector("#connectionStatus").textContent = "WIFI ONLINE"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online"; document.querySelector(".chart-line").hidden = true;
+        } catch (error) { document.querySelector("#connectionStatus").textContent = "WIFI OFFLINE"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; console.warn("Firebase refresh failed:", error); }
       }
       updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
     </script>
