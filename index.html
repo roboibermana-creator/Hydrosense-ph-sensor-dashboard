@@ -1,239 +1,875 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pH Sensor Monitor</title>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #0f172a;
-    color: #e2e8f0;
-    margin: 0;
-    padding: 20px;
-  }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  .sub { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .card {
-    background: #1e293b;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #334155;
-  }
-  .card .label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
-  .card .value { font-size: 26px; font-weight: 700; }
-  .card .value.ph { color: #4ade80; }
-  .card .value.v { color: #60a5fa; }
-  .panel {
-    background: #1e293b;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #334155;
-    margin-bottom: 20px;
-  }
-  .panel h2 { font-size: 15px; margin: 0 0 12px 0; }
-  canvas { max-height: 260px; }
-  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  button {
-    background: #334155;
-    color: #e2e8f0;
-    border: 1px solid #475569;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  button:hover { background: #475569; }
-  button.danger { border-color: #7f1d1d; color: #fca5a5; }
-  button.warn { border-color: #78350f; color: #fcd34d; }
-  .status-line { font-size: 13px; color: #94a3b8; margin-top: 10px; line-height: 1.6; }
-  .status-line b { color: #e2e8f0; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  td, th { padding: 6px 8px; border-bottom: 1px solid #334155; text-align: left; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
-  .badge.ok { background: #14532d; color: #86efac; }
-  .badge.no { background: #451a03; color: #fcd34d; }
-</style>
-</head>
-<body>
-
-<h1>pH Sensor Monitor</h1>
-<div class="sub">DFRobot Gravity pH V2.0 &middot; ESP32-S3 &middot; Live via Firebase</div>
-
-<div class="grid">
-  <div class="card">
-    <div class="label">pH Sekarang</div>
-    <div class="value ph" id="phNow">--</div>
-  </div>
-  <div class="card">
-    <div class="label">Voltage</div>
-    <div class="value v" id="voltNow">-- mV</div>
-  </div>
-  <div class="card">
-    <div class="label">Update Terakhir</div>
-    <div class="value" id="lastUpdate" style="font-size:14px;">--</div>
-  </div>
-</div>
-
-<div class="panel">
-  <h2>Grafik pH (50 data terakhir)</h2>
-  <canvas id="phChart"></canvas>
-</div>
-
-<div class="panel">
-  <h2>Kalibrasi</h2>
-  <table>
-    <tr><th>Titik</th><th>Voltage</th><th>Status</th></tr>
-    <tr><td>pH 4.01</td><td id="cal4v">--</td><td id="cal4s">--</td></tr>
-    <tr><td>pH 6.86</td><td id="cal7v">--</td><td id="cal7s">--</td></tr>
-    <tr><td>pH 9.18</td><td id="cal10v">--</td><td id="cal10s">--</td></tr>
-  </table>
-  <div class="status-line" id="calEquation"></div>
-
-  <div class="btn-row">
-    <button onclick="sendCommand('4')">Kalibrasi pH 4.01</button>
-    <button onclick="sendCommand('7')">Kalibrasi pH 6.86</button>
-    <button onclick="sendCommand('10')">Kalibrasi pH 9.18</button>
-    <button class="warn" onclick="sendCommand('cancel')">Batal Kalibrasi</button>
-    <button class="danger" onclick="confirmReset()">Reset Semua Kalibrasi</button>
-  </div>
-
-  <div class="status-line" id="calStatus">Belum ada proses kalibrasi berjalan.</div>
-</div>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCt4Ij7antLWcSrFzDOzQSWcM2yhEMNGD0",
-    authDomain: "ph-sensor-monitor-11e27.firebaseapp.com",
-    databaseURL: "https://ph-sensor-monitor-11e27-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ph-sensor-monitor-11e27",
-    storageBucket: "ph-sensor-monitor-11e27.firebasestorage.app",
-    messagingSenderId: "94345653572",
-    appId: "1:94345653572:web:59b175dedbf45bd5363b11"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  db.ref("/ph_sensor/latest").on("value", (snap) => {
-    const data = snap.val();
-    if (!data) return;
-
-    document.getElementById("phNow").textContent =
-      (data.ph !== undefined) ? Number(data.ph).toFixed(2) : "--";
-    document.getElementById("voltNow").textContent =
-      Number(data.voltage).toFixed(2) + " mV";
-
-    if (data.timestamp) {
-      const d = new Date(data.timestamp * 1000);
-      document.getElementById("lastUpdate").textContent = d.toLocaleString("id-ID");
-    }
-  });
-
-  const ctx = document.getElementById("phChart").getContext("2d");
-  const chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "pH",
-        data: [],
-        borderColor: "#4ade80",
-        backgroundColor: "rgba(74,222,128,0.1)",
-        tension: 0.3,
-        pointRadius: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: { ticks: { color: "#94a3b8", maxTicksLimit: 8 }, grid: { color: "#334155" } },
-        y: { ticks: { color: "#94a3b8" }, grid: { color: "#334155" } }
-      },
-      plugins: { legend: { labels: { color: "#e2e8f0" } } }
-    }
-  });
-
-  db.ref("/ph_sensor/readings").limitToLast(50).on("value", (snap) => {
-    const data = snap.val();
-    if (!data) return;
-
-    const entries = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
-
-    chart.data.labels = entries.map(e =>
-      new Date(e.timestamp * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
-    );
-    chart.data.datasets[0].data = entries.map(e => e.ph !== undefined ? e.ph : null);
-    chart.update();
-  });
-
-  db.ref("/ph_sensor/calibration/points").on("value", (snap) => {
-    const p = snap.val();
-    if (!p) return;
-
-    const setRow = (key, voltEl, statusEl) => {
-      const point = p[key];
-      document.getElementById(voltEl).textContent =
-        point && point.valid ? Number(point.voltage).toFixed(2) + " mV" : "--";
-      document.getElementById(statusEl).innerHTML =
-        point && point.valid
-          ? '<span class="badge ok">OK</span>'
-          : '<span class="badge no">Belum</span>';
-    };
-
-    setRow("ph4", "cal4v", "cal4s");
-    setRow("ph7", "cal7v", "cal7s");
-    setRow("ph10", "cal10v", "cal10s");
-  });
-
-  db.ref("/ph_sensor/calibration/equation").on("value", (snap) => {
-    const eq = snap.val();
-    if (!eq) return;
-
-    document.getElementById("calEquation").innerHTML = eq.calibrated
-      ? `<b>Persamaan:</b> V = ${Number(eq.slope).toFixed(4)} &times; pH + ${Number(eq.intercept).toFixed(4)} &middot; (${eq.numPoints} titik)`
-      : "Belum terkalibrasi (minimal 2 titik dibutuhkan).";
-  });
-
-  db.ref("/ph_sensor/calibration/status").on("value", (snap) => {
-    const s = snap.val();
-    const el = document.getElementById("calStatus");
-
-    if (!s) {
-      el.textContent = "Belum ada proses kalibrasi berjalan.";
-      return;
-    }
-
-    if (s.running) {
-      el.innerHTML = `<b>Sedang kalibrasi ${s.label}</b> &middot; ${s.elapsedSec}s &middot; ` +
-        `sample terpakai: ${s.sample} &middot; avg: ${Number(s.avgVoltage).toFixed(2)} mV &middot; ` +
-        `range: ${Number(s.range).toFixed(2)} mV &middot; status: ${s.message}`;
-    } else {
-      el.innerHTML = `<b>Kalibrasi ${s.label} selesai</b> &middot; hasil akhir: ${Number(s.avgVoltage).toFixed(2)} mV ` +
-        `&middot; range: ${Number(s.range).toFixed(2)} mV &middot; (${s.message})`;
-    }
-  });
-
-  function sendCommand(cmd) {
-    db.ref("/ph_sensor/calibration/command").set(cmd);
-  }
-
-  function confirmReset() {
-    if (confirm("Yakin mau reset SEMUA data kalibrasi?")) {
-      sendCommand("reset");
-    }
-  }
-</script>
-
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HydroSense | Real-time Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Lexend:wght@500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+      :root {
+        --bg: #081225;
+        --surface: rgba(18, 29, 51, 0.82);
+        --surface2: #202b42;
+        --line: rgba(194, 213, 249, 0.13);
+        --text: #dae2fd;
+        --muted: #9facbf;
+        --primary: #4edea3;
+        --amber: #ffb95f;
+        --danger: #ff8e8a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px Inter,
+          Arial,
+          sans-serif;
+      }
+      body:before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background:
+          radial-gradient(
+            circle at 84% 0%,
+            rgba(43, 101, 117, 0.25),
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at 15% 85%,
+            rgba(11, 100, 69, 0.2),
+            transparent 31%
+          ),
+          linear-gradient(125deg, #071124, #0c1730);
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 450,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      .topbar {
+        height: 64px;
+        position: fixed;
+        z-index: 10;
+        inset: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 38px;
+        background: rgba(8, 18, 37, 0.76);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        color: var(--primary);
+        font:
+          700 20px Lexend,
+          sans-serif;
+        letter-spacing: -0.6px;
+      }
+      .topnav {
+        display: flex;
+        gap: 24px;
+        margin-left: 40px;
+      }
+      .topnav a {
+        color: var(--muted);
+        text-decoration: none;
+        padding: 21px 2px 18px;
+      }
+      .topnav a.active {
+        color: var(--primary);
+        border-bottom: 2px solid var(--primary);
+      }
+      .topactions {
+        display: flex;
+        gap: 8px;
+      }
+      .icon-btn {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        color: var(--primary);
+        border: 0;
+        background: transparent;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .sidebar {
+        position: fixed;
+        z-index: 5;
+        top: 64px;
+        bottom: 0;
+        width: 250px;
+        padding: 26px 16px;
+        display: flex;
+        flex-direction: column;
+        background: rgba(12, 23, 43, 0.73);
+        border-right: 1px solid var(--line);
+        backdrop-filter: blur(18px);
+      }
+      .node {
+        padding: 0 8px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .node-top {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .node-icon {
+        width: 39px;
+        height: 39px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--primary);
+        background: #23364a;
+        border: 1px solid var(--line);
+      }
+      .node h2 {
+        margin: 0 0 2px;
+        color: var(--primary);
+        font:
+          600 14px Lexend,
+          sans-serif;
+      }
+      .node p {
+        margin: 0;
+        color: var(--muted);
+        font:
+          11px "JetBrains Mono",
+          monospace;
+      }
+      button {
+        color: var(--text);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px 13px;
+        font:
+          700 11px "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      button:hover {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(255, 255, 255, 0.28);
+      }
+      .node button {
+        width: 100%;
+        color: var(--primary);
+        border-color: var(--primary);
+        background: rgba(78, 222, 163, 0.07);
+      }
+      .side-links {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-top: 22px;
+      }
+      .side-links a {
+        display: flex;
+        gap: 13px;
+        align-items: center;
+        padding: 12px 14px;
+        color: var(--muted);
+        text-decoration: none;
+        border-radius: 7px;
+      }
+      .side-links a.active {
+        color: var(--primary);
+        background: rgba(78, 222, 163, 0.12);
+        border-right: 3px solid var(--primary);
+      }
+      .side-links a:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      main {
+        min-height: 100vh;
+        margin-left: 250px;
+        padding: 88px 38px 36px;
+      }
+      .container {
+        max-width: 1320px;
+        margin: auto;
+      }
+      .connection {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--primary);
+        margin-bottom: 20px;
+        font:
+          700 11px "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--primary);
+        border-radius: 50%;
+        box-shadow: 0 0 11px var(--primary);
+        animation: pulse 1.8s infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.35;
+          transform: scale(0.72);
+        }
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 20px;
+      }
+      .card,
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(14px);
+        border-radius: 12px;
+      }
+      .stat {
+        grid-column: span 4;
+        min-height: 168px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .card-head,
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .eyebrow {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font:
+          700 11px "JetBrains Mono",
+          monospace;
+      }
+      .stat-icon {
+        color: var(--primary);
+      }
+      .stat-icon.amber {
+        color: var(--amber);
+      }
+      .value {
+        margin-top: 8px;
+        color: var(--primary);
+        font:
+          500 40px/1 "JetBrains Mono",
+          monospace;
+        letter-spacing: -0.07em;
+      }
+      .value.voltage {
+        color: var(--amber);
+      }
+      .unit {
+        font:
+          400 16px Inter,
+          sans-serif;
+        letter-spacing: 0;
+      }
+      .spark {
+        height: 24px;
+        margin-top: 14px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(78, 222, 163, 0.75),
+            transparent
+          )
+          bottom/100% 2px no-repeat;
+      }
+      .amber-spark {
+        background-image: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 185, 95, 0.75),
+          transparent
+        );
+      }
+      .session {
+        grid-column: span 4;
+        padding: 22px;
+      }
+      .session-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px 14px;
+        margin-top: 25px;
+      }
+      .metric small {
+        display: block;
+        color: var(--muted);
+        margin-bottom: 5px;
+      }
+      .metric strong {
+        font:
+          500 16px "JetBrains Mono",
+          monospace;
+      }
+      .chart-panel {
+        grid-column: span 8;
+        min-height: 390px;
+        padding: 22px;
+      }
+      .chart-box {
+        height: 315px;
+        margin-top: 20px;
+        padding: 12px 4px 0;
+        background: rgba(3, 10, 23, 0.25);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      select {
+        color: var(--text);
+        background: #202b42;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 6px 8px;
+        outline: 0;
+      }
+      option {
+        background: #17233a;
+      }
+      .calibration {
+        grid-column: span 4;
+        min-height: 390px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+      }
+      .cal-list {
+        margin: 17px 0;
+      }
+      .cal-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .cal-voltage {
+        color: var(--text);
+        font:
+          12px "JetBrains Mono",
+          monospace;
+      }
+      .badge {
+        display: inline-block;
+        min-width: 55px;
+        padding: 4px 7px;
+        text-align: center;
+        border-radius: 4px;
+        font:
+          700 10px "JetBrains Mono",
+          monospace;
+      }
+      .badge.ok {
+        color: var(--primary);
+        border: 1px solid rgba(78, 222, 163, 0.35);
+        background: rgba(78, 222, 163, 0.1);
+      }
+      .badge.no {
+        color: var(--amber);
+        border: 1px solid rgba(255, 185, 95, 0.3);
+        background: rgba(255, 185, 95, 0.1);
+      }
+      .equation {
+        margin-top: auto;
+        padding: 12px;
+        background: rgba(45, 60, 85, 0.46);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .btn-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+        margin-top: 12px;
+      }
+      .btn-row button {
+        padding: 9px 4px;
+        font-size: 9px;
+      }
+      .btn-row .danger {
+        color: var(--danger);
+        border-color: rgba(255, 142, 138, 0.42);
+      }
+      .btn-row .warn {
+        color: var(--amber);
+      }
+      .cal-status {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+        margin: 12px 0 0;
+      }
+      .logs {
+        grid-column: 1 / -1;
+        padding: 22px;
+        max-height: 300px;
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font:
+          12px "JetBrains Mono",
+          monospace;
+      }
+      th {
+        color: var(--muted);
+        text-align: left;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      th,
+      td {
+        padding: 11px 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      td.ph-cell {
+        color: var(--primary);
+      }
+      .empty-row td {
+        color: var(--muted);
+        text-align: center;
+        padding: 25px;
+      }
+      @media (max-width: 900px) {
+        .sidebar {
+          display: none;
+        }
+        main {
+          margin-left: 0;
+          padding: 84px 18px 28px;
+        }
+        .topbar {
+          padding: 0 18px;
+        }
+        .topnav {
+          display: none;
+        }
+        .stat,
+        .session,
+        .chart-panel,
+        .calibration {
+          grid-column: 1 / -1;
+        }
+        .chart-panel,
+        .calibration {
+          min-height: auto;
+        }
+      }
+      @media (max-width: 520px) {
+        .brand {
+          font-size: 15px;
+        }
+        .topactions {
+          display: none;
+        }
+        .grid {
+          gap: 13px;
+        }
+        main {
+          padding-inline: 13px;
+        }
+        .stat {
+          min-height: 145px;
+        }
+        .value {
+          font-size: 34px;
+        }
+        .cal-row {
+          grid-template-columns: 1fr auto;
+        }
+        .cal-voltage {
+          display: none;
+        }
+        .logs {
+          padding: 16px;
+        }
+        th,
+        td {
+          padding: 10px 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div style="display: flex; align-items: center">
+        <div class="brand">HYDROSENSE</div>
+        <nav class="topnav">
+          <a class="active" href="#dashboard">Dashboard</a
+          ><a href="#chart-panel">Analytics</a
+          ><a href="#calibration">Calibration</a><a href="#logs">Logs</a>
+        </nav>
+      </div>
+      <div class="topactions">
+        <button
+          class="icon-btn"
+          onclick="location.reload()"
+          aria-label="Refresh"
+        >
+          <span class="material-symbols-outlined">refresh</span></button
+        ><button class="icon-btn" aria-label="Settings">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+      </div>
+    </header>
+    <aside class="sidebar">
+      <div class="node">
+        <div class="node-top">
+          <div class="node-icon">
+            <span class="material-symbols-outlined">sensors</span>
+          </div>
+          <div>
+            <h2>ESP32-S3 Node</h2>
+            <p>PH-ALPHA-01</p>
+          </div>
+        </div>
+        <button
+          onclick="document.getElementById('calibration').scrollIntoView({behavior:'smooth'})"
+        >
+          RUN CALIBRATION
+        </button>
+      </div>
+      <nav class="side-links">
+        <a class="active" href="#dashboard"
+          ><span class="material-symbols-outlined">sensors</span>Real-time</a
+        ><a href="#chart-panel"
+          ><span class="material-symbols-outlined">show_chart</span>History</a
+        ><a href="#calibration"
+          ><span class="material-symbols-outlined">tune</span>Calibration</a
+        ><a href="#logs"
+          ><span class="material-symbols-outlined">history</span>Recent logs</a
+        >
+      </nav>
+    </aside>
+    <main id="dashboard">
+      <div class="container">
+        <div class="connection">
+          <span class="dot"></span><span>Firebase Connected</span>
+        </div>
+        <section class="grid">
+          <article class="card stat">
+            <div class="card-head">
+              <span class="eyebrow">Current pH</span
+              ><span class="material-symbols-outlined stat-icon"
+                >water_drop</span
+              >
+            </div>
+            <div>
+              <div class="value" id="phNow">--</div>
+              <div class="spark"></div>
+            </div>
+          </article>
+          <article class="card stat">
+            <div class="card-head">
+              <span class="eyebrow">Probe Voltage</span
+              ><span class="material-symbols-outlined stat-icon amber"
+                >bolt</span
+              >
+            </div>
+            <div>
+              <div class="value voltage" id="voltNow">
+                -- <span class="unit">mV</span>
+              </div>
+              <div class="spark amber-spark"></div>
+            </div>
+          </article>
+          <article class="card session">
+            <div class="card-head">
+              <span class="eyebrow">Session Stats</span
+              ><span
+                class="material-symbols-outlined"
+                style="color: var(--muted)"
+                >analytics</span
+              >
+            </div>
+            <div class="session-grid">
+              <div class="metric">
+                <small>Update terakhir</small
+                ><strong id="lastUpdate">--</strong>
+              </div>
+              <div class="metric">
+                <small>Data diterima</small><strong id="readingCount">0</strong>
+              </div>
+              <div class="metric">
+                <small>Device</small><strong>ESP32-S3</strong>
+              </div>
+              <div class="metric">
+                <small>Status</small
+                ><strong style="color: var(--primary)">LIVE</strong>
+              </div>
+            </div>
+          </article>
+          <article class="panel chart-panel" id="chart-panel">
+            <div class="panel-head">
+              <span class="eyebrow">Telemetry History</span
+              ><select id="historyLimit" aria-label="Jumlah data grafik">
+                <option value="20">Last 20</option>
+                <option selected value="50">Last 50</option>
+                <option value="100">Last 100</option>
+              </select>
+            </div>
+            <div class="chart-box"><canvas id="phChart"></canvas></div>
+          </article>
+          <article class="panel calibration" id="calibration">
+            <div class="panel-head">
+              <span class="eyebrow">Calibration Status</span
+              ><span class="material-symbols-outlined stat-icon"
+                >check_circle</span
+              >
+            </div>
+            <div class="cal-list">
+              <div class="cal-row">
+                <span>Point 4.01</span
+                ><span class="cal-voltage" id="cal4v">--</span
+                ><span id="cal4s">--</span>
+              </div>
+              <div class="cal-row">
+                <span>Point 6.86</span
+                ><span class="cal-voltage" id="cal7v">--</span
+                ><span id="cal7s">--</span>
+              </div>
+              <div class="cal-row">
+                <span>Point 9.18</span
+                ><span class="cal-voltage" id="cal10v">--</span
+                ><span id="cal10s">--</span>
+              </div>
+            </div>
+            <div class="equation" id="calEquation">
+              Belum terkalibrasi (minimal 2 titik dibutuhkan).
+            </div>
+            <div class="btn-row">
+              <button onclick="sendCommand('4')">CAL pH 4.01</button
+              ><button onclick="sendCommand('7')">CAL pH 6.86</button
+              ><button onclick="sendCommand('10')">CAL pH 9.18</button
+              ><button class="warn" onclick="sendCommand('cancel')">
+                BATAL</button
+              ><button class="danger" onclick="confirmReset()">RESET</button>
+            </div>
+            <div class="cal-status" id="calStatus">
+              Belum ada proses kalibrasi berjalan.
+            </div>
+          </article>
+          <article class="panel logs" id="logs">
+            <div class="panel-head">
+              <span class="eyebrow">Recent Logs</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>pH Value</th>
+                  <th>Voltage (mV)</th>
+                </tr>
+              </thead>
+              <tbody id="logsBody">
+                <tr class="empty-row">
+                  <td colspan="3">Menunggu data pembacaan…</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+      </div>
+    </main>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCt4Ij7antLWcSrFzDOzQSWcM2yhEMNGD0",
+        authDomain: "ph-sensor-monitor-11e27.firebaseapp.com",
+        databaseURL:
+          "https://ph-sensor-monitor-11e27-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ph-sensor-monitor-11e27",
+        storageBucket: "ph-sensor-monitor-11e27.firebasestorage.app",
+        messagingSenderId: "94345653572",
+        appId: "1:94345653572:web:59b175dedbf45bd5363b11",
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      const number = (value) =>
+        value !== undefined && value !== null && !Number.isNaN(Number(value))
+          ? Number(value)
+          : null;
+      const formatDate = (timestamp) =>
+        timestamp ? new Date(timestamp * 1000).toLocaleString("id-ID") : "--";
+      db.ref("/ph_sensor/latest").on("value", (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        const ph = number(data.ph),
+          voltage = number(data.voltage);
+        document.getElementById("phNow").textContent =
+          ph === null ? "--" : ph.toFixed(2);
+        document.getElementById("voltNow").innerHTML =
+          voltage === null
+            ? "-- <span class='unit'>mV</span>"
+            : `${voltage.toFixed(2)} <span class="unit">mV</span>`;
+        if (data.timestamp)
+          document.getElementById("lastUpdate").textContent = formatDate(
+            data.timestamp,
+          );
+      });
+      const ctx = document.getElementById("phChart").getContext("2d");
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "pH",
+              data: [],
+              borderColor: "#4edea3",
+              backgroundColor: "rgba(78,222,163,.12)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: "index" },
+          scales: {
+            x: {
+              ticks: { color: "#9facbf", maxTicksLimit: 8 },
+              grid: { color: "rgba(194,213,249,.08)" },
+            },
+            y: {
+              ticks: { color: "#9facbf" },
+              grid: { color: "rgba(194,213,249,.08)" },
+            },
+          },
+          plugins: {
+            legend: { labels: { color: "#dae2fd", font: { family: "Inter" } } },
+          },
+        },
+      });
+      let readingsRef;
+      function listenReadings(limit) {
+        if (readingsRef) readingsRef.off();
+        readingsRef = db.ref("/ph_sensor/readings").limitToLast(limit);
+        readingsRef.on("value", (snap) => {
+          const raw = snap.val();
+          if (!raw) return;
+          const entries = Object.values(raw)
+            .filter((e) => e && e.timestamp)
+            .sort((a, b) => a.timestamp - b.timestamp);
+          chart.data.labels = entries.map((e) =>
+            new Date(e.timestamp * 1000).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+          );
+          chart.data.datasets[0].data = entries.map((e) => number(e.ph));
+          chart.update();
+          document.getElementById("readingCount").textContent = entries.length;
+          const logs = entries.slice(-8).reverse();
+          document.getElementById("logsBody").innerHTML = logs
+            .map(
+              (e) =>
+                `<tr><td>${formatDate(e.timestamp)}</td><td class="ph-cell">${number(e.ph) === null ? "--" : number(e.ph).toFixed(2)}</td><td>${number(e.voltage) === null ? "--" : number(e.voltage).toFixed(2)}</td></tr>`,
+            )
+            .join("");
+        });
+      }
+      listenReadings(50);
+      document
+        .getElementById("historyLimit")
+        .addEventListener("change", (e) =>
+          listenReadings(Number(e.target.value)),
+        );
+      db.ref("/ph_sensor/calibration/points").on("value", (snap) => {
+        const p = snap.val() || {};
+        const setRow = (key, voltEl, statusEl) => {
+          const point = p[key],
+            valid = point && point.valid,
+            voltage = point && number(point.voltage);
+          document.getElementById(voltEl).textContent =
+            valid && voltage !== null ? `${voltage.toFixed(2)} mV` : "--";
+          document.getElementById(statusEl).innerHTML = valid
+            ? '<span class="badge ok">OK</span>'
+            : '<span class="badge no">BELUM</span>';
+        };
+        setRow("ph4", "cal4v", "cal4s");
+        setRow("ph7", "cal7v", "cal7s");
+        setRow("ph10", "cal10v", "cal10s");
+      });
+      db.ref("/ph_sensor/calibration/equation").on("value", (snap) => {
+        const eq = snap.val();
+        if (!eq) return;
+        document.getElementById("calEquation").innerHTML = eq.calibrated
+          ? `<b>Persamaan</b><br>V = ${number(eq.slope)?.toFixed(4) ?? "--"} × pH + ${number(eq.intercept)?.toFixed(4) ?? "--"}<br>${eq.numPoints} titik kalibrasi`
+          : "Belum terkalibrasi (minimal 2 titik dibutuhkan).";
+      });
+      db.ref("/ph_sensor/calibration/status").on("value", (snap) => {
+        const s = snap.val(),
+          el = document.getElementById("calStatus");
+        if (!s) {
+          el.textContent = "Belum ada proses kalibrasi berjalan.";
+          return;
+        }
+        const average = number(s.avgVoltage);
+        el.innerHTML = s.running
+          ? `<b>Sedang kalibrasi ${s.label}</b> · ${s.elapsedSec}s · sample: ${s.sample} · avg: ${average === null ? "--" : average.toFixed(2)} mV · ${s.message}`
+          : `<b>Kalibrasi ${s.label} selesai</b> · hasil akhir: ${average === null ? "--" : average.toFixed(2)} mV · ${s.message || ""}`;
+      });
+      function sendCommand(cmd) {
+        db.ref("/ph_sensor/calibration/command").set(cmd);
+      }
+      function confirmReset() {
+        if (confirm("Yakin mau reset SEMUA data kalibrasi?"))
+          sendCommand("reset");
+      }
+    </script>
+  </body>
 </html>
