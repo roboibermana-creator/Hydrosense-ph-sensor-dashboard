@@ -14,8 +14,8 @@
           <span class="brand-mark">H</span><span>HYDRO<span>SENSE</span></span>
         </a>
         <div class="header-status">
-          <div class="date-block"><span>DATE // 24.06.2025</span><strong>14:32:08 WIB</strong></div>
-          <div class="score-box"><span>SCORE</span><strong>000685</strong></div>
+          <div class="date-block"><span id="dateNow">DATE // --.--.----</span><strong id="timeNow">--:--:-- WIB</strong></div>
+          <div class="score-box"><span>READINGS</span><strong id="readingCount">000000</strong></div>
         </div>
       </header>
       <div class="screen-layout" id="dashboard">
@@ -33,34 +33,90 @@
         <main class="dashboard-grid">
           <section class="data-panel ph-panel" id="current-ph">
             <div class="panel-heading"><span>CURRENT PH</span><i>LIVE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/ph-droplet.svg" alt="pH droplet" /><div><strong>6.85</strong><span>pH LEVEL</span></div></div>
-            <div class="panel-footer"><span>STATUS:</span><b>NEUTRAL</b><span class="signal">● ● ●</span></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/ph-droplet.svg" alt="pH droplet" /><div><strong id="phNow">6.85</strong><span>pH LEVEL</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="phStatus">NEUTRAL</b><span class="signal">● ● ●</span></div>
           </section>
           <section class="data-panel voltage-panel" id="probe-voltage">
             <div class="panel-heading"><span>PROBE VOLTAGE</span><i>STABLE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/voltage-symbol.svg" alt="Voltage" /><div><strong>1385.55</strong><span>mV</span></div></div>
-            <div class="panel-footer"><span>OFFSET:</span><b>+00.02 mV</b><span class="signal amber">● ● ●</span></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/voltage-symbol.svg" alt="Voltage" /><div><strong id="voltNow">1385.55</strong><span>mV</span></div></div>
+            <div class="panel-footer"><span>OFFSET:</span><b id="probeOffset">+00.02 mV</b><span class="signal amber">● ● ●</span></div>
           </section>
           <section class="data-panel telemetry-panel" id="telemetry">
             <div class="panel-heading"><span>TELEMETRY HISTORY</span><small>LAST 60 MINUTES</small></div>
-            <div class="chart-wrap"><canvas id="teleChart" aria-label="Placeholder grafik riwayat telemetri"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top">7.20</span><span class="axis y-mid">6.85</span><span class="axis y-bottom">6.50</span><span class="axis x-left">13:32</span><span class="axis x-mid">14:02</span><span class="axis x-right">14:32</span></div>
+            <div class="chart-wrap"><canvas id="teleChart" aria-label="Grafik riwayat telemetri pH"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top" id="chartMax">7.20</span><span class="axis y-mid" id="chartMid">6.85</span><span class="axis y-bottom" id="chartMin">6.50</span><span class="axis x-left" id="chartStart">13:32</span><span class="axis x-mid" id="chartMiddle">14:02</span><span class="axis x-right" id="chartEnd">14:32</span></div>
           </section>
           <aside class="right-stack">
             <section class="data-panel stats-panel" id="session-stats">
               <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/log-book-2.svg" alt="" /></div>
-              <dl class="stats-list"><div><dt>SESSION TIME</dt><dd>02:14:37</dd></div><div><dt>READINGS</dt><dd>1,284</dd></div><div><dt>AVG. PH</dt><dd>6.87</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
-              <p class="terminal-note">&gt; SENSOR LINK ESTABLISHED</p>
+              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd id="lastUpdate">--:--:--</dd></div><div><dt>READINGS</dt><dd id="sessionReadings">0</dd></div><div><dt>AVG. PH</dt><dd id="avgPh">--</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
+              <p class="terminal-note" id="connectionStatus">&gt; CONNECTING TO SENSOR LINK...</p>
             </section>
             <section class="data-panel calibration-panel" id="calibration">
               <div class="panel-heading"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/settings-gear.svg" alt="" /></div>
-              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/ph-droplet.svg" alt="" /><div><b>PROBE CALIBRATED</b><span>LAST CAL: 22.06.2025</span></div></div>
-              <div class="calibration-rows"><div><span>pH 4.01</span><b>COMPLETE</b></div><div><span>pH 6.86</span><b>COMPLETE</b></div><div><span>pH 9.18</span><em>PENDING</em></div></div>
-              <div class="warning">! NEXT CALIBRATION IN 12 DAYS</div>
+              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/ph-droplet.svg" alt="" /><div><b id="calibrationTitle">PROBE CALIBRATED</b><span id="calibrationNote">WAITING FOR CALIBRATION DATA</span></div></div>
+              <div class="calibration-rows"><div><span>pH 4.01</span><b id="cal4">--</b></div><div><span>pH 6.86</span><b id="cal7">--</b></div><div><span>pH 9.18</span><em id="cal10">--</em></div></div>
+              <div class="warning" id="calibrationWarning">! CHECKING CALIBRATION STATUS</div>
             </section>
           </aside>
         </main>
       </div>
       <footer class="console-footer"><span>HYDROSENSE pH MONITOR v1.0</span><span>SYS: NOMINAL</span><span>◉ LOCAL NODE CONNECTED</span></footer>
     </div>
+    <script>
+      // ESP mengirim data ke path Firebase yang sama seperti dashboard sebelumnya.
+      // REST API dipakai agar tidak memerlukan Firebase SDK/CDN.
+      const FIREBASE_URL = "https://ph-sensor-monitor-11e27-default-rtdb.asia-southeast1.firebasedatabase.app";
+      const numeric = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
+      const request = async (path) => {
+        const response = await fetch(`${FIREBASE_URL}/ph_sensor/${path}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Firebase ${response.status}`);
+        return response.json();
+      };
+      const formatTime = (seconds) => seconds ? new Date(Number(seconds) * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--";
+      const formatDate = (seconds) => seconds ? new Date(Number(seconds) * 1000).toLocaleDateString("id-ID") : "--.--.----";
+      function updateClock() {
+        const now = new Date();
+        document.querySelector("#dateNow").textContent = `DATE // ${now.toLocaleDateString("id-ID")}`;
+        document.querySelector("#timeNow").textContent = `${now.toLocaleTimeString("id-ID")} WIB`;
+      }
+      function paintChart(entries) {
+        const canvas = document.querySelector("#teleChart"), rect = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.floor(rect.width * ratio)); canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+        const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        const points = entries.map((entry) => numeric(entry.ph)).filter((value) => value !== null);
+        if (!points.length) return;
+        const low = Math.min(...points), high = Math.max(...points), padding = Math.max(.05, (high - low) * .35);
+        const min = low - padding, max = high + padding, width = rect.width, height = rect.height, left = 43, right = 18, top = 12, bottom = 31;
+        document.querySelector("#chartMax").textContent = max.toFixed(2); document.querySelector("#chartMid").textContent = ((min + max) / 2).toFixed(2); document.querySelector("#chartMin").textContent = min.toFixed(2);
+        document.querySelector("#chartStart").textContent = formatTime(entries[0].timestamp).slice(0, 5); document.querySelector("#chartMiddle").textContent = formatTime(entries[Math.floor(entries.length / 2)].timestamp).slice(0, 5); document.querySelector("#chartEnd").textContent = formatTime(entries.at(-1).timestamp).slice(0, 5);
+        ctx.beginPath(); ctx.strokeStyle = "#00ff55"; ctx.lineWidth = 2; ctx.shadowColor = "#00ff55"; ctx.shadowBlur = 5;
+        entries.forEach((entry, index) => { const value = numeric(entry.ph); if (value === null) return; const x = left + (index / Math.max(entries.length - 1, 1)) * (width - left - right); const y = top + ((max - value) / (max - min)) * (height - top - bottom); index ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      }
+      function updateLatest(latest) {
+        const ph = numeric(latest?.ph), voltage = numeric(latest?.voltage);
+        if (ph !== null) { document.querySelector("#phNow").textContent = ph.toFixed(2); document.querySelector("#phStatus").textContent = ph < 6.5 ? "ACIDIC" : ph > 7.5 ? "ALKALINE" : "NEUTRAL"; }
+        if (voltage !== null) document.querySelector("#voltNow").textContent = voltage.toFixed(2);
+        document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
+      }
+      function updateCalibration(points) {
+        const point = (key) => points?.[key]?.valid ? "COMPLETE" : "PENDING";
+        document.querySelector("#cal4").textContent = point("ph4"); document.querySelector("#cal7").textContent = point("ph7"); document.querySelector("#cal10").textContent = point("ph10");
+        const complete = ["ph4", "ph7", "ph10"].filter((key) => points?.[key]?.valid).length;
+        document.querySelector("#calibrationTitle").textContent = complete >= 2 ? "PROBE CALIBRATED" : "CALIBRATION REQUIRED";
+        document.querySelector("#calibrationNote").textContent = `${complete}/3 CALIBRATION POINTS COMPLETE`;
+        document.querySelector("#calibrationWarning").textContent = complete >= 2 ? "! CALIBRATION DATA LOADED" : "! AT LEAST 2 POINTS REQUIRED";
+      }
+      async function refreshDashboard() {
+        try {
+          const [latest, readings, points] = await Promise.all([request("latest.json"), request('readings.json?orderBy=%22$key%22&limitToLast=50'), request("calibration/points.json")]);
+          const entries = Object.values(readings || {}).filter((entry) => entry && entry.timestamp && numeric(entry.ph) !== null).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+          updateLatest(latest || {}); updateCalibration(points || {}); paintChart(entries);
+          document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); document.querySelector("#sessionReadings").textContent = entries.length;
+          document.querySelector("#avgPh").textContent = entries.length ? (entries.reduce((total, entry) => total + Number(entry.ph), 0) / entries.length).toFixed(2) : "--";
+          document.querySelector("#connectionStatus").textContent = "> SENSOR LINK ESTABLISHED"; document.querySelector(".chart-line").hidden = true;
+        } catch (error) { document.querySelector("#connectionStatus").textContent = "> SENSOR LINK OFFLINE — RETRYING"; console.warn("Firebase refresh failed:", error); }
+      }
+      updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
+    </script>
   </body>
 </html>
