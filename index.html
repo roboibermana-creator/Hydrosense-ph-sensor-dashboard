@@ -4,8 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1f292a" />
-    <title>HydroSense — pH Monitor</title>
+    <title>HydroSense — IoT Monitor</title>
     <link rel="stylesheet" href="style.css" />
+    <style>
+      .page-content { display: none !important; }
+      .page-content.active { display: grid !important; }
+    </style>
   </head>
   <body>
     <div class="console-frame">
@@ -19,19 +23,45 @@
           <div class="score-box"><span>READINGS</span><strong id="readingCount">000000</strong></div>
         </div>
       </header>
+      
       <div class="screen-layout" id="dashboard">
         <aside class="sidebar">
           <div class="profile"><img class="pixel-icon avatar" src="gambarpixel/user-avatar.svg" alt="User avatar" /><div><strong>OPERATOR_01</strong><span>ONLINE</span></div></div>
           <a class="calibrate-button" href="#calibration"><img class="pixel-icon" src="gambarpixel/calibration-tool.svg" alt="" /><span>CALIBRATE<br />PROBE</span></a>
           <nav class="side-nav" aria-label="Dashboard navigation">
-            <a class="active" href="#current-ph"><img class="pixel-icon" src="gambarpixel/real-time-icon.svg" alt="" />REAL-TIME</a>
-            <a href="#telemetry"><img class="pixel-icon" src="gambarpixel/history-icon.svg" alt="" />HISTORY</a>
-            <a href="#session-stats"><img class="pixel-icon" src="gambarpixel/log-book-1.svg" alt="" />SESSION LOG</a>
-            <a href="#calibration"><img class="pixel-icon" src="gambarpixel/settings-gear.svg" alt="" />SETTINGS</a>
+            <a class="nav-link active" href="#" data-target="page-dashboard-utama"><img class="pixel-icon" src="gambarpixel/real-time-icon.svg" alt="" />DASHBOARD UTAMA</a>
+            <a class="nav-link" href="#" data-target="page-ph-sensor"><img class="pixel-icon" src="gambarpixel/parameter-ph-tetesan.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="" />pH SENSOR</a>
+            <a class="nav-link" href="#" data-target="page-tss-sensor"><img class="pixel-icon" src="gambarpixel/parameter-tss-mgl.svg" onerror="this.src='gambarpixel/history-icon.svg'" alt="" />TSS SENSOR</a>
+            <a class="nav-link" href="#" data-target="page-water-level"><img class="pixel-icon" src="gambarpixel/parameter-water-level.svg" onerror="this.src='gambarpixel/settings-gear.svg'" alt="" />WATER LEVEL</a>
           </nav>
           <div class="side-tool"><img class="pixel-icon" src="gambarpixel/ph-probe-gear.svg" alt="pH probe gear" /></div>
         </aside>
-        <main class="dashboard-grid">
+        
+        <!-- PAGE 1: DASHBOARD UTAMA -->
+        <main class="dashboard-grid page-content active" id="page-dashboard-utama">
+          <section class="data-panel ph-panel">
+            <div class="panel-heading"><span>CURRENT PH</span><i>LIVE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-ph-tetesan.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="pH droplet" /><div><strong id="phNowSummary">6.85</strong><span>pH LEVEL</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="phStatusSummary">NEUTRAL</b><span class="signal">● ● ●</span></div>
+          </section>
+          <section class="data-panel voltage-panel">
+            <div class="panel-heading"><span>CURRENT TSS</span><i>LIVE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-tss-mgl.svg" onerror="this.src='gambarpixel/voltage-symbol.svg'" alt="TSS" /><div><strong id="tssNowSummary">0</strong><span>mg/L</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="tssStatusSummary">NORMAL</b><span class="signal amber">● ● ●</span></div>
+          </section>
+          <section class="data-panel ph-panel" style="grid-column: span 1;">
+            <div class="panel-heading"><span>WATER LEVEL</span><i>LIVE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-water-level.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="Water Level" /><div><strong id="wlNowSummary">0</strong><span>%</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="wlStatusSummary">SAFE</b><span class="signal">● ● ●</span></div>
+          </section>
+          <aside class="right-stack" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 17px; margin-top: 5px;">
+             <div class="warning" style="margin-top:0;">LOGIKA SPA: Halaman utama tidak tumpuk, setiap panel memuat data live dari Firebase.</div>
+             <p class="terminal-note" style="margin-top: 0;">&gt; SETIAP MENU MEMUAT KONTEN DINAMIS DENGAN LAYOUT SAMA, DATA BERBEDA</p>
+          </aside>
+        </main>
+        
+        <!-- PAGE 2: pH SENSOR -->
+        <main class="dashboard-grid page-content" id="page-ph-sensor">
           <section class="data-panel ph-panel" id="current-ph">
             <div class="panel-heading"><span>CURRENT PH</span><i>LIVE</i></div>
             <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/ph-droplet.svg" alt="pH droplet" /><div><strong id="phNow">6.85</strong><span>pH LEVEL</span></div></div>
@@ -60,12 +90,90 @@
             </section>
           </aside>
         </main>
+        
+        <!-- PAGE 3: TSS SENSOR -->
+        <main class="dashboard-grid page-content" id="page-tss-sensor">
+          <section class="data-panel ph-panel">
+            <div class="panel-heading"><span>CURRENT TSS</span><i>LIVE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-tss-mgl.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="TSS" /><div><strong id="tssNow">0</strong><span>mg/L</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="tssStatus">NORMAL</b><span class="signal">● ● ●</span></div>
+          </section>
+          <section class="data-panel voltage-panel">
+            <div class="panel-heading"><span>SENSOR TURBIDITY</span><i>STABLE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-tss-mgl.svg" onerror="this.src='gambarpixel/voltage-symbol.svg'" alt="NTU" /><div><strong id="ntuNow">0</strong><span>NTU</span></div></div>
+            <div class="panel-footer"><span>OFFSET:</span><b>+0.0 NTU</b><span class="signal amber">● ● ●</span></div>
+          </section>
+          <section class="data-panel telemetry-panel">
+            <div class="panel-heading"><span>TSS TELEMETRY</span><small>LAST 60 MINUTES</small></div>
+            <div class="chart-wrap"><canvas id="tssChart" aria-label="Grafik riwayat telemetri TSS"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top">100</span><span class="axis y-mid">50</span><span class="axis y-bottom">0</span></div>
+          </section>
+          <aside class="right-stack">
+            <section class="data-panel stats-panel">
+              <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/log-book-2.svg" alt="" /></div>
+              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd class="lastUpdateGeneric">--:--:--</dd></div><div><dt>AVG. TSS</dt><dd id="avgTss">--</dd></div></dl>
+              <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
+            </section>
+            <section class="data-panel calibration-panel">
+              <div class="panel-heading"><span>TSS CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/settings-gear.svg" alt="" /></div>
+              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/parameter-tss-mgl.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="" /><div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div></div>
+              <div class="calibration-rows"><div><span>Std A: 0 mg/L</span><b style="color:var(--neon)">COMPLETE</b></div><div><span>Std B: 100 mg/L</span><em style="color:var(--orange)">PENDING</em></div><div><span>Std C: 500 mg/L</span><em style="color:var(--orange)">PENDING</em></div></div>
+              <div class="warning">! CALIBRATION DATA LOADED</div>
+            </section>
+          </aside>
+        </main>
+        
+        <!-- PAGE 4: WATER LEVEL -->
+        <main class="dashboard-grid page-content" id="page-water-level">
+          <section class="data-panel ph-panel">
+            <div class="panel-heading"><span>CURRENT TANK LEVEL</span><i>LIVE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-water-level.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="Water Level" /><div><strong id="wlNow">0</strong><span>%</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="wlStatus">SAFE</b><span class="signal">● ● ●</span></div>
+          </section>
+          <section class="data-panel voltage-panel">
+            <div class="panel-heading"><span>ECHO DISTANCE</span><i>STABLE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/voltage-symbol.svg" alt="Distance" /><div><strong id="distNow">0</strong><span>cm</span></div></div>
+            <div class="panel-footer"><span>OFFSET:</span><b>0 cm</b><span class="signal amber">● ● ●</span></div>
+          </section>
+          <section class="data-panel telemetry-panel">
+            <div class="panel-heading"><span>LEVEL TELEMETRY</span><small>LAST 60 MINUTES</small></div>
+            <div class="chart-wrap"><canvas id="wlChart" aria-label="Grafik riwayat telemetri Level"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top">100</span><span class="axis y-mid">50</span><span class="axis y-bottom">0</span></div>
+          </section>
+          <aside class="right-stack">
+            <section class="data-panel stats-panel">
+              <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/log-book-2.svg" alt="" /></div>
+              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd class="lastUpdateGeneric">--:--:--</dd></div><div><dt>AVG. LEVEL</dt><dd id="avgWl">--</dd></div></dl>
+              <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
+            </section>
+            <section class="data-panel calibration-panel">
+              <div class="panel-heading"><span>WATER LEVEL CALIBRATION</span><img class="pixel-icon mini-icon" src="gambarpixel/settings-gear.svg" alt="" /></div>
+              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/parameter-water-level.svg" onerror="this.src='gambarpixel/ph-droplet.svg'" alt="" /><div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div></div>
+              <div class="calibration-rows"><div><span>High Setpoint: 80%</span><em style="color:var(--orange)">PENDING</em></div><div><span>Low Setpoint: 20%</span><em style="color:var(--orange)">PENDING</em></div><div><span>Tank Height: 200cm</span><b style="color:var(--neon)">COMPLETE</b></div></div>
+              <div class="warning">! CALIBRATION DATA LOADED</div>
+            </section>
+          </aside>
+        </main>
+        
       </div>
-      <footer class="console-footer"><span>HYDROSENSE pH MONITOR v1.0</span><span>SYS: NOMINAL</span><span>◉ LOCAL NODE CONNECTED</span></footer>
+      <footer class="console-footer"><span>HYDROSENSE IOT SYSTEM v2.0</span><span>SYS: NOMINAL</span><span>◉ LOCAL NODE CONNECTED</span></footer>
     </div>
     <script>
-      // ESP mengirim data ke path Firebase yang sama seperti dashboard sebelumnya.
-      // REST API dipakai agar tidak memerlukan Firebase SDK/CDN.
+      // Navigation Logic (SPA)
+      const navLinks = document.querySelectorAll('.nav-link');
+      const pages = document.querySelectorAll('.page-content');
+      
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          navLinks.forEach(l => l.classList.remove('active'));
+          pages.forEach(p => p.classList.remove('active'));
+          
+          link.classList.add('active');
+          const target = link.getAttribute('data-target');
+          document.getElementById(target).classList.add('active');
+        });
+      });
+
+      // Firebase Logic
       const FIREBASE_URL = "https://ph-sensor-monitor-11e27-default-rtdb.asia-southeast1.firebasedatabase.app";
       const numeric = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
       const request = async (path) => {
@@ -75,39 +183,101 @@
       };
       const formatTime = (seconds) => seconds ? new Date(Number(seconds) * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--";
       const formatDate = (seconds) => seconds ? new Date(Number(seconds) * 1000).toLocaleDateString("id-ID") : "--.--.----";
+      
       function updateClock() {
         const now = new Date();
         document.querySelector("#dateNow").textContent = `DATE // ${now.toLocaleDateString("id-ID")}`;
         document.querySelector("#timeNow").textContent = `${now.toLocaleTimeString("id-ID")} WIB`;
       }
-      function paintChart(entries) {
-        const canvas = document.querySelector("#teleChart"), rect = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
+      
+      function paintChart(entries, canvasId) {
+        const canvas = document.querySelector(canvasId);
+        if(!canvas) return;
+        const rect = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
         canvas.width = Math.max(1, Math.floor(rect.width * ratio)); canvas.height = Math.max(1, Math.floor(rect.height * ratio));
         const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        const points = entries.map((entry) => numeric(entry.ph)).filter((value) => value !== null);
+        
+        let mapFn;
+        if (canvasId === "#teleChart") mapFn = e => numeric(e.ph);
+        else if (canvasId === "#tssChart") mapFn = e => numeric(e.tss);
+        else if (canvasId === "#wlChart") mapFn = e => numeric(e.wl);
+        
+        const points = entries.map(mapFn).filter((value) => value !== null && value !== undefined);
         if (!points.length) return;
+        
         const low = Math.min(...points), high = Math.max(...points), padding = Math.max(.05, (high - low) * .35);
-        const min = low - padding, max = high + padding, width = rect.width, height = rect.height, left = 43, right = 18, top = 12, bottom = 31;
-        document.querySelector("#chartMax").textContent = max.toFixed(2); document.querySelector("#chartMid").textContent = ((min + max) / 2).toFixed(2); document.querySelector("#chartMin").textContent = min.toFixed(2);
-        document.querySelector("#chartStart").textContent = formatTime(entries[0].timestamp).slice(0, 5); document.querySelector("#chartMiddle").textContent = formatTime(entries[Math.floor(entries.length / 2)].timestamp).slice(0, 5); document.querySelector("#chartEnd").textContent = formatTime(entries.at(-1).timestamp).slice(0, 5);
+        let min = low - padding, max = high + padding;
+        if (canvasId === "#tssChart" || canvasId === "#wlChart") {
+           if (max - min < 1) { max += 10; min = Math.max(0, min - 10); }
+        }
+        
+        const width = rect.width, height = rect.height, left = 43, right = 18, top = 12, bottom = 31;
+        
+        if (canvasId === "#teleChart") {
+          document.querySelector("#chartMax").textContent = max.toFixed(2); document.querySelector("#chartMid").textContent = ((min + max) / 2).toFixed(2); document.querySelector("#chartMin").textContent = min.toFixed(2);
+          document.querySelector("#chartStart").textContent = formatTime(entries[0].timestamp).slice(0, 5); document.querySelector("#chartMiddle").textContent = formatTime(entries[Math.floor(entries.length / 2)].timestamp).slice(0, 5); document.querySelector("#chartEnd").textContent = formatTime(entries.at(-1).timestamp).slice(0, 5);
+        }
+        
         ctx.beginPath(); ctx.strokeStyle = "#00ff55"; ctx.lineWidth = 2; ctx.shadowColor = "#00ff55"; ctx.shadowBlur = 5;
-        entries.forEach((entry, index) => { const value = numeric(entry.ph); if (value === null) return; const x = left + (index / Math.max(entries.length - 1, 1)) * (width - left - right); const y = top + ((max - value) / (max - min)) * (height - top - bottom); index ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+        entries.forEach((entry, index) => { 
+          const value = mapFn(entry); 
+          if (value === null || value === undefined) return; 
+          const x = left + (index / Math.max(entries.length - 1, 1)) * (width - left - right); 
+          const y = top + ((max - value) / (max - min)) * (height - top - bottom); 
+          index ? ctx.lineTo(x, y) : ctx.moveTo(x, y); 
+        }); 
+        ctx.stroke();
       }
+      
       function updateLatest(latest, isConnected) {
         if (!isConnected) {
-          document.querySelector("#phNow").textContent = "-";
-          document.querySelector("#phStatus").textContent = "-";
-          document.querySelector("#voltNow").textContent = "-";
+          const els = ["#phNow", "#phStatus", "#voltNow", "#phNowSummary", "#phStatusSummary", "#tssNow", "#tssStatus", "#tssNowSummary", "#tssStatusSummary", "#ntuNow", "#wlNow", "#wlStatus", "#wlNowSummary", "#wlStatusSummary", "#distNow"];
+          els.forEach(selector => { const el = document.querySelector(selector); if(el) el.textContent = "-"; });
+          
           document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
+          document.querySelectorAll(".lastUpdateGeneric").forEach(el => el.textContent = formatTime(latest?.timestamp));
           return;
         }
+        
         const ph = numeric(latest?.ph), voltage = numeric(latest?.voltage);
-        if (ph !== null) { document.querySelector("#phNow").textContent = ph.toFixed(2); document.querySelector("#phStatus").textContent = ph < 6.5 ? "ACIDIC" : ph > 7.5 ? "ALKALINE" : "NEUTRAL"; }
-        else { document.querySelector("#phNow").textContent = "-"; document.querySelector("#phStatus").textContent = "-"; }
+        const tss = numeric(latest?.tss) || 0; 
+        const ntu = numeric(latest?.ntu) || 0;
+        const wl = numeric(latest?.wl) || 0; 
+        const dist = numeric(latest?.dist) || 0;
+        
+        // pH Sensor
+        if (ph !== null) { 
+          const txt = ph.toFixed(2);
+          const st = ph < 6.5 ? "ACIDIC" : ph > 7.5 ? "ALKALINE" : "NEUTRAL";
+          document.querySelector("#phNow").textContent = txt; document.querySelector("#phStatus").textContent = st; 
+          document.querySelector("#phNowSummary").textContent = txt; document.querySelector("#phStatusSummary").textContent = st; 
+        } else { 
+          document.querySelector("#phNow").textContent = "-"; document.querySelector("#phStatus").textContent = "-"; 
+          document.querySelector("#phNowSummary").textContent = "-"; document.querySelector("#phStatusSummary").textContent = "-"; 
+        }
         if (voltage !== null) { document.querySelector("#voltNow").textContent = voltage.toFixed(2); }
         else { document.querySelector("#voltNow").textContent = "-"; }
+        
+        // TSS Sensor
+        document.querySelector("#tssNow").textContent = tss.toFixed(1);
+        document.querySelector("#tssNowSummary").textContent = tss.toFixed(1);
+        const tssSt = tss < 50 ? "NORMAL" : "HIGH";
+        document.querySelector("#tssStatus").textContent = tssSt;
+        document.querySelector("#tssStatusSummary").textContent = tssSt;
+        document.querySelector("#ntuNow").textContent = ntu.toFixed(1);
+
+        // Water Level Sensor
+        document.querySelector("#wlNow").textContent = wl.toFixed(0);
+        document.querySelector("#wlNowSummary").textContent = wl.toFixed(0);
+        const wlSt = wl < 20 ? "LOW" : wl > 90 ? "HIGH" : "SAFE";
+        document.querySelector("#wlStatus").textContent = wlSt;
+        document.querySelector("#wlStatusSummary").textContent = wlSt;
+        document.querySelector("#distNow").textContent = dist.toFixed(0);
+
         document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
+        document.querySelectorAll(".lastUpdateGeneric").forEach(el => el.textContent = formatTime(latest?.timestamp));
       }
+      
       function updateCalibration(points) {
         const point = (key) => points?.[key]?.valid ? "COMPLETE" : "PENDING";
         document.querySelector("#cal4").textContent = point("ph4"); document.querySelector("#cal7").textContent = point("ph7"); document.querySelector("#cal10").textContent = point("ph10");
@@ -116,21 +286,33 @@
         document.querySelector("#calibrationNote").textContent = `${complete}/3 CALIBRATION POINTS COMPLETE`;
         document.querySelector("#calibrationWarning").textContent = complete >= 2 ? "! CALIBRATION DATA LOADED" : "! AT LEAST 2 POINTS REQUIRED";
       }
+      
       async function refreshDashboard() {
         try {
           const [latest, readings, points] = await Promise.all([request("latest.json"), request('readings.json?orderBy=%22$key%22&limitToLast=50'), request("calibration/points.json")]);
-          const entries = Object.values(readings || {}).filter((entry) => entry && entry.timestamp && numeric(entry.ph) !== null).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+          const entries = Object.values(readings || {}).filter((entry) => entry && entry.timestamp).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
           
           const nowSeconds = Math.floor(Date.now() / 1000);
           const isConnected = latest && latest.timestamp && (nowSeconds - Number(latest.timestamp) < 60);
 
           updateLatest(latest || {}, isConnected); 
           updateCalibration(points || {}); 
-          paintChart(entries);
+          
+          paintChart(entries, "#teleChart");
+          paintChart(entries, "#tssChart");
+          paintChart(entries, "#wlChart");
           
           document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); 
           document.querySelector("#sessionReadings").textContent = entries.length;
-          document.querySelector("#avgPh").textContent = entries.length ? (entries.reduce((total, entry) => total + Number(entry.ph), 0) / entries.length).toFixed(2) : "--";
+          
+          const phEntries = entries.filter(e => numeric(e.ph) !== null);
+          document.querySelector("#avgPh").textContent = phEntries.length ? (phEntries.reduce((total, entry) => total + Number(entry.ph), 0) / phEntries.length).toFixed(2) : "--";
+          
+          const tssEntries = entries.filter(e => numeric(e.tss) !== null);
+          document.querySelector("#avgTss").textContent = tssEntries.length ? (tssEntries.reduce((total, entry) => total + Number(entry.tss), 0) / tssEntries.length).toFixed(1) : "0";
+          
+          const wlEntries = entries.filter(e => numeric(e.wl) !== null);
+          document.querySelector("#avgWl").textContent = wlEntries.length ? (wlEntries.reduce((total, entry) => total + Number(entry.wl), 0) / wlEntries.length).toFixed(0) + "%" : "0%";
           
           if (isConnected) {
             document.querySelector("#connectionStatus").textContent = "WIFI ONLINE"; 
@@ -139,13 +321,14 @@
             document.querySelector("#connectionStatus").textContent = "DISCONNECTED"; 
             document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; 
           }
-          document.querySelector(".chart-line").hidden = true;
+          document.querySelectorAll(".chart-line").forEach(el => el.hidden = true);
         } catch (error) { 
           document.querySelector("#connectionStatus").textContent = "WIFI OFFLINE"; 
           document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; 
           console.warn("Firebase refresh failed:", error); 
         }
       }
+      
       updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
     </script>
   </body>
