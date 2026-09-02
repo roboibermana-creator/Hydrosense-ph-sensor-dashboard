@@ -93,10 +93,19 @@
         ctx.beginPath(); ctx.strokeStyle = "#00ff55"; ctx.lineWidth = 2; ctx.shadowColor = "#00ff55"; ctx.shadowBlur = 5;
         entries.forEach((entry, index) => { const value = numeric(entry.ph); if (value === null) return; const x = left + (index / Math.max(entries.length - 1, 1)) * (width - left - right); const y = top + ((max - value) / (max - min)) * (height - top - bottom); index ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
       }
-      function updateLatest(latest) {
+      function updateLatest(latest, isConnected) {
+        if (!isConnected) {
+          document.querySelector("#phNow").textContent = "-";
+          document.querySelector("#phStatus").textContent = "-";
+          document.querySelector("#voltNow").textContent = "-";
+          document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
+          return;
+        }
         const ph = numeric(latest?.ph), voltage = numeric(latest?.voltage);
         if (ph !== null) { document.querySelector("#phNow").textContent = ph.toFixed(2); document.querySelector("#phStatus").textContent = ph < 6.5 ? "ACIDIC" : ph > 7.5 ? "ALKALINE" : "NEUTRAL"; }
-        if (voltage !== null) document.querySelector("#voltNow").textContent = voltage.toFixed(2);
+        else { document.querySelector("#phNow").textContent = "-"; document.querySelector("#phStatus").textContent = "-"; }
+        if (voltage !== null) { document.querySelector("#voltNow").textContent = voltage.toFixed(2); }
+        else { document.querySelector("#voltNow").textContent = "-"; }
         document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
       }
       function updateCalibration(points) {
@@ -111,11 +120,31 @@
         try {
           const [latest, readings, points] = await Promise.all([request("latest.json"), request('readings.json?orderBy=%22$key%22&limitToLast=50'), request("calibration/points.json")]);
           const entries = Object.values(readings || {}).filter((entry) => entry && entry.timestamp && numeric(entry.ph) !== null).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
-          updateLatest(latest || {}); updateCalibration(points || {}); paintChart(entries);
-          document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); document.querySelector("#sessionReadings").textContent = entries.length;
+          
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const isConnected = latest && latest.timestamp && (nowSeconds - Number(latest.timestamp) < 60);
+
+          updateLatest(latest || {}, isConnected); 
+          updateCalibration(points || {}); 
+          paintChart(entries);
+          
+          document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); 
+          document.querySelector("#sessionReadings").textContent = entries.length;
           document.querySelector("#avgPh").textContent = entries.length ? (entries.reduce((total, entry) => total + Number(entry.ph), 0) / entries.length).toFixed(2) : "--";
-          document.querySelector("#connectionStatus").textContent = "WIFI ONLINE"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online"; document.querySelector(".chart-line").hidden = true;
-        } catch (error) { document.querySelector("#connectionStatus").textContent = "WIFI OFFLINE"; document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; console.warn("Firebase refresh failed:", error); }
+          
+          if (isConnected) {
+            document.querySelector("#connectionStatus").textContent = "WIFI ONLINE"; 
+            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online"; 
+          } else {
+            document.querySelector("#connectionStatus").textContent = "DISCONNECTED"; 
+            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; 
+          }
+          document.querySelector(".chart-line").hidden = true;
+        } catch (error) { 
+          document.querySelector("#connectionStatus").textContent = "WIFI OFFLINE"; 
+          document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; 
+          console.warn("Firebase refresh failed:", error); 
+        }
       }
       updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
     </script>
