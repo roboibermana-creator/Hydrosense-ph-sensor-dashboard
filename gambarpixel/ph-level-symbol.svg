@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60">
+  <rect x="2" y="2" width="116" height="56" rx="4" fill="#0e2422"/>
+  <text x="60" y="30" font-family="'Courier New', monospace" font-weight="bold" font-size="18" fill="#eaf6f8" text-anchor="middle">pH</text>
+  <text x="60" y="50" font-family="'Courier New', monospace" font-weight="bold" font-size="16" fill="#eaf6f8" text-anchor="middle">LEVEL</text>
+</svg>

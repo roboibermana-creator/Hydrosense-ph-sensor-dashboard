@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <linearGradient id="dropPhS" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#6fe4ff"/>
+    <stop offset="100%" stop-color="#1a8fd1"/>
+  </linearGradient>
+  <path d="M32 14 C32 14 20 30 20 39 A12 12 0 0 0 44 39 C44 30 32 14 32 14 Z" fill="url(#dropPhS)" stroke="#0d5f8f" stroke-width="2"/>
+  <ellipse cx="27" cy="35" rx="2.5" ry="4.5" fill="#bdf3ff" opacity="0.7"/>
+</svg>
