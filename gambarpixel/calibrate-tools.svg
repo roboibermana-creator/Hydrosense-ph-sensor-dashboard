@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- wrench: handle bottom-left -> head top-right -->
+  <g stroke="#0f1a17" stroke-width="2" stroke-linejoin="round">
+    <path d="M12 54 L16 58 L38 36 L34 32 Z" fill="#a6efbb"/>
+    <path d="M34 30 L42 22 L36 16 L42 10 A12 12 0 0 1 50 30 L44 34 Z" fill="#e4eedb"/>
+  </g>
+  <!-- screwdriver: handle bottom-right -> tip top-left -->
+  <g stroke="#0f1a17" stroke-width="2" stroke-linejoin="round">
+    <path d="M52 58 L42 48 L48 42 L58 52 Z" fill="#ffab42"/>
+    <path d="M42 48 L36 42 L40 38 L46 44 Z" fill="#789982"/>
+    <path d="M36 42 L20 26 L24 22 L40 38 Z" fill="#e4eedb"/>
+    <path d="M20 26 L14 20 L18 16 L24 22 Z" fill="#a6efbb"/>
+  </g>
+  <!-- calibration spark -->
+  <path d="M32 4 l3 6 6 3 -6 3 -3 6 -3 -6 -6 -3 6 -3 z" fill="#00ff55"/>
+</svg>

@@ -20,6 +20,20 @@
       @media (max-width: 690px) {
          #page-dashboard-utama { grid-template-columns: 1fr; }
       }
+      #page-ph-sensor { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(270px, .9fr); }
+      #page-ph-sensor .telemetry-panel { grid-column: 1 / 4; }
+      #page-ph-sensor .right-stack { grid-column: 4; }
+      @media (max-width: 1100px) {
+         #page-ph-sensor { grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(270px, .9fr); grid-template-rows: auto auto 1fr; }
+         #page-ph-sensor .temp-panel { grid-column: 1 / 3; min-height: 0; }
+         #page-ph-sensor .temp-panel .reading { min-height: 110px; }
+         #page-ph-sensor .telemetry-panel { grid-column: 1 / 3; }
+         #page-ph-sensor .right-stack { grid-column: 3; grid-row: 1 / 4; }
+      }
+      @media (max-width: 690px) {
+         #page-ph-sensor { grid-template-columns: 1fr; grid-template-rows: none; }
+         #page-ph-sensor .temp-panel, #page-ph-sensor .telemetry-panel, #page-ph-sensor .right-stack { grid-column: auto; grid-row: auto; }
+      }
     </style>
   </head>
   <body>
@@ -37,15 +51,15 @@
       
       <div class="screen-layout" id="dashboard">
         <aside class="sidebar">
-          <div class="profile"><img class="pixel-icon avatar" src="gambarpixel/avatar-operator.svg" alt="User avatar" /><div><strong>OPERATOR_01</strong><span>ONLINE</span></div></div>
-          <a class="calibrate-button" href="#calibration"><img class="pixel-icon" src="gambarpixel/calibration-tools.svg" alt="" /><span>CALIBRATE<br />PROBE</span></a>
+          <div class="profile"><img class="pixel-icon avatar" src="gambarpixel/kotak-profil-operator-menu.svg" alt="User avatar" style="object-fit:contain;" /><div><strong>OPERATOR_01</strong><span>ONLINE</span></div></div>
+          <a class="calibrate-button" href="#calibration"><img class="pixel-icon" src="gambarpixel/calibrate-tools.svg" alt="" /><span>CALIBRATE<br />PROBE</span></a>
           <nav class="side-nav" aria-label="Dashboard navigation">
             <a class="nav-link active" href="#" data-target="page-dashboard-utama"><img class="pixel-icon" src="gambarpixel/real-time-icon.svg" alt="" />DASHBOARD UTAMA</a>
             <a class="nav-link" href="#" data-target="page-ph-sensor"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" />pH SENSOR</a>
             <a class="nav-link" href="#" data-target="page-tss-sensor"><img class="pixel-icon" src="gambarpixel/tss-cluster-small.svg" alt="" />TSS SENSOR</a>
             <a class="nav-link" href="#" data-target="page-water-level"><img class="pixel-icon" src="gambarpixel/level-wave-status.svg" alt="" />WATER LEVEL</a>
           </nav>
-          <div class="side-tool"><img class="pixel-icon" src="gambarpixel/calibration-tools.svg" alt="" /></div>
+          <div class="side-tool"><img class="pixel-icon" src="gambarpixel/ph-probe-gear.svg" alt="" style="object-fit:contain;" /></div>
         </aside>
         
         <!-- PAGE 1: DASHBOARD UTAMA -->
@@ -60,6 +74,7 @@
             </div>
             <div class="panel-footer" style="justify-content: space-between;"><span>STATUS:</span><b id="phStatusSummaryText" style="color:var(--neon); margin-left: auto;">LIVE <span class="signal" style="margin-left:5px;">&#9679;</span></b></div>
             <div class="panel-footer" style="border-top: none; padding-top: 5px; justify-content: space-between;"><span>PROBE VOLTAGE:</span><b id="voltNowSummary" style="color:var(--orange); font-weight:normal; margin-left: auto;">1385.55 mV</b></div>
+            <div class="panel-footer" style="border-top: none; padding-top: 5px; justify-content: space-between;"><span>WATER TEMP:</span><b id="tempNowSummary" style="color:var(--orange); font-weight:normal; margin-left: auto;">-- &deg;C</b></div>
           </section>
 
           <!-- RINGKASAN TSS -->
@@ -152,6 +167,11 @@
             <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-voltage-petir.svg" alt="Voltage" /><div><strong id="voltNow">1385.55</strong><span>mV</span></div></div>
             <div class="panel-footer"><span>OFFSET:</span><b id="probeOffset">+00.02 mV</b><span class="signal amber">&#9679; &#9679; &#9679;</span></div>
           </section>
+          <section class="data-panel temp-panel" id="water-temp">
+            <div class="panel-heading"><span>WATER TEMP</span><i>LIVE</i></div>
+            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/temp-thermometer-large.svg" alt="Thermometer" /><div><strong id="tempNow">--</strong><span>&deg;C</span></div></div>
+            <div class="panel-footer"><span>STATUS:</span><b id="tempStatus">--</b><span class="signal">&#9679; &#9679; &#9679;</span></div>
+          </section>
           <section class="data-panel telemetry-panel" id="telemetry">
             <div class="panel-heading"><span>TELEMETRY HISTORY</span><small>LAST 60 MINUTES</small></div>
             <div class="chart-wrap"><canvas id="teleChart" aria-label="Grafik riwayat telemetri pH"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top" id="chartMax">7.20</span><span class="axis y-mid" id="chartMid">6.85</span><span class="axis y-bottom" id="chartMin">6.50</span><span class="axis x-left" id="chartStart">13:32</span><span class="axis x-mid" id="chartMiddle">14:02</span><span class="axis x-right" id="chartEnd">14:32</span></div>
@@ -159,7 +179,7 @@
           <aside class="right-stack">
             <section class="data-panel stats-panel" id="session-stats">
               <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" /></div>
-              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd id="lastUpdate">--:--:--</dd></div><div><dt>READINGS</dt><dd id="sessionReadings">0</dd></div><div><dt>AVG. PH</dt><dd id="avgPh">--</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
+              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd id="lastUpdate">--:--:--</dd></div><div><dt>READINGS</dt><dd id="sessionReadings">0</dd></div><div><dt>AVG. PH</dt><dd id="avgPh">--</dd></div><div><dt>AVG. TEMP</dt><dd id="avgTemp">--</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
               <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
             </section>
             <section class="data-panel calibration-panel" id="calibration">
@@ -311,8 +331,8 @@
       
       function updateLatest(latest, isConnected) {
         if (!isConnected) {
-          const els = ["#phNow", "#phStatus", "#voltNow", "#phNowSummary", "#phStatusSummary", "#tssNow", "#tssStatus", "#tssNowSummary", "#tssStatusSummary", "#ntuNow", "#wlNow", "#wlStatus", "#wlNowSummary", "#wlStatusSummary", "#distNow"];
-          els.forEach(selector => { const el = document.querySelector(selector); if(el) el.textContent = "-"; }); document.querySelector("#phStatusSummaryText").innerHTML = "-"; document.querySelector("#tssStatusSummaryText").innerHTML = "-"; document.querySelector("#wlStatusSummaryText").innerHTML = "-"; document.querySelector("#voltNowSummary").textContent = "-"; document.querySelector("#ntuNowSummary").textContent = "-"; document.querySelector("#distNowSummary").textContent = "-";
+          const els = ["#phNow", "#phStatus", "#voltNow", "#tempNow", "#tempStatus", "#phNowSummary", "#phStatusSummary", "#tssNow", "#tssStatus", "#tssNowSummary", "#tssStatusSummary", "#ntuNow", "#wlNow", "#wlStatus", "#wlNowSummary", "#wlStatusSummary", "#distNow"];
+          els.forEach(selector => { const el = document.querySelector(selector); if(el) el.textContent = "-"; }); document.querySelector("#phStatusSummaryText").innerHTML = "-"; document.querySelector("#tssStatusSummaryText").innerHTML = "-"; document.querySelector("#wlStatusSummaryText").innerHTML = "-"; document.querySelector("#voltNowSummary").textContent = "-"; document.querySelector("#tempNowSummary").textContent = "-"; document.querySelector("#ntuNowSummary").textContent = "-"; document.querySelector("#distNowSummary").textContent = "-";
           
           document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
           document.querySelectorAll(".lastUpdateGeneric").forEach(el => el.textContent = formatTime(latest?.timestamp));
@@ -320,6 +340,7 @@
         }
         
         const ph = numeric(latest?.ph), voltage = numeric(latest?.voltage);
+        const temp = numeric(latest?.temp ?? latest?.temperature);
         const tss = numeric(latest?.tss) || 0; 
         const ntu = numeric(latest?.ntu) || 0;
         const wl = numeric(latest?.wl) || 0; 
@@ -337,6 +358,14 @@
         }
         if (voltage !== null) { document.querySelector("#voltNow").textContent = voltage.toFixed(2); document.querySelector("#voltNowSummary").textContent = voltage.toFixed(2) + " mV"; }
         else { document.querySelector("#voltNow").textContent = "-"; }
+        if (temp !== null) {
+          const tempSt = temp < 20 ? "COLD" : temp > 32 ? "HOT" : "NORMAL";
+          document.querySelector("#tempNow").textContent = temp.toFixed(1); document.querySelector("#tempStatus").textContent = tempSt;
+          document.querySelector("#tempNowSummary").textContent = temp.toFixed(1) + " \u00B0C";
+        } else {
+          document.querySelector("#tempNow").textContent = "-"; document.querySelector("#tempStatus").textContent = "-";
+          document.querySelector("#tempNowSummary").textContent = "-";
+        }
         
         // TSS Sensor
         document.querySelector("#tssNow").textContent = tss.toFixed(1);
@@ -392,6 +421,9 @@
           const phEntries = entries.filter(e => numeric(e.ph) !== null);
           document.querySelector("#avgPh").textContent = phEntries.length ? (phEntries.reduce((total, entry) => total + Number(entry.ph), 0) / phEntries.length).toFixed(2) : "--";
           document.querySelector("#avgPhSummary").textContent = document.querySelector("#avgPh").textContent;
+
+          const tempEntries = entries.filter(e => numeric(e.temp ?? e.temperature) !== null);
+          document.querySelector("#avgTemp").textContent = tempEntries.length ? (tempEntries.reduce((total, entry) => total + Number(entry.temp ?? entry.temperature), 0) / tempEntries.length).toFixed(1) + " \u00B0C" : "--";
           
           const tssEntries = entries.filter(e => numeric(e.tss) !== null);
           document.querySelector("#avgTss").textContent = tssEntries.length ? (tssEntries.reduce((total, entry) => total + Number(entry.tss), 0) / tssEntries.length).toFixed(1) : "0";
