@@ -118,9 +118,12 @@ KontrolManual bacaKontrolDariSupabase() {
 
   if (!wifiTersambung()) return hasil;
 
+  // order by id.desc (kolom identity, selalu naik) -> jangan pakai updated_at
+  // karena kolom itu bisa NULL kalau tidak di-set eksplisit saat INSERT dari
+  // web, sehingga urutan "terbaru" jadi tidak reliable.
   HTTPClient http;
   String url = String(SUPABASE_URL) + "/rest/v1/" + TABLE_MODE +
-               "?select=mode,valve_cmd,pump_cmd&order=updated_at.desc&limit=1";
+               "?select=id,mode,valve_cmd,pump_cmd&order=id.desc&limit=1";
   http.begin(url);
   http.addHeader("apikey", SUPABASE_API_KEY);
   http.addHeader("Authorization", String("Bearer ") + SUPABASE_API_KEY);
@@ -136,7 +139,11 @@ KontrolManual bacaKontrolDariSupabase() {
       hasil.valveCmd = String((const char*)(baris["valve_cmd"] | "tutup"));
       hasil.pumpCmd  = String((const char*)(baris["pump_cmd"]  | "berhenti"));
       hasil.ok = true;
+    } else {
+      Serial.printf("[SUPABASE] Gagal parse kontrol: %s\n", respon.c_str());
     }
+  } else {
+    Serial.printf("[SUPABASE] GET system_control gagal, HTTP %d\n", kodeHttp);
   }
   http.end();
   return hasil;
