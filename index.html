@@ -62,7 +62,7 @@
             <a class="nav-link" href="#" data-target="page-ph-sensor"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" />pH SENSOR</a>
             <a class="nav-link" href="#" data-target="page-tss-sensor"><img class="pixel-icon" src="gambarpixel/tss-cluster-small.svg" alt="" />TSS SENSOR</a>
             <a class="nav-link" href="#" data-target="page-water-level"><img class="pixel-icon" src="gambarpixel/level-wave-status.svg" alt="" />WATER LEVEL</a>
-            <a class="nav-link" href="#" data-target="page-control-valve"><img class="pixel-icon" src="gambarpixel/menu valve off/icons/icon_control_valve_compa.png" alt="" />CONTROL VALVE &amp; POMPA</a>
+            <a class="nav-link" href="#" data-target="page-control-valve"><img class="pixel-icon" src="gambarpixel/controls/icon_control_valve_compa.png" alt="" />CONTROL VALVE &amp; POMPA</a>
           </nav>
           <div class="side-tool"><img class="pixel-icon" src="gambarpixel/ph-probe-gear.svg" alt="" style="object-fit:contain;" /></div>
         </aside>
@@ -278,7 +278,7 @@
                 <div class="toggle-row">
                   <span>VALVE: BUKA / TUTUP</span>
                   <button type="button" class="toggle-switch" id="valveToggle" role="switch" aria-checked="false" aria-label="Buka atau tutup valve">
-                    <img id="valveToggleImg" src="gambarpixel/menu valve off/ui-controls/toggle_switch_off_red.png" alt="" />
+                    <img id="valveToggleImg" src="gambarpixel/controls/toggle_switch_off_red.png" alt="" />
                   </button>
                   <b class="state-label off" id="valveStateLabel">TUTUP</b>
                 </div>
@@ -290,7 +290,7 @@
                 <div class="toggle-row">
                   <span>POMPA: JALAN / BERHENTI</span>
                   <button type="button" class="toggle-switch" id="pumpToggle" role="switch" aria-checked="false" aria-label="Jalankan atau hentikan pompa">
-                    <img id="pumpToggleImg" src="gambarpixel/menu valve off/ui-controls/toggle_switch_off_red.png" alt="" />
+                    <img id="pumpToggleImg" src="gambarpixel/controls/toggle_switch_off_red.png" alt="" />
                   </button>
                   <b class="state-label off" id="pumpStateLabel">BERHENTI</b>
                 </div>
@@ -588,8 +588,8 @@
 
       // Control Valve & Pompa — kirim perintah manual ke Supabase (dibaca ESP32 dari tabel system_control)
       (function () {
-        const TOGGLE_ON = "gambarpixel/menu valve off/ui-controls/toggle_switch_on_green.png";
-        const TOGGLE_OFF = "gambarpixel/menu valve off/ui-controls/toggle_switch_off_red.png";
+        const TOGGLE_ON = "gambarpixel/controls/toggle_switch_on_green.png";
+        const TOGGLE_OFF = "gambarpixel/controls/toggle_switch_off_red.png";
         const VALVE_OPEN = "gambarpixel/valve/valve-open.png";
         const VALVE_CLOSED = "gambarpixel/valve/valve-closed.png";
         const PUMP_RUN = "gambarpixel/valve/pump-running.png";
