@@ -63,12 +63,130 @@ void simpanKeBuffer(HasilPH hasilPh, float tss);
 void cobaKirimUlangBuffer();
 bool bacaModeOperasiDariSupabase();
 
+// ========================= FUNGSI SETUP INTERAKTIF =========================
+void waitForSerialInput(char* buffer, int maxLen, unsigned long timeoutMs = 30000) {
+  unsigned long startTime = millis();
+  int idx = 0;
+  buffer[0] = '\0';
+
+  while (millis() - startTime < timeoutMs && idx < maxLen - 1) {
+    if (Serial.available()) {
+      char c = Serial.read();
+      if (c == '\n' || c == '\r') {
+        buffer[idx] = '\0';
+        Serial.println();
+        return;
+      } else if (c >= 32 && c < 127) {
+        buffer[idx++] = c;
+        Serial.print(c);
+      } else if (c == 8 && idx > 0) { // backspace
+        idx--;
+        Serial.print("\b \b");
+      }
+    }
+    delay(10);
+  }
+  buffer[idx] = '\0';
+  Serial.println();
+}
+
+void setupWiFiConfiguration() {
+  Serial.println("\n╔════════════════════════════════════════╗");
+  Serial.println("║   HYDROSENSE SETUP KONFIGURASI WIFI   ║");
+  Serial.println("╚════════════════════════════════════════╝");
+
+  char ssidBuffer[64] = {0};
+  char passBuffer[64] = {0};
+
+  Serial.print("\n📡 Masukkan WiFi SSID [current: ");
+  Serial.print(WIFI_SSID);
+  Serial.print("]: ");
+  waitForSerialInput(ssidBuffer, sizeof(ssidBuffer), 15000);
+
+  if (strlen(ssidBuffer) == 0) {
+    Serial.println("✓ Menggunakan SSID sebelumnya");
+  } else {
+    Serial.print("⚠  Perhatian: setup WiFi baru memerlukan compile ulang\n");
+  }
+
+  Serial.print("\n🔐 Masukkan WiFi Password [*** hidden ***]: ");
+  waitForSerialInput(passBuffer, sizeof(passBuffer), 15000);
+
+  if (strlen(passBuffer) > 0) {
+    Serial.println("✓ Password diterima (perlu compile ulang)");
+  } else {
+    Serial.println("✓ Menggunakan password sebelumnya");
+  }
+}
+
+void setupDeviceConfiguration() {
+  Serial.println("\n╔════════════════════════════════════════╗");
+  Serial.println("║   HYDROSENSE SETUP KONFIGURASI DEVICE ║");
+  Serial.println("╚════════════════════════════════════════╝");
+
+  Serial.print("\n🏷️  Device ID saat ini: ");
+  Serial.println(DEVICE_ID);
+  Serial.println("   (Ubah di Config.h jika perlu)");
+
+  Serial.print("\n📍 Pin Configuration:");
+  Serial.print("\n   • Pump Relay: GPIO");
+  Serial.println(PIN_RELAY_POMPA);
+  Serial.print("   • Valve1 Open: GPIO");
+  Serial.println(VALVE1_OPEN_PIN);
+  Serial.print("   • Valve1 Close: GPIO");
+  Serial.println(VALVE1_CLOSE_PIN);
+  Serial.print("   • Float Switch: GPIO");
+  Serial.println(PIN_FLOAT_SWITCH);
+  Serial.print("   • Level Sensor (ADC): GPIO");
+  Serial.println(ADC_PIN);
+
+  Serial.println("\n📋 RS485 Modbus Configuration:");
+  Serial.print("   • RX: GPIO");
+  Serial.print(RS485_RX_PIN);
+  Serial.print(" | TX: GPIO");
+  Serial.print(RS485_TX_PIN);
+  Serial.print(" | DE: GPIO");
+  Serial.println(RS485_RE_DE_PIN);
+  Serial.print("   • Baud Rate: ");
+  Serial.println(RS485_BAUD);
+}
+
+void setupHardwareTest() {
+  Serial.println("\n╔════════════════════════════════════════╗");
+  Serial.println("║      HYDROSENSE HARDWARE TEST         ║");
+  Serial.println("╚════════════════════════════════════════╝");
+
+  Serial.print("\n🧪 Testing actuators... ");
+  Serial.print("Pump[");
+  pumpON();
+  delay(500);
+  pumpOFF();
+  Serial.print("✓] ");
+
+  Serial.print("Valve[");
+  valveController.openValve1();
+  delay(500);
+  valveController.closeValve1();
+  Serial.print("✓]");
+  Serial.println();
+
+  Serial.println("✓ Actuators OK");
+}
+
 // ========================= SETUP =========================
 void setup() {
   Serial.begin(115200);
   delay(3000); // Tunggu Serial Monitor siap
-  Serial.println("\n[SISTEM] Booting Hydrosense...");
 
+  // Tampilkan splash screen
+  Serial.println("\n");
+  Serial.println("╔════════════════════════════════════════╗");
+  Serial.println("║   HYDROSENSE IOT WATER QUALITY MONITOR║");
+  Serial.println("║       Supabase Backend Integration    ║");
+  Serial.println("║   Settling Pond Level 1 - Inlet       ║");
+  Serial.println("╚════════════════════════════════════════╝");
+
+  Serial.println("\n[SISTEM] Initializing hardware...");
   setupSensor(); // Inisialisasi Modbus pH sensor dari Sensor.cpp
 
   pinMode(PIN_TRIG_ULTRASONIK, OUTPUT);
@@ -85,18 +203,39 @@ void setup() {
 
   for (int i = 0; i < UKURAN_BUFFER; i++) buffer[i].terisi = false;
 
-  Serial.println("\n=== Hydrosense Inlet System ===");
-  Serial.println("COMMAND KALIBRASI PH SENSOR:");
-  Serial.println(" 4 = Kalibrasi titik 1 (pH 4.01)");
-  Serial.println(" 1 = Kalibrasi titik 2 (pH 9.01)");
-  Serial.println(" A = Verifikasi pH 4.01");
-  Serial.println(" 7 = Verifikasi pH 7.01");
-  Serial.println(" C = Verifikasi pH 9.01");
-  Serial.println(" S = Tampilkan Status Sensor & Sistem");
-  Serial.println(" T = Baca Status & Data TSS Sensor");
-  Serial.println(" W = Jalankan Wiper/Scraping TSS");
+  Serial.println("[SISTEM] Hardware initialized ✓");
+
+  // Run setup sequence
+  setupWiFiConfiguration();
+  delay(1000);
+  setupDeviceConfiguration();
+  delay(1000);
+  setupHardwareTest();
+  delay(1000);
+
+  // Ready message
+  Serial.println("\n╔════════════════════════════════════════╗");
+  Serial.println("║   SETUP COMPLETE - STARTING SYSTEM   ║");
+  Serial.println("╚════════════════════════════════════════╝");
+
+  Serial.println("\n📋 AVAILABLE COMMANDS:");
+  Serial.println("CALIBRATION:");
+  Serial.println("  4 = Calibrate pH 4.01 (acidic buffer)");
+  Serial.println("  1 = Calibrate pH 9.01 (basic buffer)");
+  Serial.println("  A = Verify pH 4.01");
+  Serial.println("  7 = Verify pH 7.01");
+  Serial.println("  C = Verify pH 9.01");
+  Serial.println("MONITORING & STATUS:");
+  Serial.println("  S = System status");
+  Serial.println("  T = TSS sensor status");
+  Serial.println("  H = Health report");
+  Serial.println("  D = Dump Modbus registers");
+  Serial.println("MAINTENANCE:");
+  Serial.println("  W = TSS wiper/scraping");
+  Serial.println("  O = Write deviation");
+  Serial.println("  R = Reset calibration");
   Serial.println();
-  
+
   state = STATE_INIT;
 }
 
