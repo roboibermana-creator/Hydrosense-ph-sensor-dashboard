@@ -34,6 +34,10 @@
          #page-ph-sensor { grid-template-columns: 1fr; grid-template-rows: none; }
          #page-ph-sensor .temp-panel, #page-ph-sensor .telemetry-panel, #page-ph-sensor .right-stack { grid-column: auto; grid-row: auto; }
       }
+      #page-control-valve .control-panel { grid-column: 1 / 3; grid-row: 1 / 3; }
+      @media (max-width: 690px) {
+         #page-control-valve .control-panel { grid-column: auto; grid-row: auto; }
+      }
     </style>
   </head>
   <body>
@@ -58,6 +62,7 @@
             <a class="nav-link" href="#" data-target="page-ph-sensor"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" />pH SENSOR</a>
             <a class="nav-link" href="#" data-target="page-tss-sensor"><img class="pixel-icon" src="gambarpixel/tss-cluster-small.svg" alt="" />TSS SENSOR</a>
             <a class="nav-link" href="#" data-target="page-water-level"><img class="pixel-icon" src="gambarpixel/level-wave-status.svg" alt="" />WATER LEVEL</a>
+            <a class="nav-link" href="#" data-target="page-control-valve"><img class="pixel-icon" src="gambarpixel/menu valve off/icons/icon_control_valve_compa.png" alt="" />CONTROL VALVE &amp; POMPA</a>
           </nav>
           <div class="side-tool"><img class="pixel-icon" src="gambarpixel/ph-probe-gear.svg" alt="" style="object-fit:contain;" /></div>
         </aside>
@@ -252,11 +257,84 @@
             </section>
           </aside>
         </main>
-        
+
+        <!-- PAGE 5: CONTROL VALVE & POMPA -->
+        <main class="dashboard-grid page-content" id="page-control-valve">
+          <section class="data-panel control-panel" id="valve-pompa-panel" style="padding: 16px;">
+            <div class="panel-heading"><span>KONTROL VALVE &amp; POMPA</span></div>
+            <div class="valve-diagram">
+              <div class="tank-wrap">
+                <div class="tank-glass">
+                  <div class="tank-body">
+                    <div class="tank-fill" id="tankFill" style="height:100%"></div>
+                    <div class="tank-gloss"></div>
+                  </div>
+                  <div class="tank-rim"></div>
+                  <span class="tank-level-label" id="tankLevelLabel" style="bottom:86%">100%</span>
+                </div>
+                <div class="tank-caption" id="tankCaption">Penuh</div>
+              </div>
+              <div class="valve-pipework">
+                <div class="toggle-row">
+                  <span>VALVE: BUKA / TUTUP</span>
+                  <button type="button" class="toggle-switch" id="valveToggle" role="switch" aria-checked="false" aria-label="Buka atau tutup valve">
+                    <img id="valveToggleImg" src="gambarpixel/menu valve off/ui-controls/toggle_switch_off_red.png" alt="" />
+                  </button>
+                  <b class="state-label off" id="valveStateLabel">TUTUP</b>
+                </div>
+                <div class="pipe-scene">
+                  <div class="pipe-run"><div class="pipe-liquid" id="pipeLiquid"></div></div>
+                  <img class="scene-valve is-closed" id="valveWheelImg" src="gambarpixel/valve/valve-closed.png" alt="Valve" />
+                  <img class="scene-pump is-running" id="pumpMotorImg" src="gambarpixel/valve/pump-running.png" alt="Pompa" />
+                </div>
+                <div class="toggle-row">
+                  <span>POMPA: JALAN / BERHENTI</span>
+                  <button type="button" class="toggle-switch" id="pumpToggle" role="switch" aria-checked="false" aria-label="Jalankan atau hentikan pompa">
+                    <img id="pumpToggleImg" src="gambarpixel/menu valve off/ui-controls/toggle_switch_off_red.png" alt="" />
+                  </button>
+                  <b class="state-label off" id="pumpStateLabel">BERHENTI</b>
+                </div>
+              </div>
+            </div>
+            <div class="valve-metrics">
+              <div><span>LEVEL CHAMBER:</span><b id="chamberLevelText">100% (Penuh)</b></div>
+              <div><span>LAJU ALIRAN:</span><b id="flowRateText">0 L/min (Mati)</b></div>
+            </div>
+            <p class="terminal-note" style="margin-top: 16px;" id="controlStatusText">&gt; KONTROL MANUAL VIA SUPABASE</p>
+          </section>
+          <aside class="right-stack">
+            <section class="data-panel stats-panel" id="session-stats-ctrl">
+              <div class="panel-heading"><span>SESSION OVERVIEW</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" /></div>
+              <dl class="stats-list">
+                <div><dt>AVG pH</dt><dd id="avgPhCtrl">--</dd></div>
+                <div><dt>READINGS</dt><dd id="sessionReadingsCtrl">0</dd></div>
+                <div><dt>AVG TSS</dt><dd id="avgTssCtrl">--</dd></div>
+                <div><dt>READINGS</dt><dd id="sessionReadingsTssCtrl">0</dd></div>
+                <div><dt>AVG LEVEL</dt><dd id="avgWlCtrl">--</dd></div>
+                <div><dt>UPTIME</dt><dd class="good">99.9%</dd></div>
+              </dl>
+              <p class="terminal-note">&gt; SESSION OVERVIEW</p>
+            </section>
+            <section class="data-panel calibration-panel" id="calibration-ctrl">
+              <div class="panel-heading"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-pengaturan-kecil.svg" alt="" /></div>
+              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" /><div><b id="calibrationTitleCtrl">PROBE CALIBRATED</b><span id="calibrationNoteCtrl">WAITING FOR CALIBRATION DATA</span></div></div>
+              <div class="calibration-rows"><div><span>pH 4.01</span><b id="cal4Ctrl">--</b></div><div><span>pH 6.86</span><b id="cal7Ctrl">--</b></div><div><span>pH 9.18</span><em id="cal10Ctrl">--</em></div></div>
+              <div class="warning" id="calibrationWarningCtrl">! CHECKING CALIBRATION STATUS</div>
+            </section>
+          </aside>
+        </main>
+
       </div>
       <footer class="console-footer"><span>HYDROSENSE IOT SYSTEM v2.0</span><span>SYS: NOMINAL</span><span>◉ LOCAL NODE CONNECTED</span></footer>
     </div>
-    <script>
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+      const SUPABASE_URL = "https://hgtwrcjjjycdlhuwsgcx.supabase.co";
+      const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_S2nOQnap6hUtYWusISR5Ig_WpOrdrGB";
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
       // Navigation Logic (SPA)
       const navLinks = document.querySelectorAll('.nav-link');
       const pages = document.querySelectorAll('.page-content');
@@ -273,17 +351,69 @@
         });
       });
 
-      // Firebase Logic
-      const FIREBASE_URL = "https://ph-sensor-monitor-11e27-default-rtdb.asia-southeast1.firebasedatabase.app";
-      const numeric = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
-      const request = async (path) => {
-        const response = await fetch(`${FIREBASE_URL}/ph_sensor/${path}`, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Firebase ${response.status}`);
-        return response.json();
+      // Supabase Logic
+      const numeric = (value) => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
       };
-      const formatTime = (seconds) => seconds ? new Date(Number(seconds) * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--";
-      const formatDate = (seconds) => seconds ? new Date(Number(seconds) * 1000).toLocaleDateString("id-ID") : "--.--.----";
-      
+
+      const parseTimestamp = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === "string") {
+          const ms = Date.parse(value);
+          return Number.isFinite(ms) ? ms : null;
+        }
+        const n = Number(value);
+        if (!Number.isFinite(n)) return null;
+        return n < 100000000000 ? n * 1000 : n;
+      };
+
+      const formatTime = (value) => {
+        const ms = parseTimestamp(value);
+        if (ms === null) return "--:--:--";
+        return new Date(ms).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+      };
+      const formatDate = (value) => {
+        const ms = parseTimestamp(value);
+        if (ms === null) return "--.--.----";
+        return new Date(ms).toLocaleDateString("id-ID");
+      };
+
+      async function getLatestSensorData() {
+        const { data, error } = await supabase
+          .from("Hydrosense table")
+          .select("id, timestamp, ph, tss, water_temperature, water_level")
+          .order("timestamp", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw new Error(`Supabase latest error: ${error.message}`);
+        return data;
+      }
+
+      async function getSensorHistory() {
+        const { data, error } = await supabase
+          .from("Hydrosense table")
+          .select("id, timestamp, ph, tss, water_temperature, water_level")
+          .order("timestamp", { ascending: true })
+          .limit(50);
+        if (error) throw new Error(`Supabase history error: ${error.message}`);
+        return data || [];
+      }
+
+      function normalizeSensorRow(row) {
+        return {
+          id: row?.id ?? null,
+          timestamp: row?.timestamp ?? null,
+          ph: numeric(row?.ph),
+          temp: numeric(row?.water_temperature),
+          tss: numeric(row?.tss),
+          wl: numeric(row?.water_level),
+          voltage: null,
+          ntu: null,
+          dist: null
+        };
+      }
+
       function updateClock() {
         const now = new Date();
         document.querySelector("#dateNow").textContent = `DATE // ${now.toLocaleDateString("id-ID")}`;
@@ -339,25 +469,21 @@
           return;
         }
         
-        const ph = numeric(latest?.ph), voltage = numeric(latest?.voltage);
-        const temp = numeric(latest?.temp ?? latest?.temperature);
-        const tss = numeric(latest?.tss) || 0; 
-        const ntu = numeric(latest?.ntu) || 0;
-        const wl = numeric(latest?.wl) || 0; 
-        const dist = numeric(latest?.dist) || 0;
-        
+        const ph = numeric(latest?.ph);
+        const temp = numeric(latest?.temp);
+        const tss = numeric(latest?.tss);
+        const wl = numeric(latest?.wl);
+
         // pH Sensor
-        if (ph !== null) { 
+        if (ph !== null) {
           const txt = ph.toFixed(2);
           const st = ph < 6.5 ? "ACIDIC" : ph > 7.5 ? "ALKALINE" : "NEUTRAL";
-          document.querySelector("#phNow").textContent = txt; document.querySelector("#phStatus").textContent = st; 
-          document.querySelector("#phNowSummary").textContent = txt; document.querySelector("#phStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>"; 
-        } else { 
-          document.querySelector("#phNow").textContent = "-"; document.querySelector("#phStatus").textContent = "-"; 
-          document.querySelector("#phNowSummary").textContent = "-"; document.querySelector("#phStatusSummaryText").innerHTML = "-"; 
+          document.querySelector("#phNow").textContent = txt; document.querySelector("#phStatus").textContent = st;
+          document.querySelector("#phNowSummary").textContent = txt; document.querySelector("#phStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
+        } else {
+          document.querySelector("#phNow").textContent = "-"; document.querySelector("#phStatus").textContent = "-";
+          document.querySelector("#phNowSummary").textContent = "-"; document.querySelector("#phStatusSummaryText").innerHTML = "-";
         }
-        if (voltage !== null) { document.querySelector("#voltNow").textContent = voltage.toFixed(2); document.querySelector("#voltNowSummary").textContent = voltage.toFixed(2) + " mV"; }
-        else { document.querySelector("#voltNow").textContent = "-"; }
         if (temp !== null) {
           const tempSt = temp < 20 ? "COLD" : temp > 32 ? "HOT" : "NORMAL";
           document.querySelector("#tempNow").textContent = temp.toFixed(1); document.querySelector("#tempStatus").textContent = tempSt;
@@ -366,49 +492,54 @@
           document.querySelector("#tempNow").textContent = "-"; document.querySelector("#tempStatus").textContent = "-";
           document.querySelector("#tempNowSummary").textContent = "-";
         }
-        
+
         // TSS Sensor
-        document.querySelector("#tssNow").textContent = tss.toFixed(1);
-        document.querySelector("#tssNowSummary").textContent = tss.toFixed(1);
-        const tssSt = tss < 50 ? "NORMAL" : "HIGH";
-        document.querySelector("#tssStatus").textContent = tssSt;
-        document.querySelector("#tssStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
-        document.querySelector("#ntuNow").textContent = ntu.toFixed(1);
-        document.querySelector("#ntuNowSummary").textContent = ntu.toFixed(1) + " NTU";
+        if (tss !== null) {
+          document.querySelector("#tssNow").textContent = tss.toFixed(1);
+          document.querySelector("#tssNowSummary").textContent = tss.toFixed(1);
+          const tssSt = tss < 50 ? "NORMAL" : "HIGH";
+          document.querySelector("#tssStatus").textContent = tssSt;
+          document.querySelector("#tssStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
+        } else {
+          document.querySelector("#tssNow").textContent = "-"; document.querySelector("#tssNowSummary").textContent = "-";
+          document.querySelector("#tssStatus").textContent = "-"; document.querySelector("#tssStatusSummaryText").innerHTML = "-";
+        }
 
         // Water Level Sensor
-        document.querySelector("#wlNow").textContent = wl.toFixed(0);
-        document.querySelector("#wlNowSummary").textContent = wl.toFixed(0);
-        const wlSt = wl < 20 ? "LOW" : wl > 90 ? "HIGH" : "SAFE";
-        document.querySelector("#wlStatus").textContent = wlSt;
-        document.querySelector("#wlStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
-        document.querySelector("#distNow").textContent = dist.toFixed(0);
-        document.querySelector("#distNowSummary").textContent = dist.toFixed(0) + " cm";
+        if (wl !== null) {
+          document.querySelector("#wlNow").textContent = wl.toFixed(0);
+          document.querySelector("#wlNowSummary").textContent = wl.toFixed(0);
+          const wlSt = wl < 20 ? "LOW" : wl > 90 ? "HIGH" : "SAFE";
+          document.querySelector("#wlStatus").textContent = wlSt;
+          document.querySelector("#wlStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
+        } else {
+          document.querySelector("#wlNow").textContent = "-"; document.querySelector("#wlNowSummary").textContent = "-";
+          document.querySelector("#wlStatus").textContent = "-"; document.querySelector("#wlStatusSummaryText").innerHTML = "-";
+        }
+
+        // Belum tersedia di database
+        document.querySelector("#voltNow").textContent = "-";
+        document.querySelector("#voltNowSummary").textContent = "-";
+        document.querySelector("#ntuNow").textContent = "-";
+        document.querySelector("#ntuNowSummary").textContent = "-";
+        document.querySelector("#distNow").textContent = "-";
+        document.querySelector("#distNowSummary").textContent = "-";
 
         document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
         document.querySelectorAll(".lastUpdateGeneric").forEach(el => el.textContent = formatTime(latest?.timestamp));
       }
-      
-      function updateCalibration(points) {
-        const point = (key) => points?.[key]?.valid ? "COMPLETE" : "PENDING";
-        document.querySelector("#cal4").textContent = point("ph4"); document.querySelector("#cal7").textContent = point("ph7"); document.querySelector("#cal10").textContent = point("ph10");
-        const complete = ["ph4", "ph7", "ph10"].filter((key) => points?.[key]?.valid).length;
-        document.querySelector("#calibrationTitle").textContent = complete >= 2 ? "PROBE CALIBRATED" : "CALIBRATION REQUIRED";
-        document.querySelector("#calibrationNote").textContent = `${complete}/3 CALIBRATION POINTS COMPLETE`;
-        document.querySelector("#calibrationWarning").textContent = complete >= 2 ? "! CALIBRATION DATA LOADED" : "! AT LEAST 2 POINTS REQUIRED";
-      }
-      
+
       async function refreshDashboard() {
         try {
-          const [latest, readings, points] = await Promise.all([request("latest.json"), request('readings.json?orderBy=%22$key%22&limitToLast=50'), request("calibration/points.json")]);
-          const entries = Object.values(readings || {}).filter((entry) => entry && entry.timestamp).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
-          
-          const nowSeconds = Math.floor(Date.now() / 1000);
-          const isConnected = latest && latest.timestamp && (nowSeconds - Number(latest.timestamp) < 60);
+          const [latestRow, historyRows] = await Promise.all([getLatestSensorData(), getSensorHistory()]);
+          const latest = normalizeSensorRow(latestRow);
+          const entries = historyRows.map(normalizeSensorRow).filter((entry) => entry.timestamp).sort((a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp));
 
-          updateLatest(latest || {}, isConnected); 
-          updateCalibration(points || {}); 
-          
+          const latestMs = parseTimestamp(latest?.timestamp);
+          const isConnected = latestMs !== null && (Date.now() - latestMs) < 60000;
+
+          updateLatest(latest || {}, isConnected);
+
           paintChart(entries, "#teleChart");
           paintChart(entries, "#tssChart");
           paintChart(entries, "#wlChart");
@@ -417,38 +548,152 @@
           document.querySelector("#sessionReadings").textContent = entries.length;
           document.querySelector("#sessionReadingsSummary").textContent = entries.length;
           document.querySelector("#sessionReadingsTssSummary").textContent = entries.length;
-          
+          document.querySelector("#sessionReadingsCtrl").textContent = entries.length;
+          document.querySelector("#sessionReadingsTssCtrl").textContent = entries.length;
+
           const phEntries = entries.filter(e => numeric(e.ph) !== null);
           document.querySelector("#avgPh").textContent = phEntries.length ? (phEntries.reduce((total, entry) => total + Number(entry.ph), 0) / phEntries.length).toFixed(2) : "--";
           document.querySelector("#avgPhSummary").textContent = document.querySelector("#avgPh").textContent;
+          document.querySelector("#avgPhCtrl").textContent = document.querySelector("#avgPh").textContent;
 
           const tempEntries = entries.filter(e => numeric(e.temp ?? e.temperature) !== null);
           document.querySelector("#avgTemp").textContent = tempEntries.length ? (tempEntries.reduce((total, entry) => total + Number(entry.temp ?? entry.temperature), 0) / tempEntries.length).toFixed(1) + " \u00B0C" : "--";
-          
+
           const tssEntries = entries.filter(e => numeric(e.tss) !== null);
           document.querySelector("#avgTss").textContent = tssEntries.length ? (tssEntries.reduce((total, entry) => total + Number(entry.tss), 0) / tssEntries.length).toFixed(1) : "0";
           document.querySelector("#avgTssSummary").textContent = document.querySelector("#avgTss").textContent + " mg/L";
-          
+          document.querySelector("#avgTssCtrl").textContent = document.querySelector("#avgTssSummary").textContent;
+
           const wlEntries = entries.filter(e => numeric(e.wl) !== null);
           document.querySelector("#avgWl").textContent = wlEntries.length ? (wlEntries.reduce((total, entry) => total + Number(entry.wl), 0) / wlEntries.length).toFixed(0) + "%" : "0%";
           document.querySelector("#avgWlSummary").textContent = document.querySelector("#avgWl").textContent;
+          document.querySelector("#avgWlCtrl").textContent = document.querySelector("#avgWl").textContent;
           
           if (isConnected) {
-            document.querySelector("#connectionStatus").textContent = "WIFI ONLINE"; 
-            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online"; 
+            document.querySelector("#connectionStatus").textContent = "SUPABASE ONLINE";
+            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online";
           } else {
-            document.querySelector("#connectionStatus").textContent = "DISCONNECTED"; 
-            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; 
+            document.querySelector("#connectionStatus").textContent = "NO RECENT DATA";
+            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline";
           }
           document.querySelectorAll(".chart-line").forEach(el => el.hidden = true);
-        } catch (error) { 
-          document.querySelector("#connectionStatus").textContent = "WIFI OFFLINE"; 
-          document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline"; 
-          console.warn("Firebase refresh failed:", error); 
+        } catch (error) {
+          document.querySelector("#connectionStatus").textContent = "SUPABASE OFFLINE";
+          document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline";
+          console.error("Supabase refresh failed:", error);
         }
       }
-      
+
       updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
+
+      // Control Valve & Pompa — kirim perintah manual ke Supabase (dibaca ESP32 dari tabel system_control)
+      (function () {
+        const TOGGLE_ON = "gambarpixel/menu valve off/ui-controls/toggle_switch_on_green.png";
+        const TOGGLE_OFF = "gambarpixel/menu valve off/ui-controls/toggle_switch_off_red.png";
+        const VALVE_OPEN = "gambarpixel/valve/valve-open.png";
+        const VALVE_CLOSED = "gambarpixel/valve/valve-closed.png";
+        const PUMP_RUN = "gambarpixel/valve/pump-running.png";
+        const PUMP_STOP = "gambarpixel/valve/pump-stopped.png";
+        const DRAIN_STEP = 4, FILL_STEP = 3, TICK_MS = 1500;
+        const CONTROL_TABLE = "system_control";
+        const DEVICE_ID = "hydrosense-inlet-01";
+
+        let valveOpen = false, pumpOn = false, level = 100, simTimer = null, sending = false;
+
+        const byId = (id) => document.getElementById(id);
+        const panel = byId("page-control-valve");
+        if (!panel) return;
+
+        function setControlStatus(text, isError) {
+          const el = byId("controlStatusText");
+          if (!el) return;
+          el.textContent = "> " + text;
+          el.style.color = isError ? "var(--orange)" : "";
+        }
+
+        function renderControls() {
+          byId("valveToggleImg").src = valveOpen ? TOGGLE_ON : TOGGLE_OFF;
+          byId("valveToggle").setAttribute("aria-checked", String(valveOpen));
+          byId("valveStateLabel").textContent = valveOpen ? "BUKA" : "TUTUP";
+          byId("valveStateLabel").className = "state-label " + (valveOpen ? "on" : "off");
+
+          byId("pumpToggleImg").src = pumpOn ? TOGGLE_ON : TOGGLE_OFF;
+          byId("pumpToggle").setAttribute("aria-checked", String(pumpOn));
+          byId("pumpStateLabel").textContent = pumpOn ? "JALAN" : "BERHENTI";
+          byId("pumpStateLabel").className = "state-label " + (pumpOn ? "on" : "off");
+
+          byId("valveWheelImg").src = valveOpen ? VALVE_OPEN : VALVE_CLOSED;
+          byId("valveWheelImg").className = "scene-valve " + (valveOpen ? "is-open" : "is-closed");
+          byId("pipeLiquid").className = "pipe-liquid" + (valveOpen ? " is-flowing" : "");
+          byId("pumpMotorImg").src = pumpOn ? PUMP_RUN : PUMP_STOP;
+          byId("pumpMotorImg").className = "scene-pump " + (pumpOn ? "is-running" : "is-stopped");
+        }
+
+        function renderLevel() {
+          level = Math.max(0, Math.min(100, level));
+          byId("tankFill").style.height = level + "%";
+          byId("tankLevelLabel").textContent = Math.round(level) + "%";
+          byId("tankLevelLabel").style.bottom = Math.min(level, 86) + "%";
+
+          const caption = pumpOn ? "Mengisi" : valveOpen ? "Mengosong" : (level >= 100 ? "Penuh" : "Diam");
+          byId("tankCaption").textContent = caption;
+
+          const desc = level <= 0 ? "Kosong" : level <= 15 ? "Rendah" : level >= 100 ? "Penuh" : "Normal";
+          byId("chamberLevelText").textContent = `${Math.round(level)}% (${desc})`;
+
+          const parts = [];
+          if (pumpOn) parts.push("Isi 22 L/min");
+          if (valveOpen) parts.push("Buang 18 L/min");
+          byId("flowRateText").textContent = parts.length ? parts.join(" / ") : "0 L/min (Mati)";
+        }
+
+        function tick() {
+          if (valveOpen && level > 0) level -= DRAIN_STEP;
+          if (pumpOn && level < 100) level += FILL_STEP;
+          renderLevel();
+        }
+
+        // Kirim perintah manual ke Supabase. ESP32 membaca baris TERBARU dari
+        // tabel system_control (order by updated_at desc) lalu mengeksekusi
+        // ke pin valve/pompa fisik saat mode = "manual".
+        async function sendControlCommand() {
+          sending = true;
+          setControlStatus("MENGIRIM PERINTAH...", false);
+          try {
+            const { error } = await supabase.from(CONTROL_TABLE).insert({
+              device_id: DEVICE_ID,
+              mode: "manual",
+              valve_cmd: valveOpen ? "buka" : "tutup",
+              pump_cmd: pumpOn ? "jalan" : "berhenti"
+            });
+            if (error) throw error;
+            setControlStatus("PERINTAH TERKIRIM KE SUPABASE", false);
+          } catch (error) {
+            console.error("Gagal kirim perintah kontrol:", error);
+            setControlStatus("GAGAL KIRIM: " + error.message, true);
+          } finally {
+            sending = false;
+          }
+        }
+
+        byId("valveToggle").addEventListener("click", () => {
+          if (sending) return;
+          valveOpen = !valveOpen;
+          renderControls();
+          sendControlCommand();
+        });
+
+        byId("pumpToggle").addEventListener("click", () => {
+          if (sending) return;
+          pumpOn = !pumpOn;
+          renderControls();
+          sendControlCommand();
+        });
+
+        renderControls();
+        renderLevel();
+        simTimer = setInterval(tick, TICK_MS);
+      })();
     </script>
   </body>
 </html>
