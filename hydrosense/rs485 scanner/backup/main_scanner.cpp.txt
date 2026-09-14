@@ -1,0 +1,672 @@
+// =====================================================================
+//  RS485 Discovery v2  -  ESP32-S3 + Shield Industri
+//
+//  Beda dari v1: melaporkan BYTE APA PUN yang masuk, bukan hanya frame
+//  Modbus yang valid. Ini memisahkan dua kemungkinan yang di v1 sama-sama
+//  terlihat sebagai "diam":
+//
+//    (a) Pin salah  -> benar-benar nol byte
+//    (b) Pin benar  -> ada echo transmisi sendiri, atau byte sampah
+//                      karena baud rate belum cocok
+//
+//  TAHAP 1: Uji echo. Menyapu GPIO untuk mencari pasangan yang
+//           mengembalikan byte. Ini bisa menemukan pin RS485 tanpa
+//           perlu sensor menjawab sama sekali.
+//  TAHAP 2: Probe Modbus penuh pada pasangan yang lolos tahap 1.
+//
+//  Sketch ini hanya MEMBACA. Tidak pernah menulis ke register sensor.
+// =====================================================================
+
+#include <Arduino.h>
+#include <HardwareSerial.h>
+#include <string.h>
+
+// ---------------------------------------------------------------------
+// GPIO yang boleh dicoba.
+// Dimulai dari enam pin UART yang disebut penjual, lalu diperluas.
+//
+// SENGAJA DIHINDARI:
+//   0, 3, 45, 46  strapping pin
+//   19, 20        USB D-/D+, akan memutus serial monitor
+//   26..32        terhubung ke flash / PSRAM internal
+//   33..37        PSRAM oktal pada varian N8R8 / N16R8
+//   43, 44        UART0 TX/RX = jalur Serial Monitor ini sendiri.
+//                 Kalau ikut disapu, rs.begin() merebut pin console dan
+//                 layar langsung berubah jadi karakter sampah.
+//   47, 48        sudah dipakai relay shield
+// ---------------------------------------------------------------------
+// =====================================================================
+//  PILIH MODE  -  ubah angkanya, simpan, upload ulang.
+//
+//    0 = SCAN      sapuan normal (tahap 0 -> 1 -> 2)
+//    1 = LOOPBACK  uji jumper. Membuktikan nomor GPIO pada header fisik
+//                  benar-benar sesuai, TANPA melibatkan chip RS485.
+//                  Jalankan ini kalau semua scan sunyi.
+//    2 = ID_LEBAR  sapu slave ID 1..247 pada satu setelan tetap di bawah.
+// =====================================================================
+#define SCAN_MODE 1
+
+// Dipakai hanya oleh mode 2. Isi dengan setelan yang ingin diuji tuntas.
+#define WIDE_TX     17
+#define WIDE_RX     18
+#define WIDE_DE     -1
+
+int CANDIDATE_PINS[] = {
+  6, 7, 15, 16, 17, 18,          // yang disebut penjual, dicoba dulu
+  4, 5, 8, 9, 10, 11, 12, 13, 14,
+  21, 38, 39, 40, 41, 42
+};
+
+// Pengaman lapis kedua: sekalipun daftar di atas nanti diedit, pin di
+// bawah ini tidak akan pernah disentuh.
+bool isReservedPin(int gpio) {
+  if (gpio < 0) return false;                      // -1 = mode tanpa DE/RE
+  if (gpio == 43 || gpio == 44) return true;       // UART0, console
+  if (gpio == 19 || gpio == 20) return true;       // USB D-/D+
+  if (gpio >= 26 && gpio <= 37) return true;       // flash / PSRAM
+  if (gpio == 0 || gpio == 3 || gpio == 45 || gpio == 46) return true;  // strapping
+  if (gpio == 47 || gpio == 48) return true;       // relay shield
+  return false;
+}
+const int N_PINS = sizeof(CANDIDATE_PINS) / sizeof(CANDIDATE_PINS[0]);
+
+// Berapa pin pertama yang dipakai sebagai kandidat TX saat uji echo.
+// 6 = hanya pin yang disebut penjual. Naikkan ke 28 kalau nihil.
+int TX_SEARCH_COUNT = 6;
+
+long BAUDS[] = { 4800, 9600, 19200, 2400, 38400 };
+const int N_BAUD = sizeof(BAUDS) / sizeof(BAUDS[0]);
+
+const uint8_t  SLAVE_MIN = 1;
+const uint8_t  SLAVE_MAX = 10;
+const uint16_t PROBE_REG = 0x0000;
+
+HardwareSerial rs(1);
+
+struct EchoHit { int tx; int rx; long baud; int de; };
+EchoHit echoHits[12];
+int nEchoHits = 0;
+int nNoise    = 0;   // byte tunggal 0x00/0xFF yang ditolak sebagai derau
+
+
+// ---------------------------------------------------------------------
+uint16_t modbusCRC(const uint8_t *buf, int len) {
+  uint16_t crc = 0xFFFF;
+  for (int i = 0; i < len; i++) {
+    crc ^= (uint16_t)buf[i];
+    for (int b = 0; b < 8; b++) {
+      if (crc & 1) { crc >>= 1; crc ^= 0xA001; }
+      else         { crc >>= 1; }
+    }
+  }
+  return crc;
+}
+
+void printHex(const uint8_t *b, int n) {
+  for (int i = 0; i < n; i++) {
+    if (b[i] < 0x10) Serial.print('0');
+    Serial.print(b[i], HEX);
+    Serial.print(' ');
+  }
+}
+
+// Kirim byte mentah, kembalikan jumlah byte apa pun yang diterima.
+int sendRaw(const uint8_t *tx, int txLen, int dePin,
+            uint8_t *rx, int rxMax, unsigned long waitMs) {
+  while (rs.available()) rs.read();
+
+  if (dePin >= 0) digitalWrite(dePin, HIGH);
+  rs.write(tx, txLen);
+  rs.flush();
+  if (dePin >= 0) digitalWrite(dePin, LOW);
+
+  int n = 0;
+  unsigned long start = millis();
+  while (millis() - start < waitMs) {
+    while (rs.available() && n < rxMax) {
+      rx[n++] = rs.read();
+      start = millis();
+    }
+    if (n > 0 && (millis() - start) > 20) break;
+    delay(1);
+  }
+  return n;
+}
+
+
+// =====================================================================
+//  TAHAP 1  -  Cari pasangan pin yang mengembalikan byte
+// =====================================================================
+void stage1_echoTest() {
+  Serial.println();
+  Serial.println(F("=========================================="));
+  Serial.println(F("  TAHAP 1: UJI ECHO"));
+  Serial.println(F("=========================================="));
+  Serial.println(F("Mencari pasangan pin yang mengembalikan byte."));
+  Serial.println(F("Ada byte = transceiver RS485 aktif di pin itu."));
+  Serial.println();
+
+  const uint8_t pattern[] = { 0xAA, 0x55, 0xAA, 0x55, 0x01, 0x02, 0x03, 0x04 };
+  uint8_t rx[64];
+
+  for (int t = 0; t < TX_SEARCH_COUNT && t < N_PINS; t++) {
+    int txPin = CANDIDATE_PINS[t];
+    if (isReservedPin(txPin)) continue;
+
+    for (int r = 0; r < N_PINS; r++) {
+      int rxPin = CANDIDATE_PINS[r];
+      if (rxPin == txPin) continue;
+      if (isReservedPin(rxPin)) continue;
+
+      for (int dSel = 0; dSel < 2; dSel++) {
+        int dePin = -1;
+        if (dSel == 1) {
+          dePin = CANDIDATE_PINS[(r + 1) % N_PINS];
+          if (dePin == txPin || dePin == rxPin) continue;
+          if (isReservedPin(dePin)) continue;
+        }
+
+        rs.end(); delay(10);
+        rs.begin(9600, SERIAL_8N1, rxPin, txPin);
+        delay(40);
+
+        if (dePin >= 0) { pinMode(dePin, OUTPUT); digitalWrite(dePin, LOW); }
+
+        int n = sendRaw(pattern, sizeof(pattern), dePin, rx, sizeof(rx), 80);
+
+        // Saring derau. Pin input yang mengambang sering melaporkan SATU
+        // byte 0x00 atau 0xFF: itu start-bit palsu akibat crosstalk dari
+        // pin sebelah yang sedang di-toggle, bukan echo transceiver.
+        // Echo RS485 yang sungguhan mengembalikan pola 8 byte yang kita
+        // kirim, bukan satu byte kosong.
+        bool berisi = false;
+        for (int i = 0; i < n; i++) {
+          if (rx[i] != 0x00 && rx[i] != 0xFF) { berisi = true; break; }
+        }
+        bool echoAsli = (n >= 4) && berisi;
+
+        if (n > 0 && !echoAsli) {
+          nNoise++;
+        }
+
+        if (echoAsli) {
+          Serial.printf("  ADA BYTE!  TX=%-2d RX=%-2d DE=%-3d  n=%d  : ",
+                        txPin, rxPin, dePin, n);
+          printHex(rx, n);
+          Serial.println();
+
+          if (nEchoHits < 12) {
+            echoHits[nEchoHits].tx   = txPin;
+            echoHits[nEchoHits].rx   = rxPin;
+            echoHits[nEchoHits].baud = 9600;
+            echoHits[nEchoHits].de   = dePin;
+            nEchoHits++;
+          }
+        }
+      }
+    }
+    Serial.printf("  [selesai TX=%d]\n", txPin);
+  }
+
+  Serial.println();
+  Serial.printf("Tahap 1 selesai. %d pasangan memberi respons.\n", nEchoHits);
+  if (nNoise > 0) {
+    Serial.printf("(%d percobaan mengembalikan byte kosong 0x00/0xFF -> derau, diabaikan)\n", nNoise);
+  }
+  Serial.println();
+}
+
+
+// =====================================================================
+//  TAHAP 2  -  Probe Modbus penuh
+// =====================================================================
+bool probeModbus(int rxPin, int txPin, long baud, int dePin, uint8_t id) {
+  uint8_t req[8];
+  req[0] = id;
+  req[1] = 0x03;
+  req[2] = (PROBE_REG >> 8) & 0xFF;
+  req[3] =  PROBE_REG       & 0xFF;
+  req[4] = 0x00;
+  req[5] = 0x01;
+  uint16_t crc = modbusCRC(req, 6);
+  req[6] =  crc       & 0xFF;
+  req[7] = (crc >> 8) & 0xFF;
+
+  uint8_t rx[64];
+  int n = sendRaw(req, 8, dePin, rx, sizeof(rx), 150);
+  if (n < 5) return false;
+
+  // Buang echo: balasan identik dengan yang kita kirim
+  if (n >= 8 && memcmp(rx, req, 8) == 0) return false;
+  if (rx[0] != id) return false;
+
+  uint16_t calc = modbusCRC(rx, n - 2);
+  uint16_t recv = rx[n - 2] | ((uint16_t)rx[n - 1] << 8);
+
+  Serial.println();
+  Serial.println(F("  =============================================="));
+  Serial.println(F("  >>> SENSOR MENJAWAB"));
+  Serial.printf ("  RX=%d  TX=%d  DE=%d\n", rxPin, txPin, dePin);
+  Serial.printf ("  Baud     : %ld\n", baud);
+  Serial.printf ("  Slave ID : %d (0x%02X)\n", id, id);
+  Serial.printf ("  CRC      : %s\n", calc == recv ? "VALID" : "TIDAK COCOK");
+  Serial.print  (F("  Frame    : ")); printHex(rx, n); Serial.println();
+
+  if (rx[1] == 0x83) {
+    Serial.printf("  EXCEPTION 0x%02X -> alamat register salah,\n", rx[2]);
+    Serial.println(F("  TAPI pin, baud, dan slave ID sudah BENAR."));
+  } else if (rx[1] == 0x03 && n >= 7) {
+    uint16_t v = ((uint16_t)rx[3] << 8) | rx[4];
+    Serial.printf("  Nilai reg 0x0000 : %u\n", v);
+    Serial.printf("  Jika skala x0.1  : %.1f\n", v * 0.1);
+    Serial.printf("  Jika skala x0.01 : %.2f\n", v * 0.01);
+  }
+  Serial.println(F("  =============================================="));
+  Serial.println();
+  return true;
+}
+
+// =====================================================================
+//  TAHAP 0  -  FOKUS ke pasangan pin yang dicurigai
+//
+//  Menyapu empat dimensi sekaligus, karena kegagalan di salah satu saja
+//  membuat sensor diam total:
+//    - pasangan pin TX/RX
+//    - baud rate
+//    - framing  (8N1 / 8E1 / 8O1)  <- 8E1 adalah default resmi Modbus RTU
+//    - function code (0x03 holding register, 0x04 input register)
+//
+//  Setiap kombinasi dicetak, termasuk yang sunyi.
+// =====================================================================
+struct FocusPair { int tx; int rx; };
+
+FocusPair FOCUS_PAIRS[] = {
+  { 17, 18 }, { 18, 17 },        // dugaan utama
+  { 16, 17 }, { 17, 16 },        // dugaan kedua
+  { 15, 16 }, { 16, 15 },        // pasangan berlabel di shield
+  {  6,  7 }, {  7,  6 },
+};
+const int N_FOCUS = sizeof(FOCUS_PAIRS) / sizeof(FOCUS_PAIRS[0]);
+
+// -1 = transceiver auto-direction (paling umum di shield industri).
+int FOCUS_DE[] = { -1 };
+const int N_FOCUS_DE = sizeof(FOCUS_DE) / sizeof(FOCUS_DE[0]);
+
+long FOCUS_BAUDS[] = { 9600, 4800, 19200, 38400, 2400, 115200, 57600 };
+const int N_FOCUS_BAUD = sizeof(FOCUS_BAUDS) / sizeof(FOCUS_BAUDS[0]);
+
+struct Framing { uint32_t cfg; const char *nama; };
+Framing FRAMINGS[] = {
+  { SERIAL_8N1, "8N1" },
+  { SERIAL_8E1, "8E1" },         // default spesifikasi Modbus RTU
+  { SERIAL_8O1, "8O1" },
+};
+const int N_FRAMING = sizeof(FRAMINGS) / sizeof(FRAMINGS[0]);
+
+// 0x03 = read holding register, 0x04 = read input register.
+// Banyak sensor industri hanya menyediakan salah satunya.
+uint8_t FOCUS_FUNCS[] = { 0x03, 0x04 };
+const int N_FUNC = sizeof(FOCUS_FUNCS) / sizeof(FOCUS_FUNCS[0]);
+
+// Sengaja sempit supaya sapuan tetap sekitar 2-3 menit. Naikkan kalau
+// pabrikan memakai alamat lain.
+const uint8_t FOCUS_ID_MIN = 1;
+const uint8_t FOCUS_ID_MAX = 3;
+
+int stage0_focusScan() {
+  Serial.println(F("=========================================="));
+  Serial.println(F("  TAHAP 0: FOKUS PIN + BAUD + FRAMING"));
+  Serial.println(F("=========================================="));
+  Serial.println(F("Framing 8E1 dan 8O1 ikut dicoba, bukan cuma 8N1."));
+  Serial.println(F("Function code 0x03 dan 0x04 ikut dicoba."));
+  Serial.println(F("Perlu 2-3 menit. Setiap kombinasi dicetak."));
+  Serial.println();
+
+  uint8_t req[8], rx[64];
+  int found = 0;
+
+  for (int f = 0; f < N_FOCUS; f++) {
+    int txPin = FOCUS_PAIRS[f].tx;
+    int rxPin = FOCUS_PAIRS[f].rx;
+    if (isReservedPin(txPin) || isReservedPin(rxPin)) continue;
+
+    for (int d = 0; d < N_FOCUS_DE; d++) {
+      int dePin = FOCUS_DE[d];
+      if (isReservedPin(dePin) || dePin == txPin || dePin == rxPin) continue;
+
+      for (int b = 0; b < N_FOCUS_BAUD; b++) {
+        for (int m = 0; m < N_FRAMING; m++) {
+
+          rs.end(); delay(10);
+          rs.begin(FOCUS_BAUDS[b], FRAMINGS[m].cfg, rxPin, txPin);
+          delay(40);
+          if (dePin >= 0) { pinMode(dePin, OUTPUT); digitalWrite(dePin, LOW); }
+
+          Serial.printf("[cek] TX=%-2d RX=%-2d %6ld %s : ",
+                        txPin, rxPin, FOCUS_BAUDS[b], FRAMINGS[m].nama);
+
+          int replies = 0;
+
+          for (int fc = 0; fc < N_FUNC; fc++) {
+            uint8_t func = FOCUS_FUNCS[fc];
+
+            for (uint8_t id = FOCUS_ID_MIN; id <= FOCUS_ID_MAX; id++) {
+              req[0] = id;
+              req[1] = func;
+              req[2] = 0x00;
+              req[3] = 0x00;
+              req[4] = 0x00;
+              req[5] = 0x01;
+              uint16_t c = modbusCRC(req, 6);
+              req[6] =  c       & 0xFF;
+              req[7] = (c >> 8) & 0xFF;
+
+              int n = sendRaw(req, 8, dePin, rx, sizeof(rx), 150);
+              if (n == 0) continue;
+
+              // Saring derau: satu byte 0x00/0xFF = start-bit palsu.
+              bool berisi = false;
+              for (int i = 0; i < n; i++) {
+                if (rx[i] != 0x00 && rx[i] != 0xFF) { berisi = true; break; }
+              }
+              if (!berisi) continue;
+
+              if (replies == 0) Serial.println();
+              replies++;
+
+              Serial.printf("        fn=0x%02X ID %-3d n=%-2d : ", func, id, n);
+              printHex(rx, n);
+
+              if (n >= 8 && memcmp(rx, req, 8) == 0) {
+                Serial.println(F(" <- echo sendiri, transceiver HIDUP"));
+              } else if (rx[0] != id) {
+                Serial.println(F(" <- byte kacau, baud/framing belum pas"));
+              } else {
+                uint16_t calc = modbusCRC(rx, n - 2);
+                uint16_t recv = rx[n - 2] | ((uint16_t)rx[n - 1] << 8);
+                if (calc == recv) {
+                  found++;
+                  Serial.println();
+                  Serial.println(F("        >>> SENSOR MENJAWAB, CRC VALID <<<"));
+                  Serial.printf ("        TX=%d  RX=%d  baud=%ld  %s  fn=0x%02X  ID=%d\n",
+                                 txPin, rxPin, FOCUS_BAUDS[b],
+                                 FRAMINGS[m].nama, func, id);
+                  if (rx[1] == (func | 0x80)) {
+                    Serial.printf("        exception 0x%02X: pin/baud/framing/ID BENAR,\n", rx[2]);
+                    Serial.println(F("        cuma alamat register yang salah."));
+                  } else if (n >= 7) {
+                    uint16_t v = ((uint16_t)rx[3] << 8) | rx[4];
+                    Serial.printf("        reg 0x0000 = %u  (x0.1 = %.1f)\n", v, v * 0.1);
+                  }
+                } else {
+                  Serial.println(F(" <- CRC tidak cocok"));
+                }
+              }
+            }
+          }
+
+          if (replies == 0) Serial.println(F("sunyi"));
+        }
+      }
+    }
+  }
+
+  Serial.println();
+  Serial.printf("Tahap 0 selesai. %d balasan CRC valid.\n", found);
+  Serial.println();
+  return found;
+}
+
+
+void stage2_modbusScan() {
+  Serial.println(F("=========================================="));
+  Serial.println(F("  TAHAP 2: PROBE MODBUS"));
+  Serial.println(F("=========================================="));
+
+  int found = 0;
+
+  if (nEchoHits > 0) {
+    Serial.println(F("Fokus ke pasangan hasil tahap 1.\n"));
+    for (int h = 0; h < nEchoHits; h++) {
+      for (int b = 0; b < N_BAUD; b++) {
+        rs.end(); delay(10);
+        rs.begin(BAUDS[b], SERIAL_8N1, echoHits[h].rx, echoHits[h].tx);
+        delay(40);
+        if (echoHits[h].de >= 0) {
+          pinMode(echoHits[h].de, OUTPUT);
+          digitalWrite(echoHits[h].de, LOW);
+        }
+        Serial.printf("[cek] RX=%-2d TX=%-2d DE=%-3d %6ld baud\n",
+                      echoHits[h].rx, echoHits[h].tx, echoHits[h].de, BAUDS[b]);
+        for (uint8_t id = SLAVE_MIN; id <= SLAVE_MAX; id++) {
+          if (probeModbus(echoHits[h].rx, echoHits[h].tx,
+                          BAUDS[b], echoHits[h].de, id)) found++;
+        }
+      }
+    }
+  } else {
+    Serial.println(F("Tahap 1 kosong. Menyapu enam pin penjual + DE.\n"));
+    int base[] = { 6, 7, 15, 16, 17, 18 };
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+        if (i == j) continue;
+        for (int k = -1; k < 6; k++) {
+          int dePin = (k < 0) ? -1 : base[k];
+          if (dePin == base[i] || dePin == base[j]) continue;
+          for (int b = 0; b < 2; b++) {            // 4800 & 9600 saja
+            rs.end(); delay(10);
+            rs.begin(BAUDS[b], SERIAL_8N1, base[j], base[i]);
+            delay(40);
+            if (dePin >= 0) { pinMode(dePin, OUTPUT); digitalWrite(dePin, LOW); }
+            for (uint8_t id = 1; id <= 3; id++) {
+              if (probeModbus(base[j], base[i], BAUDS[b], dePin, id)) found++;
+            }
+          }
+        }
+      }
+      Serial.printf("  [selesai TX=%d]\n", base[i]);
+    }
+  }
+
+  Serial.println();
+  Serial.println(F("=========================================="));
+  if (found == 0) {
+    Serial.println(F("MASIH NOL. Periksa berurutan:"));
+    Serial.println();
+    Serial.println(F(" 1. Shield sudah diberi 12V terpisah?"));
+    Serial.println(F("    Chip RS485 tidak hidup kalau cuma dari USB."));
+    Serial.println(F(" 2. Sensor dapat daya? Ukur cokelat-hitam, 12/24V."));
+    Serial.println(F(" 3. TUKAR kabel kuning (A) dan biru (B). Penyebab"));
+    Serial.println(F("    tersering, dan tidak merusak apa pun."));
+    Serial.println(F(" 4. GND sensor + shield + ESP32 sudah satu titik?"));
+    Serial.println(F(" 5. Ubah TX_SEARCH_COUNT jadi 28 di kode ini,"));
+    Serial.println(F("    lalu jalankan lagi. Butuh beberapa menit."));
+    Serial.println(F(" 6. Kalau tetap nol: tanya penjual pinout RS485-nya,"));
+    Serial.println(F("    atau telusuri chip MAX485 dengan multimeter."));
+  } else {
+    Serial.printf("%d respons. Pakai yang CRC-nya VALID.\n", found);
+  }
+  Serial.println(F("=========================================="));
+}
+
+
+// =====================================================================
+//  MODE 1  -  UJI LOOPBACK JUMPER
+//
+//  Tujuan: memisahkan dua pertanyaan yang selama ini tercampur.
+//    a. Apakah nomor GPIO pada header fisik memang seperti di silkscreen?
+//    b. Apakah chip RS485 / kabel sensornya yang bermasalah?
+//
+//  Tes ini melewati chip RS485 sepenuhnya. Kalau jumper terdeteksi,
+//  berarti UART dan pemetaan pin ESP32 sehat, dan masalahnya ada di
+//  jalur RS485 atau sensornya.
+//
+//  Cara pakai:
+//    1. Cabut kabel sensor dari terminal A/B.
+//    2. Pasang SATU kabel jumper antara dua pin di header UART shield,
+//       misal pin berlabel 17 ke pin berlabel 18.
+//    3. Jalankan. Tes mengulang tiap 5 detik, jadi jumper boleh
+//       dipindah-pindah sambil melihat hasilnya.
+// =====================================================================
+void modeLoopback() {
+  const int uji[] = { 6, 7, 15, 16, 17, 18 };
+  const int nUji  = sizeof(uji) / sizeof(uji[0]);
+  const uint8_t pola[] = { 0xAA, 0x55, 0xAA, 0x55, 0x01, 0x02, 0x03, 0x04 };
+  uint8_t rx[64];
+
+  Serial.println(F("------------------------------------------"));
+  Serial.println(F("  UJI LOOPBACK JUMPER"));
+  Serial.println(F("------------------------------------------"));
+
+  int ketemu = 0;
+
+  for (int i = 0; i < nUji; i++) {
+    for (int j = 0; j < nUji; j++) {
+      if (i == j) continue;
+      int txPin = uji[i], rxPin = uji[j];
+      if (isReservedPin(txPin) || isReservedPin(rxPin)) continue;
+
+      rs.end(); delay(5);
+      rs.begin(9600, SERIAL_8N1, rxPin, txPin);
+      delay(30);
+
+      int n = sendRaw(pola, sizeof(pola), -1, rx, sizeof(rx), 60);
+      if (n == 0) continue;
+
+      bool berisi = false;
+      for (int k = 0; k < n; k++) {
+        if (rx[k] != 0x00 && rx[k] != 0xFF) { berisi = true; break; }
+      }
+      if (!berisi) continue;
+
+      bool utuh = (n == (int)sizeof(pola)) && (memcmp(rx, pola, n) == 0);
+
+      Serial.printf("  GPIO %-2d -> GPIO %-2d  n=%-2d : ", txPin, rxPin, n);
+      printHex(rx, n);
+      Serial.println(utuh ? F(" <- JUMPER TERDETEKSI, pola utuh")
+                          : F(" <- ada byte, tapi pola tidak utuh"));
+      if (utuh) ketemu++;
+    }
+  }
+
+  if (ketemu == 0) {
+    Serial.println(F("  Tidak ada jumper terdeteksi."));
+    Serial.println(F("  Kalau jumper SUDAH terpasang dan tetap nihil,"));
+    Serial.println(F("  berarti nomor pin di silkscreen tidak sesuai GPIO."));
+  }
+  Serial.println();
+}
+
+
+// =====================================================================
+//  MODE 2  -  SAPU SLAVE ID 1..247
+// =====================================================================
+void modeWideId() {
+  long bauds[]  = { 9600, 4800 };
+  uint32_t fr[] = { SERIAL_8N1, SERIAL_8E1 };
+  const char *frNama[] = { "8N1", "8E1" };
+
+  Serial.println(F("=========================================="));
+  Serial.println(F("  MODE 2: SAPU SLAVE ID 1..247"));
+  Serial.println(F("=========================================="));
+  Serial.printf ("TX=%d  RX=%d  DE=%d\n", WIDE_TX, WIDE_RX, WIDE_DE);
+  Serial.println(F("Perlu beberapa menit."));
+  Serial.println();
+
+  uint8_t req[8], rx[64];
+  int found = 0;
+
+  for (int b = 0; b < 2; b++) {
+    for (int m = 0; m < 2; m++) {
+      rs.end(); delay(10);
+      rs.begin(bauds[b], fr[m], WIDE_RX, WIDE_TX);
+      delay(40);
+      if (WIDE_DE >= 0) { pinMode(WIDE_DE, OUTPUT); digitalWrite(WIDE_DE, LOW); }
+
+      Serial.printf("[%ld %s] ", bauds[b], frNama[m]);
+
+      int replies = 0;
+      for (int id = 1; id <= 247; id++) {
+        req[0] = (uint8_t)id;
+        req[1] = 0x03;
+        req[2] = 0x00; req[3] = 0x00;
+        req[4] = 0x00; req[5] = 0x01;
+        uint16_t c = modbusCRC(req, 6);
+        req[6] = c & 0xFF; req[7] = (c >> 8) & 0xFF;
+
+        int n = sendRaw(req, 8, WIDE_DE, rx, sizeof(rx), 120);
+        if (n == 0) continue;
+
+        bool berisi = false;
+        for (int k = 0; k < n; k++) {
+          if (rx[k] != 0x00 && rx[k] != 0xFF) { berisi = true; break; }
+        }
+        if (!berisi) continue;
+
+        if (replies == 0) Serial.println();
+        replies++;
+        Serial.printf("   ID %-3d n=%-2d : ", id, n);
+        printHex(rx, n);
+        if (rx[0] == (uint8_t)id) {
+          uint16_t calc = modbusCRC(rx, n - 2);
+          uint16_t recv = rx[n - 2] | ((uint16_t)rx[n - 1] << 8);
+          if (calc == recv) { found++; Serial.print(F(" <- CRC VALID")); }
+        }
+        Serial.println();
+      }
+      if (replies == 0) Serial.println(F("sunyi"));
+    }
+  }
+
+  Serial.printf("\nSelesai. %d balasan CRC valid.\n", found);
+}
+
+
+// ---------------------------------------------------------------------
+void setup() {
+  Serial.begin(115200);
+  delay(2500);
+
+  Serial.println();
+  Serial.println(F("=========================================="));
+  Serial.println(F("  RS485 DISCOVERY v2"));
+  Serial.println(F("=========================================="));
+  Serial.println(F("PASTIKAN SEBELUM MULAI:"));
+  Serial.println(F("  - Shield diberi 12V terpisah, bukan hanya USB"));
+  Serial.println(F("  - Sensor tersambung ke terminal A/B"));
+  Serial.println(F("  - Sensor dapat daya 12/24V"));
+  Serial.println(F("  - GND sensor, shield, ESP32 menyatu"));
+  Serial.println();
+
+#if SCAN_MODE == 1
+  modeLoopback();
+  return;
+#elif SCAN_MODE == 2
+  modeWideId();
+  return;
+#endif
+
+  unsigned long t0 = millis();
+
+  // Tahap 0 dulu: cepat, dan langsung menembak pin yang dicurigai.
+  if (stage0_focusScan() > 0) {
+    Serial.println(F("Sudah ketemu di tahap 0, sapuan panjang dilewati."));
+    Serial.printf("\nTotal waktu: %.1f detik\n", (millis() - t0) / 1000.0);
+    return;
+  }
+
+  Serial.println(F("Tahap 0 nihil. Lanjut sapuan menyeluruh."));
+  Serial.println();
+  stage1_echoTest();
+  stage2_modbusScan();
+  Serial.printf("\nTotal waktu: %.1f detik\n", (millis() - t0) / 1000.0);
+}
+
+void loop() {
+#if SCAN_MODE == 1
+  delay(5000);
+  modeLoopback();      // ulangi terus, supaya jumper boleh dipindah-pindah
+#else
+  delay(10000);
+#endif
+}

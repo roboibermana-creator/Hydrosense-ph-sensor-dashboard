@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "State Machine HydroSense",
+    "subtitle": "Alur Siklus Mode Otomatis dan Manual",
+    "output": "state_machine.html",
+    "viewBox": [1200, 800],
+    "quality_profile": "standard"
+  },
+  "lanes": [
+    { "id": "init", "label": "Inisialisasi" },
+    { "id": "auto", "label": "Otomatis" },
+    { "id": "manual", "label": "Manual" },
+    { "id": "terminal", "label": "Terminal" }
+  ],
+  "states": [
+    { "id": "STATE_INIT", "type": "start", "label": "Boot", "lane": "init", "col": 0, "tag": "entry" },
+    { "id": "STATE_CEK_KONEKSI", "type": "active", "label": "Cek Koneksi", "lane": "init", "col": 1 },
+    { "id": "STATE_A_CEK_STOP", "type": "active", "label": "Cek Stop", "lane": "init", "col": 2 },
+    { "id": "STATE_A_BACA_MODE", "type": "decision", "label": "Mode?", "lane": "init", "col": 3 },
+    
+    { "id": "STATE_AUTO_BACA_LEVEL", "type": "active", "label": "Baca Level", "lane": "auto", "col": 0 },
+    { "id": "STATE_AUTO_ISI_CHAMBER", "type": "active", "label": "Isi Chamber", "lane": "auto", "col": 1 },
+    { "id": "STATE_AUTO_STABILISASI", "type": "waiting", "label": "Tunggu Tenang", "lane": "auto", "col": 2 },
+    { "id": "STATE_AUTO_BACA_KUALITAS", "type": "active", "label": "Ukur pH & TSS", "lane": "auto", "col": 3 },
+    { "id": "STATE_AUTO_VALIDASI", "type": "decision", "label": "Validasi?", "lane": "auto", "col": 4 },
+    { "id": "STATE_AUTO_KIRIM_DATA", "type": "active", "label": "Kirim Data", "lane": "auto", "col": 3, "yOffset": 80 },
+    { "id": "STATE_AUTO_TUNGGU_KOSONG", "type": "waiting", "label": "Kuras", "lane": "auto", "col": 2, "yOffset": 80 },
+
+    { "id": "STATE_M_BACA_PERINTAH", "type": "waiting", "label": "Poll DB", "lane": "manual", "col": 0 },
+    { "id": "STATE_M_CEK_INTERLOCK", "type": "decision", "label": "Aman?", "lane": "manual", "col": 1 },
+    { "id": "STATE_M_JALANKAN_PERINTAH", "type": "active", "label": "Eksekusi", "lane": "manual", "col": 2 },
+    { "id": "STATE_M_KIRIM_DATA", "type": "active", "label": "Kirim Hasil", "lane": "manual", "col": 3 },
+
+    { "id": "STATE_STOPPED", "type": "failure", "label": "Stopped", "lane": "terminal", "col": 0, "tag": "terminal" }
+  ],
+  "transitions": [
+    { "from": "STATE_INIT", "to": "STATE_CEK_KONEKSI", "route": "straight" },
+    { "from": "STATE_CEK_KONEKSI", "to": "STATE_A_CEK_STOP", "route": "straight" },
+    { "from": "STATE_A_CEK_STOP", "to": "STATE_A_BACA_MODE", "route": "straight" },
+    { "from": "STATE_A_CEK_STOP", "to": "STATE_STOPPED", "variant": "security" },
+    
+    { "from": "STATE_A_BACA_MODE", "to": "STATE_AUTO_BACA_LEVEL" },
+    { "from": "STATE_AUTO_BACA_LEVEL", "to": "STATE_AUTO_ISI_CHAMBER", "route": "straight" },
+    { "from": "STATE_AUTO_ISI_CHAMBER", "to": "STATE_AUTO_STABILISASI", "route": "straight" },
+    { "from": "STATE_AUTO_STABILISASI", "to": "STATE_AUTO_BACA_KUALITAS", "route": "straight" },
+    { "from": "STATE_AUTO_BACA_KUALITAS", "to": "STATE_AUTO_VALIDASI", "route": "straight" },
+    { "from": "STATE_AUTO_VALIDASI", "to": "STATE_AUTO_BACA_KUALITAS", "route": "straight", "fromSide": "bottom", "toSide": "bottom" },
+    { "from": "STATE_AUTO_VALIDASI", "to": "STATE_AUTO_KIRIM_DATA" },
+    { "from": "STATE_AUTO_KIRIM_DATA", "to": "STATE_AUTO_TUNGGU_KOSONG", "route": "straight" },
+    { "from": "STATE_AUTO_TUNGGU_KOSONG", "to": "STATE_A_CEK_STOP" },
+    { "from": "STATE_AUTO_BACA_LEVEL", "to": "STATE_A_CEK_STOP" },
+
+    { "from": "STATE_A_BACA_MODE", "to": "STATE_M_BACA_PERINTAH" },
+    { "from": "STATE_M_BACA_PERINTAH", "to": "STATE_M_CEK_INTERLOCK", "route": "straight" },
+    { "from": "STATE_M_CEK_INTERLOCK", "to": "STATE_M_JALANKAN_PERINTAH", "route": "straight" },
+    { "from": "STATE_M_JALANKAN_PERINTAH", "to": "STATE_M_KIRIM_DATA", "route": "straight" },
+    { "from": "STATE_M_KIRIM_DATA", "to": "STATE_M_BACA_PERINTAH" },
+    { "from": "STATE_M_CEK_INTERLOCK", "to": "STATE_A_CEK_STOP" },
+    { "from": "STATE_M_BACA_PERINTAH", "to": "STATE_A_CEK_STOP" }
+  ]
+}

@@ -1,0 +1,11 @@
+.pio
+.env
+.env.local
+.env.*.local
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+build/
+dist/
+node_modules

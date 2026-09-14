@@ -1,0 +1,62 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "State Machine HydroSense",
+    "subtitle": "Alur Siklus Mode Otomatis dan Manual",
+    "output": "state_machine.html",
+    "quality_profile": "standard"
+  },
+  "lanes": [
+    { "id": "init", "label": "Inisialisasi" },
+    { "id": "auto", "label": "Mode Otomatis" },
+    { "id": "auto_end", "label": "Kuras Otomatis" },
+    { "id": "manual", "label": "Mode Manual" }
+  ],
+  "nodes": [
+    { "id": "STATE_INIT", "type": "backend", "label": "Boot", "lane": "init", "col": 0 },
+    { "id": "STATE_CEK_KONEKSI", "type": "backend", "label": "Cek Koneksi", "lane": "init", "col": 1 },
+    { "id": "STATE_A_CEK_STOP", "type": "backend", "label": "Cek Stop", "lane": "init", "col": 2 },
+    { "id": "STATE_A_BACA_MODE", "type": "backend", "label": "Mode?", "lane": "init", "col": 3 },
+    { "id": "STATE_STOPPED", "type": "backend", "label": "Stopped", "lane": "init", "col": 4 },
+    
+    { "id": "STATE_AUTO_BACA_LEVEL", "type": "backend", "label": "Baca Level", "lane": "auto", "col": 0 },
+    { "id": "STATE_AUTO_ISI_CHAMBER", "type": "backend", "label": "Isi Chamber", "lane": "auto", "col": 1 },
+    { "id": "STATE_AUTO_STABILISASI", "type": "backend", "label": "Tunggu Tenang", "lane": "auto", "col": 2 },
+    { "id": "STATE_AUTO_BACA_KUALITAS", "type": "backend", "label": "Ukur pH & TSS", "lane": "auto", "col": 3 },
+    { "id": "STATE_AUTO_VALIDASI", "type": "backend", "label": "Validasi?", "lane": "auto", "col": 4 },
+    { "id": "STATE_AUTO_KIRIM_DATA", "type": "backend", "label": "Kirim Data", "lane": "auto", "col": 5 },
+    
+    { "id": "STATE_AUTO_TUNGGU_KOSONG", "type": "backend", "label": "Kuras", "lane": "auto_end", "col": 0 },
+
+    { "id": "STATE_M_BACA_PERINTAH", "type": "backend", "label": "Poll DB", "lane": "manual", "col": 0 },
+    { "id": "STATE_M_CEK_INTERLOCK", "type": "backend", "label": "Aman?", "lane": "manual", "col": 1 },
+    { "id": "STATE_M_JALANKAN_PERINTAH", "type": "backend", "label": "Eksekusi", "lane": "manual", "col": 2 },
+    { "id": "STATE_M_KIRIM_DATA", "type": "backend", "label": "Kirim Hasil", "lane": "manual", "col": 3 }
+  ],
+  "edges": [
+    { "from": "STATE_INIT", "to": "STATE_CEK_KONEKSI" },
+    { "from": "STATE_CEK_KONEKSI", "to": "STATE_A_CEK_STOP" },
+    { "from": "STATE_A_CEK_STOP", "to": "STATE_A_BACA_MODE" },
+    { "from": "STATE_A_CEK_STOP", "to": "STATE_STOPPED" },
+    
+    { "from": "STATE_A_BACA_MODE", "to": "STATE_AUTO_BACA_LEVEL" },
+    { "from": "STATE_AUTO_BACA_LEVEL", "to": "STATE_AUTO_ISI_CHAMBER" },
+    { "from": "STATE_AUTO_ISI_CHAMBER", "to": "STATE_AUTO_STABILISASI" },
+    { "from": "STATE_AUTO_STABILISASI", "to": "STATE_AUTO_BACA_KUALITAS" },
+    { "from": "STATE_AUTO_BACA_KUALITAS", "to": "STATE_AUTO_VALIDASI" },
+    { "from": "STATE_AUTO_VALIDASI", "to": "STATE_AUTO_BACA_KUALITAS", "fromSide": "bottom", "toSide": "bottom" },
+    { "from": "STATE_AUTO_VALIDASI", "to": "STATE_AUTO_KIRIM_DATA" },
+    { "from": "STATE_AUTO_KIRIM_DATA", "to": "STATE_AUTO_TUNGGU_KOSONG" },
+    { "from": "STATE_AUTO_TUNGGU_KOSONG", "to": "STATE_A_CEK_STOP" },
+    { "from": "STATE_AUTO_BACA_LEVEL", "to": "STATE_A_CEK_STOP" },
+
+    { "from": "STATE_A_BACA_MODE", "to": "STATE_M_BACA_PERINTAH" },
+    { "from": "STATE_M_BACA_PERINTAH", "to": "STATE_M_CEK_INTERLOCK" },
+    { "from": "STATE_M_CEK_INTERLOCK", "to": "STATE_M_JALANKAN_PERINTAH" },
+    { "from": "STATE_M_JALANKAN_PERINTAH", "to": "STATE_M_KIRIM_DATA" },
+    { "from": "STATE_M_KIRIM_DATA", "to": "STATE_M_BACA_PERINTAH" },
+    { "from": "STATE_M_CEK_INTERLOCK", "to": "STATE_A_CEK_STOP" },
+    { "from": "STATE_M_BACA_PERINTAH", "to": "STATE_A_CEK_STOP" }
+  ]
+}
