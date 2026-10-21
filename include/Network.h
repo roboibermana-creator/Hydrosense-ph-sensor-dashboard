@@ -83,6 +83,7 @@ void simpanKeBuffer(HasilPH hasilPh, float tss, float tssRaw);
 void cobaKirimUlangBuffer();
 bool bacaModeOperasiDariSupabase();
 KontrolManual bacaKontrolDariSupabase();
+bool kirimStatusPompaKeSupabase(bool pompaNyala, const char *catatan);
 KalibrasiTSS bacaKalibrasiTSSDariSupabase();
 
 // ========================= KALIBRASI HARDWARE TSS (two-point native) =========

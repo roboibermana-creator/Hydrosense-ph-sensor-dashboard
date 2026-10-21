@@ -9,7 +9,7 @@ const char *SUPABASE_API_KEY = "sb_publishable_S2nOQnap6hUtYWusISR5Ig_WpOrdrGB";
 // "Hydrosense table" menyimpan data OLAHAN (ph, tss, water_temperature,
 // water_level), bukan register mentah/diagnostik. Dashboard web membaca
 // langsung dari tabel ini.
-const char *TABLE_READINGS = "Hydrosense table";
+const char *TABLE_READINGS = "Hydrosense%20table";
 const char *TABLE_MODE = "system_control";
 const char *TABLE_TSS_CAL_CONFIG = "tss_calibration_config";
 const char *TABLE_TSS_HW_CAL_CMD = "tss_hw_calibration_cmd";
@@ -389,6 +389,34 @@ bool kirimSampleKalibrasi(const char *titik, const char *aksi, int indexSample,
   int kodeHttp = http.POST(payload);
   http.end();
   return (kodeHttp == 200 || kodeHttp == 201);
+}
+
+// Upsert status asli pompa ke device_status (1 baris per device_id) supaya
+// dashboard bisa menampilkan kondisi sebenarnya, termasuk penolakan interlock.
+bool kirimStatusPompaKeSupabase(bool pompaNyala, const char *catatan) {
+  if (!wifiTersambung())
+    return false;
+
+  HTTPClient http;
+  String url =
+      String(SUPABASE_URL) + "/rest/v1/device_status?on_conflict=device_id";
+  http.begin(url);
+  konfigurasiTimeoutHttp(http);
+  http.addHeader("apikey", SUPABASE_API_KEY);
+  http.addHeader("Authorization", String("Bearer ") + SUPABASE_API_KEY);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Prefer", "resolution=merge-duplicates,return=minimal");
+
+  String payload = "{";
+  payload += "\"device_id\":\"" + String(DEVICE_ID) + "\",";
+  payload += String("\"pump_on\":") + (pompaNyala ? "true" : "false") + ",";
+  payload += "\"pump_note\":\"" + String(catatan) + "\",";
+  payload += "\"updated_at\":\"now\"";
+  payload += "}";
+
+  int kodeHttp = http.POST(payload);
+  http.end();
+  return (kodeHttp == 200 || kodeHttp == 201 || kodeHttp == 204);
 }
 
 bool kirimSampleKalibrasiTSS(const char *standard, const char *aksi,

@@ -1,6 +1,13 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// CATATAN PENGGANTIAN:
+// File ini disusun berdasarkan Config.h yang kamu kirim.
+// BAGIAN YANG DIGANTI ditandai dengan komentar >>> [DIGANTI] ... <<<.
+// Password Wi-Fi sengaja dijadikan placeholder di file salinan ini.
+// Saat menerapkan, pertahankan nilai WIFI_PASSWORD lokal milikmu; jangan
+// menyalin placeholder ini ke firmware yang harus terkoneksi ke Wi-Fi.
+
 // --- KREDENSIAL WIFI & SUPABASE ---
 // SUPABASE_URL & SUPABASE_KEY SENGAJA TIDAK di-#define di sini -- nilainya
 // sudah didefinisikan sebagai variabel (bukan macro) di Network.cpp
@@ -9,32 +16,46 @@
 // menyubstitusi teks "extern const char* SUPABASE_URL;" di Network.h jadi
 // "extern const char* <string literal>;" yang gagal compile.
 #define WIFI_SSID "SPRM-CORP"
-#define WIFI_PASSWORD "e$kr1mN@N@s3000"
+#define WIFI_PASSWORD "e$kr1mN@N@s3000" // PERTAHANKAN nilai lama secara lokal
+//#define WIFI_SSID "groundtank"
+//#define WIFI_PASSWORD "111222333"
 #define DEVICE_ID "hydrosense-inlet-01"
+
+// Kunci mode operasi ke MANUAL: kolom "mode" dari Supabase diabaikan, siklus
+// otomatis tidak pernah dijalankan. Set ke 0 untuk mengembalikan perilaku
+// normal (mode ikut kolom "mode" dari web).
+#define FORCE_MODE_MANUAL 1
 
 // --- HARDWARE PIN (sensor pH Modbus RS485 via MAX485 di Serial2) ---
 #define RS485_RX_PIN 16
 #define RS485_TX_PIN 15
 #define RS485_RE_DE_PIN 14
-#define RS485_BAUD 9600 // datasheet: 9600 8N1
+#define RS485_BAUD 9600 // datasheet/manual: 9600 8N1; pastikan Serial2.begin dipanggil sekali
 
 // --- PIN AKTUATOR & SENSOR LAIN ---
 // GPIO26-32 dipakai internal SPI flash ESP32-S3 -> JANGAN dipakai untuk apapun
-// (bisa crash / korup akses flash). Pompa dipindah ke GPIO9.
-#define PUMP_PIN 9 // relay pompa peristaltik (Pompa.cpp)
+// (bisa crash / korup akses flash). Pompa dipindah ke GPIO6 (GPIO4 = ADC radar,
+// GPIO5 = float switch, jadi tidak boleh dipakai pompa).
+#define PUMP_PIN 6 // relay pompa peristaltik (Pompa.cpp)
 // Kebalik dari kabel fisik motorized valve (waktu dites 'buka' malah nutup) --
 // makanya nomor pin ditukar di sini, BUKAN di kode logikanya, supaya
 // openValve1()/closeValve1() tetap berarti sama seperti namanya.
-#define VALVE1_OPEN_PIN                                                        \
+#define VALVE1_OPEN_PIN \
   48 // relay motorized valve - arah buka (Valve_Controller.cpp)
-#define VALVE1_CLOSE_PIN                                                       \
+#define VALVE1_CLOSE_PIN \
   47 // relay motorized valve - arah tutup (Valve_Controller.cpp)
-#define PIN_FLOAT_SWITCH                                                       \
-  6 // JANGAN pakai 19/20 -> itu pin native USB D-/D+ ESP32-S3,
+#define PIN_FLOAT_SWITCH \
+  5 // GPIO4 dipakai ADC_PIN (radar 4-20mA) -> JANGAN dipakai ganda.
+    // Wiring: kabel kuning 1 -> GPIO5, kabel kuning 2 -> GND (INPUT_PULLUP).
+    // JANGAN pakai 19/20 -> itu pin native USB D-/D+ ESP32-S3,
     // menyentuhnya bikin koneksi USB CDC (Serial Monitor) putus/crash
+// 1 = pompa manual ditolak saat float switch HIGH (chamber penuh); 0 = nonaktif
+// (mis. saat tes pompa tanpa float switch terpasang). Aktifkan lagi (1) begitu
+// float switch sudah terpasang.
+#define INTERLOCK_POMPA_MANUAL 0
 #define PIN_LED_ERROR 2
 
-// --- MODBUS SENSOR: register pembacaan ---
+// --- MODBUS SENSOR: register pembacaan pH ---
 // Alamat pH & suhu diambil dari hasil dump 'D' pada sensor Anda
 // (0x0001 = 284 -> 28,4 C ; 0x0006 = 519 -> pH 5,19), BUKAN dari
 // dokumen SEN0708 yang menaruh pH di 0x0000.
@@ -43,56 +64,55 @@
 #define PH_SCALE 100.0
 #define TEMP_REGISTER_ADDRESS 0x0001 // suhu x10, signed
 #define TEMP_SCALE 10.0
-#define MV_REGISTER_ADDRESS                                                    \
+#define MV_REGISTER_ADDRESS \
   0x0007 // dugaan: tegangan elektroda x10 (mV); hanya untuk laporan
 #define MV_SCALE 10.0
 
-// --- MODBUS SENSOR TSS (RD-SSBWT-01, keluarga BOQU ZDYG-2087-01) ---
-// Sensor fisik yang terpasang berlabel RD-SSBWT-01 -- konstruksi & spek (RS485,
-// 9600 baud, 0-50.000 mg/L, wiper motor) sangat dekat dengan BOQU ZDYG-2087-01,
-// manual komunikasinya dipakai sebagai acuan register di bawah.
-#define TSS_SLAVE_ID                                                           \
-  2 // Sudah terverifikasi jalan di hardware (bukan 0x01 default manual --
-    // dipisah dari pH di address 1)
-#define REG_TSS_VALUE 0x0002     // Baca TSS (function 03, quantity 2 -> float)
-#define REG_BRUSHING_TIME 0x000B // Baca waktu brushing terakhir (function 03)
-#define REG_MANUAL_SCRAPING                                                    \
-  0x0014 // Tulis manual brush/wiper ON (function 06, value = 66) -- HANYA
-         // berlaku saat mode NORMAL (REG_CAL_MODE = 1). Register yang SAMA
-         // (0x0014) dipakai ulang sensor sebagai REG_CAL_TARGET saat mode
-         // two-point kalibrasi aktif (REG_CAL_MODE = 2) -- lihat Panduan
-         // Kalibrasi Sensor TSS resmi. JANGAN panggil startScraping() di
-         // tengah proses kalibrasi (lihat TSS_Sensor::*Kalibrasi*()).
-#define REG_AUTO_SCRAPING_INTERVAL                                             \
-  0x0015 // Tulis interval auto-brush dalam menit (function 06)
+// >>> [DIGANTI] MULAI BLOK MODBUS SENSOR TSS
+// Register berikut dicocokkan dengan tabel komunikasi BOQU ZDYG-2087-01.
+// Sensor fisik berlabel RD-SSBWT-01: konfirmasi ke vendor jika perilaku
+// firmware/varian perangkat berbeda dari manual acuan.
+#define TSS_SLAVE_ID 2 // Harus cocok dengan alamat sensor fisik; pH menggunakan ID 1.
+
+#define REG_TSS_VALUE             0x0002 // FC03; Float32 pada register 2-3
+#define REG_CAL_FACTOR            0x0006 // FC03/FC16; Float32 pada register 6-7
+#define REG_BRUSHING_TIME         0x000B // FC03; Int16
+#define REG_RESPONSE_TIME         0x000C // FC03/FC06; response time dalam detik, 3-60
+#define REG_MEASUREMENT_PARAMETER 0x000D // FC03; 1=turbidity, 2=suspended solids
+#define REG_KELEMBABAN_PROBE      0x000E // FC03; manual merekomendasikan <10
+#define REG_MANUAL_SCRAPING       0x0014 // FC06; tulis 66 untuk perintah manual brushing
+#define REG_AUTO_SCRAPING_INTERVAL 0x0015 // FC06; interval brushing dalam menit
 #define TSS_MANUAL_SCRAPING_VALUE 66
 
-// --- KALIBRASI HARDWARE TSS (two-point, native di sensor -- lihat Panduan
-// Kalibrasi Sensor TSS resmi RD-SSBWT-01/BOQU) ---
-// Menggantikan alur manual "Modbus Poll + USB-RS485" -- ESP32 yang langsung
-// baca/tulis register ini, operator tinggal input nilai Partech (P) & pilih
-// langkah lewat dashboard web.
-#define REG_STATUS_SENSOR 0x000D    // Baca status (function 03) -- harus 2 = mode ukur normal
-#define REG_KELEMBABAN_PROBE 0x000E // Baca kelembaban probe (function 03) -- >10 = air masuk, stop
-#define REG_CAL_FACTOR 0x0006       // Factor (float, RW) 0.1-10 -- set 1.0 sebelum kalibrasi
-#define REG_CAL_TARGET                                                        \
-  0x0014 // Target kalibrasi (float, RW) = nilai Partech (P) -- SAMA ALAMAT
-         // dgn REG_MANUAL_SCRAPING, hanya valid saat REG_CAL_MODE = 2
-#define REG_CAL_ACTUAL 0x0016 // Actual kalibrasi (float, RW) = nilai sensor ini (S)
-#define REG_CAL_MODE 0x001B   // 1 = factor, 2 = two-point, 3 = four-point
-#define REG_CAL_POINT 0x001C  // Nomor titik kalibrasi: 1, 2, (3, 4)
-#define REG_CAL_EXIT_CONTROL 0x003B // Tulis 33 = keluar mode kalibrasi
-#define TSS_CAL_EXIT_VALUE 33
+// Alias kompatibilitas untuk source lama. Gunakan REG_MEASUREMENT_PARAMETER
+// di kode baru karena register 13 BUKAN register status umum.
+#define REG_STATUS_SENSOR REG_MEASUREMENT_PARAMETER
+#define TSS_PARAMETER_TURBIDITY 1
+#define TSS_PARAMETER_SUSPENDED_SOLIDS 2
+#define TSS_STATUS_NORMAL TSS_PARAMETER_SUSPENDED_SOLIDS // alias lama saja
+// <<< [DIGANTI] AKHIR BLOK MODBUS SENSOR TSS
+
+// >>> [DIGANTI] MULAI BLOK KALIBRASI HARDWARE TSS
+#define REG_CAL_MODE  0x001B // FC06; 1=factor, 2=two-point, 3=four-point
+#define REG_CAL_POINT 0x001C // FC06; titik 1-2 atau 1-4 sesuai mode
+#define REG_CAL_TARGET 0x0014 // FC16; Float32 reg 20-21 saat kalibrasi multipoint
+#define REG_CAL_ACTUAL 0x0016 // FC16; Float32 reg 22-23 saat kalibrasi multipoint
 #define TSS_CAL_MODE_FACTOR 1
 #define TSS_CAL_MODE_TWO_POINT 2
-#define TSS_STATUS_NORMAL 2
+#define TSS_FACTOR_MIN 0.11f // Rentang manual: 0.11-9.99
+#define TSS_FACTOR_MAX 9.99f
+
+// Kompatibilitas source lama saja. Manual yang dilampirkan tidak mendokumentasikan
+// perintah register 59/value 33. Driver perbaikan tidak mengirim perintah ini.
+#define REG_CAL_EXIT_CONTROL 0x003B
+#define TSS_CAL_EXIT_VALUE 33
+// <<< [DIGANTI] AKHIR BLOK KALIBRASI HARDWARE TSS
 
 // --- SENSOR LEVEL RADAR 4-20mA ---
-#define ADC_PIN                                                                \
-  4 // (Diubah ke 4) A_OUT converter -> GPIO4. (ESP32-S3 wajib pin 1-10 untuk
-    // ADC1).
-#define ADC_SAMPLES                                                            \
-  32 // BUKAN PIN! Ini artinya: "ambil data 32 kali lalu dirata-rata"
+#define ADC_PIN \
+  4 // A_OUT converter -> GPIO4. ESP32-S3: gunakan ADC1 untuk pembacaan stabil saat Wi-Fi aktif.
+#define ADC_SAMPLES \
+  32 // Ambil data 32 kali lalu dirata-rata.
 const float I_MIN_MA = 4.0;
 const float I_MAX_MA = 20.0;
 const float V_MIN_V = 0.0;          // output terendah converter
@@ -155,4 +175,4 @@ extern float thHigh;
 #define SUPABASE_LOG_INTERVAL_MS 60000UL
 #define SUPABASE_COMMAND_CHECK_MS 3000UL
 
-#endif
+#endif // CONFIG_H

@@ -1,4 +1,6 @@
 #include "Modes.h"
+#include "Pompa.h"
+#include <Preferences.h>
 
 // Mode manual (dipicu dari web via kolom "mode" di Supabase): relay HARUS
 // langsung nurut command terbaru secepat mungkin, TANPA syarat/interlock
@@ -18,7 +20,23 @@ static String pumpTerakhirDieksekusi = "";
 // valve/pompa, jadi dilacak pakai id baris (bukan teks command) supaya tiap
 // penekanan tombol baru di web (baris baru di Supabase) tetap memicu sapuan
 // meski teksnya sama ("bersihkan").
+//
+// Disimpan di NVS (Preferences), BUKAN cuma variabel RAM -- device ini pernah
+// kedapatan reboot berulang (brownout/watchdog, lihat "[SISTEM] Alasan reset
+// terakhir" di Serial Monitor) yang sebelumnya bikin wiper ke-trigger ULANG
+// tiap reboot karena command lama di Supabase masih "bersihkan" dan pelacak
+// RAM-nya ikut ke-reset ke -1.
+static Preferences wiperPrefs;
 static long wiperIdTerakhirDieksekusi = -1;
+static bool wiperPrefsSiap = false;
+
+static void pastikanWiperPrefsSiap() {
+  if (wiperPrefsSiap)
+    return;
+  wiperPrefs.begin("tss-wiper", false);
+  wiperIdTerakhirDieksekusi = wiperPrefs.getLong("last_id", -1);
+  wiperPrefsSiap = true;
+}
 
 // ---------------- Baca & Eksekusi Command Manual (Valve & Pompa via Supabase)
 // ----------------
@@ -35,7 +53,7 @@ void handleModeManual() {
     // "otomatis" (logging pH/TSS pun ikut berhenti selamanya, lihat catatan
     // di atas). Sekarang dicek simetris: begitu web bilang "otomatis" lagi,
     // langsung lepas dari manual dan balik ke siklus otomatis.
-    if (perintahTerakhir.mode == "otomatis") {
+    if (!FORCE_MODE_MANUAL && perintahTerakhir.mode == "otomatis") {
       Serial.println(F("\n[MODE] Mode OTOMATIS terdeteksi dari web -> kembali "
                        "ke siklus otomatis."));
       modeOtomatis = true;
@@ -72,11 +90,8 @@ bool bacaPerintahManual() {
   return true;
 }
 
-// Interlock (cegah pompa nyala saat chamber penuh) SENGAJA TIDAK dipakai lagi
-// di mode manual -- sesuai permintaan: command dari web langsung dieksekusi
-// tanpa syarat. Fungsi ini dibiarkan ada (dipanggil dari luar bila suatu saat
-// interlock manual mau diaktifkan lagi), tapi tidak lagi bagian dari alur
-// utama.
+// Interlock pompa (cegah pompa nyala saat chamber penuh) AKTIF di mode manual:
+// dipakai di jalankanPerintahPompaValve(). Valve dan wiper tetap tanpa syarat.
 bool interlockAman() {
   if (perintahTerakhir.pumpCmd == "jalan" && bacaFloatSwitch()) {
     return false;
@@ -101,17 +116,62 @@ void jalankanPerintahPompaValve() {
       valveTerakhirDieksekusi = perintahTerakhir.valveCmd;
   }
 
-  if (perintahTerakhir.pumpCmd != pumpTerakhirDieksekusi) {
-    if (perintahTerakhir.pumpCmd == "jalan")
+  // Interlock pompa: command "jalan" ditolak (dan pompa dimatikan bila sedang
+  // jalan) selama float switch menandakan chamber penuh. Dievaluasi tiap poll,
+  // jadi pompa juga berhenti kalau chamber penuh saat sedang berjalan, dan
+  // otomatis jalan lagi kalau command masih "jalan" dan chamber sudah turun.
+  static bool interlockSedangMenolak = false;
+  String pumpEfektif = perintahTerakhir.pumpCmd;
+  if (INTERLOCK_POMPA_MANUAL && pumpEfektif == "jalan" && !interlockAman()) {
+    pumpEfektif = "berhenti";
+    if (!interlockSedangMenolak) {
+      Serial.printf("[INTERLOCK] Pompa DITOLAK: float switch (GPIO%d) = HIGH "
+                    "(dianggap chamber penuh). Kalau float switch belum "
+                    "terpasang, pin mengambang ke HIGH lewat INPUT_PULLUP.\n",
+                    PIN_FLOAT_SWITCH);
+      tolakPerintahDenganAlert();
+      interlockSedangMenolak = true;
+    }
+  } else {
+    interlockSedangMenolak = false;
+  }
+
+  // Bandingkan ke status relay SEBENARNYA (pumpState), bukan cuma command
+  // terakhir: mode otomatis / override / STATE_STOPPED juga bisa mematikan
+  // pompa, sehingga pelacak command jadi basi dan "jalan" tidak pernah
+  // dieksekusi ulang saat kembali ke manual.
+  bool pumpHarusOn = (pumpEfektif == "jalan");
+  if (pumpHarusOn != pumpState) {
+    if (pumpHarusOn)
       pompaOn();
     else
       pompaOff();
-    pumpTerakhirDieksekusi = perintahTerakhir.pumpCmd;
+  }
+  pumpTerakhirDieksekusi = pumpEfektif;
+
+  // Laporkan status asli pompa ke dashboard hanya saat berubah (diulang tiap
+  // poll kalau kirim gagal).
+  static int laporanTerakhir = -1; // 0 = berhenti, 1 = jalan, 2 = ditolak
+  int laporanSekarang = interlockSedangMenolak ? 2 : (pumpState ? 1 : 0);
+  // Heartbeat tiap 30 detik walau status tidak berubah, supaya dashboard tahu
+  // alat masih online (di mode manual data pH/TSS tidak dikirim).
+  static unsigned long heartbeatTerakhir = 0;
+  bool butuhHeartbeat = millis() - heartbeatTerakhir >= 30000UL;
+  if (laporanSekarang != laporanTerakhir || butuhHeartbeat) {
+    const char *catatan = laporanSekarang == 2   ? "ditolak_chamber_penuh"
+                          : laporanSekarang == 1 ? "jalan"
+                                                 : "berhenti";
+    if (kirimStatusPompaKeSupabase(pumpState, catatan)) {
+      laporanTerakhir = laporanSekarang;
+      heartbeatTerakhir = millis();
+    }
   }
 
+  pastikanWiperPrefsSiap();
   if (perintahTerakhir.wiperCmd == "bersihkan" &&
       perintahTerakhir.id != wiperIdTerakhirDieksekusi) {
     wiperMulai();
     wiperIdTerakhirDieksekusi = perintahTerakhir.id;
+    wiperPrefs.putLong("last_id", wiperIdTerakhirDieksekusi);
   }
 }
