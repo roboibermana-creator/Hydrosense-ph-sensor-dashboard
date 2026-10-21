@@ -6,37 +6,99 @@
     <meta name="theme-color" content="#1f292a" />
     <title>HydroSense — IoT Monitor</title>
     <link rel="stylesheet" href="style.css" />
-        <style>
-      .page-content { display: none !important; }
-      .page-content.active { display: grid !important; }
-      #page-dashboard-utama { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    <style>
+      .page-content {
+        display: none !important;
+      }
+      .page-content.active {
+        display: grid !important;
+      }
+      #page-dashboard-utama {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
       @media (max-width: 1100px) {
-         #page-dashboard-utama { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-         #calibration-summary { grid-column: 1 / -1; }
-         #calibration-summary > div { grid-template-columns: 1fr; }
-         #calibration-summary > div > div { border-left: none !important; padding-left: 0 !important; border-bottom: 2px solid var(--border-dark); padding-bottom: 10px; }
-         #calibration-summary > div > div:last-child { border-bottom: none; }
+        #page-dashboard-utama {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        #calibration-summary {
+          grid-column: 1 / -1;
+        }
+        #calibration-summary > div {
+          grid-template-columns: 1fr;
+        }
+        #calibration-summary > div > div {
+          border-left: none !important;
+          padding-left: 0 !important;
+          border-bottom: 2px solid var(--border-dark);
+          padding-bottom: 10px;
+        }
+        #calibration-summary > div > div:last-child {
+          border-bottom: none;
+        }
       }
       @media (max-width: 690px) {
-         #page-dashboard-utama { grid-template-columns: 1fr; }
+        #page-dashboard-utama {
+          grid-template-columns: 1fr;
+        }
       }
-      #page-ph-sensor { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(270px, .9fr); }
-      #page-ph-sensor .telemetry-panel { grid-column: 1 / 4; }
-      #page-ph-sensor .right-stack { grid-column: 4; }
+      #page-ph-sensor {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(270px, 0.9fr);
+      }
+      #page-ph-sensor .telemetry-panel {
+        grid-column: 1 / 4;
+      }
+      #page-ph-sensor .right-stack {
+        grid-column: 4;
+      }
       @media (max-width: 1100px) {
-         #page-ph-sensor { grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(270px, .9fr); grid-template-rows: auto auto 1fr; }
-         #page-ph-sensor .temp-panel { grid-column: 1 / 3; min-height: 0; }
-         #page-ph-sensor .temp-panel .reading { min-height: 110px; }
-         #page-ph-sensor .telemetry-panel { grid-column: 1 / 3; }
-         #page-ph-sensor .right-stack { grid-column: 3; grid-row: 1 / 4; }
+        #page-ph-sensor {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(270px, 0.9fr);
+          grid-template-rows: auto auto 1fr;
+        }
+        #page-ph-sensor .temp-panel {
+          grid-column: 1 / 3;
+          min-height: 0;
+        }
+        #page-ph-sensor .temp-panel .reading {
+          min-height: 110px;
+        }
+        #page-ph-sensor .telemetry-panel {
+          grid-column: 1 / 3;
+        }
+        #page-ph-sensor .right-stack {
+          grid-column: 3;
+          grid-row: 1 / 4;
+        }
       }
       @media (max-width: 690px) {
-         #page-ph-sensor { grid-template-columns: 1fr; grid-template-rows: none; }
-         #page-ph-sensor .temp-panel, #page-ph-sensor .telemetry-panel, #page-ph-sensor .right-stack { grid-column: auto; grid-row: auto; }
+        #page-ph-sensor {
+          grid-template-columns: 1fr;
+          grid-template-rows: none;
+        }
+        #page-ph-sensor .temp-panel,
+        #page-ph-sensor .telemetry-panel,
+        #page-ph-sensor .right-stack {
+          grid-column: auto;
+          grid-row: auto;
+        }
       }
-      #page-control-valve .control-panel { grid-column: 1 / 3; grid-row: 1 / 3; }
+      #page-control-valve .control-panel {
+        grid-column: 1 / 3;
+        grid-row: 1 / 3;
+      }
       @media (max-width: 690px) {
-         #page-control-valve .control-panel { grid-column: auto; grid-row: auto; }
+        #page-control-valve .control-panel {
+          grid-column: auto;
+          grid-row: auto;
+        }
+      }
+      #page-tss-sensor .wiper-panel {
+        grid-column: 1 / 3;
+      }
+      @media (max-width: 690px) {
+        #page-tss-sensor .wiper-panel {
+          grid-column: auto;
+        }
       }
     </style>
   </head>
@@ -44,215 +106,1207 @@
     <div class="console-frame">
       <header class="top-header">
         <a class="brand" href="#dashboard" aria-label="HydroSense dashboard">
-          <img class="brand-mark" src="gambarpixel/logo-hydrosense.svg" alt="H" style="width:35px;height:35px;object-fit:contain;"/><span>HYDRO<span>SENSE</span></span>
+          <img
+            class="brand-mark"
+            src="gambarpixel/logo-hydrosense.svg"
+            alt="H"
+            style="width: 35px; height: 35px; object-fit: contain"
+          /><span>HYDRO<span>SENSE</span></span>
         </a>
         <div class="header-status">
-          <div class="date-block" style="display:flex;align-items:center;"><img src="gambarpixel/header-calendar.svg" class="pixel-icon" style="width:16px;height:16px;margin-right:5px;"><span id="dateNow">DATE // --.--.----</span><img src="gambarpixel/header-clock.svg" class="pixel-icon" style="width:16px;height:16px;margin:0 5px 0 15px;"><strong id="timeNow">--:--:-- WIB</strong></div>
-          <div class="wifi-status" style="display:flex;align-items:center;"><img src="gambarpixel/header-signal.svg" class="pixel-icon" style="width:16px;height:16px;margin-right:5px;"><img class="pixel-icon wifi-icon is-connecting" id="wifiIcon" src="gambarpixel/header-wifi.svg" alt="Wi-Fi connection status" /><span id="connectionStatus">CONNECTING</span></div>
-          <div class="score-box" style="display:flex;align-items:center;"><img src="gambarpixel/header-readings.svg" class="pixel-icon" style="width:16px;height:16px;margin-right:5px;"><span>READINGS</span><strong id="readingCount" style="margin-left:5px;">000000</strong></div>
+          <div class="date-block" style="display: flex; align-items: center">
+            <img
+              src="gambarpixel/header-calendar.svg"
+              class="pixel-icon"
+              style="width: 16px; height: 16px; margin-right: 5px"
+            /><span id="dateNow">DATE // --.--.----</span
+            ><img
+              src="gambarpixel/header-clock.svg"
+              class="pixel-icon"
+              style="width: 16px; height: 16px; margin: 0 5px 0 15px"
+            /><strong id="timeNow">--:--:-- WITA</strong>
+          </div>
+          <div class="wifi-status" style="display: flex; align-items: center">
+            <img
+              src="gambarpixel/header-signal.svg"
+              class="pixel-icon"
+              style="width: 16px; height: 16px; margin-right: 5px"
+            /><img
+              class="pixel-icon wifi-icon is-connecting"
+              id="wifiIcon"
+              src="gambarpixel/header-wifi.svg"
+              alt="Wi-Fi connection status"
+            /><span id="connectionStatus">CONNECTING</span>
+          </div>
+          <div class="score-box" style="display: flex; align-items: center">
+            <img
+              src="gambarpixel/header-readings.svg"
+              class="pixel-icon"
+              style="width: 16px; height: 16px; margin-right: 5px"
+            /><span>READINGS</span
+            ><strong id="readingCount" style="margin-left: 5px">000000</strong>
+          </div>
         </div>
       </header>
-      
+
       <div class="screen-layout" id="dashboard">
         <aside class="sidebar">
-          <div class="profile"><img class="pixel-icon avatar" src="gambarpixel/kotak-profil-operator-menu.svg" alt="User avatar" style="object-fit:contain;" /><div><strong>OPERATOR_01</strong><span>ONLINE</span></div></div>
-          <a class="calibrate-button" href="#calibration"><img class="pixel-icon" src="gambarpixel/calibrate-tools.svg" alt="" /><span>CALIBRATE<br />PROBE</span></a>
+          <div class="profile">
+            <img
+              class="pixel-icon avatar"
+              src="gambarpixel/kotak-profil-operator-menu.svg"
+              alt="User avatar"
+              style="object-fit: contain"
+            />
+            <div><strong>OPERATOR_01</strong><span>ONLINE</span></div>
+          </div>
+          <a class="calibrate-button" href="#calibration"
+            ><img
+              class="pixel-icon"
+              src="gambarpixel/calibrate-tools.svg"
+              alt=""
+            /><span>CALIBRATE<br />PROBE</span></a
+          >
           <nav class="side-nav" aria-label="Dashboard navigation">
-            <a class="nav-link active" href="#" data-target="page-dashboard-utama"><img class="pixel-icon" src="gambarpixel/real-time-icon.svg" alt="" />DASHBOARD UTAMA</a>
-            <a class="nav-link" href="#" data-target="page-ph-sensor"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" />pH SENSOR</a>
-            <a class="nav-link" href="#" data-target="page-tss-sensor"><img class="pixel-icon" src="gambarpixel/tss-cluster-small.svg" alt="" />TSS SENSOR</a>
-            <a class="nav-link" href="#" data-target="page-water-level"><img class="pixel-icon" src="gambarpixel/level-wave-status.svg" alt="" />WATER LEVEL</a>
-            <a class="nav-link" href="#" data-target="page-control-valve"><img class="pixel-icon" src="gambarpixel/controls/icon_control_valve_compa.png" alt="" />CONTROL VALVE &amp; POMPA</a>
+            <a
+              class="nav-link active"
+              href="#"
+              data-target="page-dashboard-utama"
+              ><img
+                class="pixel-icon"
+                src="gambarpixel/real-time-icon.svg"
+                alt=""
+              />DASHBOARD UTAMA</a
+            >
+            <a class="nav-link" href="#" data-target="page-ph-sensor"
+              ><img
+                class="pixel-icon"
+                src="gambarpixel/ph-drop-small.svg"
+                alt=""
+              />pH SENSOR</a
+            >
+            <a class="nav-link" href="#" data-target="page-tss-sensor"
+              ><img
+                class="pixel-icon"
+                src="gambarpixel/tss-cluster-small.svg"
+                alt=""
+              />TSS SENSOR</a
+            >
+            <a class="nav-link" href="#" data-target="page-water-level"
+              ><img
+                class="pixel-icon"
+                src="gambarpixel/level-wave-status.svg"
+                alt=""
+              />WATER LEVEL</a
+            >
+            <a class="nav-link" href="#" data-target="page-control-valve"
+              ><img
+                class="pixel-icon"
+                src="gambarpixel/controls/icon_control_valve_compa.png"
+                alt=""
+              />CONTROL VALVE &amp; POMPA</a
+            >
           </nav>
-          <div class="side-tool"><img class="pixel-icon" src="gambarpixel/ph-probe-gear.svg" alt="" style="object-fit:contain;" /></div>
+          <div class="side-tool">
+            <img
+              class="pixel-icon"
+              src="gambarpixel/ph-probe-gear.svg"
+              alt=""
+              style="object-fit: contain"
+            />
+          </div>
         </aside>
-        
+
         <!-- PAGE 1: DASHBOARD UTAMA -->
-        <main class="dashboard-grid page-content active" id="page-dashboard-utama" >
+        <main
+          class="dashboard-grid page-content active"
+          id="page-dashboard-utama"
+        >
           <!-- RINGKASAN pH -->
-          <section class="data-panel ph-panel" style="padding: 16px; min-height: 250px;">
-            <div class="panel-heading" style="padding-bottom: 5px; border-bottom: 2px solid var(--border-dark); font-size: 18px; justify-content: center;"><span>pH SENSOR</span></div>
-            <div style="text-align: center; color: var(--mint); font-size: 15px; margin: 10px 0;">CURRENT pH</div>
-            <div class="reading" style="min-height: auto; margin-bottom: 20px;">
-              <img class="pixel-icon reading-icon" src="gambarpixel/ph-drop-large.svg" alt="pH droplet" style="width:55px; height:55px;" />
-              <div><strong id="phNowSummary" style="font-size:38px;">6.85</strong><span style="font-size:16px;">pH LEVEL</span></div>
+          <section
+            class="data-panel ph-panel"
+            style="padding: 16px; min-height: 250px"
+          >
+            <div
+              class="panel-heading"
+              style="
+                padding-bottom: 5px;
+                border-bottom: 2px solid var(--border-dark);
+                font-size: 18px;
+                justify-content: center;
+              "
+            >
+              <span>pH SENSOR</span>
             </div>
-            <div class="panel-footer" style="justify-content: space-between;"><span>STATUS:</span><b id="phStatusSummaryText" style="color:var(--neon); margin-left: auto;">LIVE <span class="signal" style="margin-left:5px;">&#9679;</span></b></div>
-            <div class="panel-footer" style="border-top: none; padding-top: 5px; justify-content: space-between;"><span>PROBE VOLTAGE:</span><b id="voltNowSummary" style="color:var(--orange); font-weight:normal; margin-left: auto;">1385.55 mV</b></div>
-            <div class="panel-footer" style="border-top: none; padding-top: 5px; justify-content: space-between;"><span>WATER TEMP:</span><b id="tempNowSummary" style="color:var(--orange); font-weight:normal; margin-left: auto;">-- &deg;C</b></div>
+            <div
+              style="
+                text-align: center;
+                color: var(--mint);
+                font-size: 15px;
+                margin: 10px 0;
+              "
+            >
+              CURRENT pH
+            </div>
+            <div class="reading" style="min-height: auto; margin-bottom: 20px">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/ph-drop-large.svg"
+                alt="pH droplet"
+                style="width: 55px; height: 55px"
+              />
+              <div>
+                <strong id="phNowSummary" style="font-size: 38px">6.85</strong
+                ><span style="font-size: 16px">pH LEVEL</span>
+              </div>
+            </div>
+            <div class="panel-footer" style="justify-content: space-between">
+              <span>STATUS:</span
+              ><b
+                id="phStatusSummaryText"
+                style="color: var(--neon); margin-left: auto"
+                >LIVE
+                <span class="signal" style="margin-left: 5px">&#9679;</span></b
+              >
+            </div>
+            <div
+              class="panel-footer"
+              style="
+                border-top: none;
+                padding-top: 5px;
+                justify-content: space-between;
+              "
+            >
+              <span>PROBE VOLTAGE:</span
+              ><b
+                id="voltNowSummary"
+                style="
+                  color: var(--orange);
+                  font-weight: normal;
+                  margin-left: auto;
+                "
+                >1385.55 mV</b
+              >
+            </div>
+            <div
+              class="panel-footer"
+              style="
+                border-top: none;
+                padding-top: 5px;
+                justify-content: space-between;
+              "
+            >
+              <span>WATER TEMP:</span
+              ><b
+                id="tempNowSummary"
+                style="
+                  color: var(--orange);
+                  font-weight: normal;
+                  margin-left: auto;
+                "
+                >-- &deg;C</b
+              >
+            </div>
           </section>
 
           <!-- RINGKASAN TSS -->
-          <section class="data-panel voltage-panel" style="padding: 16px; min-height: 250px;">
-            <div class="panel-heading" style="padding-bottom: 5px; border-bottom: 2px solid var(--border-dark); font-size: 18px; justify-content: center;"><span>TSS SENSOR</span></div>
-            <div style="text-align: center; color: var(--mint); font-size: 15px; margin: 10px 0;">CURRENT TSS</div>
-            <div class="reading" style="min-height: auto; margin-bottom: 20px;">
-              <img class="pixel-icon reading-icon" src="gambarpixel/tss-cluster-large.svg" alt="TSS" style="width:55px; height:55px;" />
-              <div><strong id="tssNowSummary" style="font-size:38px; color:var(--orange);">150</strong><span style="font-size:16px;">TSS mg/L</span></div>
+          <section
+            class="data-panel voltage-panel"
+            style="padding: 16px; min-height: 250px"
+          >
+            <div
+              class="panel-heading"
+              style="
+                padding-bottom: 5px;
+                border-bottom: 2px solid var(--border-dark);
+                font-size: 18px;
+                justify-content: center;
+              "
+            >
+              <span>TSS SENSOR</span>
             </div>
-            <div class="panel-footer" style="justify-content: space-between;"><span>STATUS:</span><b id="tssStatusSummaryText" style="color:var(--neon); margin-left: auto;">LIVE <span class="signal" style="margin-left:5px;">&#9679;</span></b></div>
-            <div class="panel-footer" style="border-top: none; padding-top: 5px; justify-content: space-between;"><span>TURBIDITY:</span><b id="ntuNowSummary" style="color:var(--orange); font-weight:normal; margin-left: auto;">50 NTU</b></div>
+            <div
+              style="
+                text-align: center;
+                color: var(--mint);
+                font-size: 15px;
+                margin: 10px 0;
+              "
+            >
+              CURRENT TSS
+            </div>
+            <div class="reading" style="min-height: auto; margin-bottom: 20px">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/tss-cluster-large.svg"
+                alt="TSS"
+                style="width: 55px; height: 55px"
+              />
+              <div>
+                <strong
+                  id="tssNowSummary"
+                  style="font-size: 38px; color: var(--orange)"
+                  >150</strong
+                ><span style="font-size: 16px">TSS mg/L</span>
+              </div>
+            </div>
+            <div class="panel-footer" style="justify-content: space-between">
+              <span>STATUS:</span
+              ><b
+                id="tssStatusSummaryText"
+                style="color: var(--neon); margin-left: auto"
+                >LIVE
+                <span class="signal" style="margin-left: 5px">&#9679;</span></b
+              >
+            </div>
+            <div
+              class="panel-footer"
+              style="
+                border-top: none;
+                padding-top: 5px;
+                justify-content: space-between;
+              "
+            >
+              <span>TURBIDITY:</span
+              ><b
+                id="ntuNowSummary"
+                style="
+                  color: var(--orange);
+                  font-weight: normal;
+                  margin-left: auto;
+                "
+                >50 NTU</b
+              >
+            </div>
           </section>
 
           <!-- RINGKASAN WATER LEVEL -->
-          <section class="data-panel ph-panel" style="padding: 16px; min-height: 250px;">
-            <div class="panel-heading" style="padding-bottom: 5px; border-bottom: 2px solid var(--border-dark); font-size: 18px; justify-content: center;"><span>WATER LEVEL</span></div>
-            <div style="text-align: center; color: var(--mint); font-size: 15px; margin: 10px 0;">CURRENT LEVEL</div>
-            <div class="reading" style="min-height: auto; margin-bottom: 20px;">
-              <img class="pixel-icon reading-icon" src="gambarpixel/level-main-tank.svg" alt="Water Level" style="width:55px; height:55px;" />
-              <div><strong id="wlNowSummary" style="font-size:38px; color:var(--orange);">78%</strong><span style="font-size:16px;">% LEVEL</span></div>
+          <section
+            class="data-panel ph-panel"
+            style="padding: 16px; min-height: 250px"
+          >
+            <div
+              class="panel-heading"
+              style="
+                padding-bottom: 5px;
+                border-bottom: 2px solid var(--border-dark);
+                font-size: 18px;
+                justify-content: center;
+              "
+            >
+              <span>WATER LEVEL</span>
             </div>
-            <div class="panel-footer" style="justify-content: space-between;"><span>STATUS:</span><b id="wlStatusSummaryText" style="color:var(--neon); margin-left: auto;">LIVE <span class="signal" style="margin-left:5px;">&#9679;</span></b></div>
-            <div class="panel-footer" style="border-top: none; padding-top: 5px; justify-content: space-between;"><span>ECHO DISTANCE:</span><b id="distNowSummary" style="color:var(--orange); font-weight:normal; margin-left: auto;">92 cm</b></div>
+            <div
+              style="
+                text-align: center;
+                color: var(--mint);
+                font-size: 15px;
+                margin: 10px 0;
+              "
+            >
+              CURRENT LEVEL
+            </div>
+            <div class="reading" style="min-height: auto; margin-bottom: 20px">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/level-main-tank.svg"
+                alt="Water Level"
+                style="width: 55px; height: 55px"
+              />
+              <div>
+                <strong
+                  id="wlNowSummary"
+                  style="font-size: 38px; color: var(--orange)"
+                  >78%</strong
+                ><span style="font-size: 16px">% LEVEL</span>
+              </div>
+            </div>
+            <div class="panel-footer" style="justify-content: space-between">
+              <span>STATUS:</span
+              ><b
+                id="wlStatusSummaryText"
+                style="color: var(--neon); margin-left: auto"
+                >LIVE
+                <span class="signal" style="margin-left: 5px">&#9679;</span></b
+              >
+            </div>
+            <div
+              class="panel-footer"
+              style="
+                border-top: none;
+                padding-top: 5px;
+                justify-content: space-between;
+              "
+            >
+              <span>ECHO DISTANCE:</span
+              ><b
+                id="distNowSummary"
+                style="
+                  color: var(--orange);
+                  font-weight: normal;
+                  margin-left: auto;
+                "
+                >92 cm</b
+              >
+            </div>
           </section>
 
           <!-- SESSION OVERVIEW -->
-          <section class="data-panel stats-panel" style="padding: 16px; min-height: 250px;">
-            <div class="panel-heading" style="justify-content: space-between; padding-bottom: 5px; border-bottom: 2px solid var(--border-dark); font-size: 18px;"><span>SESSION OVERVIEW</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" style="width:24px;height:24px;" /></div>
-            <dl class="stats-list" style="grid-template-columns: 1fr 1fr; margin: 20px 0 15px; font-size: 16px; gap: 15px 5px;">
-              <div><dt>AVG pH</dt><dd id="avgPhSummary" style="font-size: 22px;">6.73</dd></div>
-              <div><dt>READINGS</dt><dd id="sessionReadingsSummary" style="font-size: 22px;">50</dd></div>
-              <div><dt>AVG TSS</dt><dd id="avgTssSummary" style="font-size: 22px;">151 <span style="font-size:14px;color:var(--mint);">mg/L</span></dd></div>
-              <div><dt>READINGS</dt><dd id="sessionReadingsTssSummary" style="font-size: 22px;">50</dd></div>
-              <div><dt>AVG LEVEL</dt><dd id="avgWlSummary" style="font-size: 22px;">76%</dd></div>
-              <div><dt>UPTIME</dt><dd class="good" style="font-size: 22px;">99.8%</dd></div>
+          <section
+            class="data-panel stats-panel"
+            style="padding: 16px; min-height: 250px"
+          >
+            <div
+              class="panel-heading"
+              style="
+                justify-content: space-between;
+                padding-bottom: 5px;
+                border-bottom: 2px solid var(--border-dark);
+                font-size: 18px;
+              "
+            >
+              <span>SESSION OVERVIEW</span
+              ><img
+                class="pixel-icon mini-icon"
+                src="gambarpixel/ikon-statistik-sesi.svg"
+                alt=""
+                style="width: 24px; height: 24px"
+              />
+            </div>
+            <dl
+              class="stats-list"
+              style="
+                grid-template-columns: 1fr 1fr;
+                margin: 20px 0 15px;
+                font-size: 16px;
+                gap: 15px 5px;
+              "
+            >
+              <div>
+                <dt>AVG pH</dt>
+                <dd id="avgPhSummary" style="font-size: 22px">6.73</dd>
+              </div>
+              <div>
+                <dt>READINGS</dt>
+                <dd id="sessionReadingsSummary" style="font-size: 22px">50</dd>
+              </div>
+              <div>
+                <dt>AVG TSS</dt>
+                <dd id="avgTssSummary" style="font-size: 22px">
+                  151
+                  <span style="font-size: 14px; color: var(--mint)">mg/L</span>
+                </dd>
+              </div>
+              <div>
+                <dt>READINGS</dt>
+                <dd id="sessionReadingsTssSummary" style="font-size: 22px">
+                  50
+                </dd>
+              </div>
+              <div>
+                <dt>AVG LEVEL</dt>
+                <dd id="avgWlSummary" style="font-size: 22px">76%</dd>
+              </div>
+              <div>
+                <dt>UPTIME</dt>
+                <dd class="good" style="font-size: 22px">99.8%</dd>
+              </div>
             </dl>
-            <p class="terminal-note" style="margin-top: 20px;">&gt; SESSION OVERVIEW</p>
+            <p class="terminal-note" style="margin-top: 20px">
+              &gt; SESSION OVERVIEW
+            </p>
           </section>
 
           <!-- CALIBRATION STATUS WIDE PANEL -->
-          <section class="data-panel calibration-panel" id="calibration-summary" style="grid-column: 1 / -1; padding: 16px; margin-top: 5px;">
-            <div class="panel-heading" style="justify-content: space-between; padding-bottom: 5px; border-bottom: 2px solid var(--border-dark);"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-pengaturan-kecil.svg" alt="" style="width:24px;height:24px;" /></div>
-            
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; padding-bottom: 15px; border-bottom: 2px solid var(--border-dark);">
+          <section
+            class="data-panel calibration-panel"
+            id="calibration-summary"
+            style="grid-column: 1 / -1; padding: 16px; margin-top: 5px"
+          >
+            <div
+              class="panel-heading"
+              style="
+                justify-content: space-between;
+                padding-bottom: 5px;
+                border-bottom: 2px solid var(--border-dark);
+              "
+            >
+              <span>CALIBRATION STATUS</span
+              ><img
+                class="pixel-icon mini-icon"
+                src="gambarpixel/ikon-pengaturan-kecil.svg"
+                alt=""
+                style="width: 24px; height: 24px"
+              />
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                margin-top: 15px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid var(--border-dark);
+              "
+            >
               <!-- pH Cal -->
-              <div style="display: flex; gap: 15px; align-items: center;">
-                 <img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" style="width: 50px; height: 50px;" />
-                 <div class="calibration-rows" style="border: none; flex-grow: 1; margin: 0;">
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>pH: 4.01</span><b id="cal4Sum" style="color:var(--neon);">COMPLETE</b></div>
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>6.86</span><b id="cal7Sum" style="color:var(--neon);">COMPLETE</b></div>
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>9.18</span><em id="cal10Sum" style="color:var(--orange);">PENDING</em></div>
-                 </div>
+              <div style="display: flex; gap: 15px; align-items: center">
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/ph-drop-small.svg"
+                  style="width: 50px; height: 50px"
+                />
+                <div
+                  class="calibration-rows"
+                  style="border: none; flex-grow: 1; margin: 0"
+                >
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>pH: 4.01</span
+                    ><b id="cal4Sum" style="color: var(--neon)">COMPLETE</b>
+                  </div>
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>7.01</span
+                    ><b id="cal7Sum" style="color: var(--neon)">COMPLETE</b>
+                  </div>
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>9.01</span
+                    ><em id="cal10Sum" style="color: var(--orange)">PENDING</em>
+                  </div>
+                </div>
               </div>
 
               <!-- TSS Cal -->
-              <div style="display: flex; gap: 15px; align-items: center; border-left: 2px solid var(--border-dark); padding-left: 15px;">
-                 <img class="pixel-icon" src="gambarpixel/tss-cluster-small.svg" style="width: 50px; height: 50px;" />
-                 <div class="calibration-rows" style="border: none; flex-grow: 1; margin: 0;">
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>Std A</span><b id="calTssASum" style="color:var(--neon);">COMPLETE</b></div>
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>Std B</span><em id="calTssBSum" style="color:var(--orange);">PENDING</em></div>
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>Std C</span><em id="calTssCSum" style="color:var(--orange);">PENDING</em></div>
-                 </div>
+              <div
+                style="
+                  display: flex;
+                  gap: 15px;
+                  align-items: center;
+                  border-left: 2px solid var(--border-dark);
+                  padding-left: 15px;
+                "
+              >
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/tss-cluster-small.svg"
+                  style="width: 50px; height: 50px"
+                />
+                <div
+                  class="calibration-rows"
+                  style="border: none; flex-grow: 1; margin: 0"
+                >
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>Std A</span
+                    ><b id="calTssASum" style="color: var(--neon)">COMPLETE</b>
+                  </div>
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>Std B</span
+                    ><em id="calTssBSum" style="color: var(--orange)"
+                      >PENDING</em
+                    >
+                  </div>
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>Std C</span
+                    ><em id="calTssCSum" style="color: var(--orange)"
+                      >PENDING</em
+                    >
+                  </div>
                 </div>
+              </div>
 
               <!-- WL Cal -->
-              <div style="display: flex; gap: 15px; align-items: center; border-left: 2px solid var(--border-dark); padding-left: 15px;">
-                 <img class="pixel-icon" src="gambarpixel/level-calibration.svg" style="width: 50px; height: 50px;" />
-                 <div class="calibration-rows" style="border: none; flex-grow: 1; margin: 0;">
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>High SP</span><em id="calWlHSum" style="color:var(--orange);">PENDING</em></div>
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>Low SP</span><em id="calWlLSum" style="color:var(--orange);">PENDING</em></div>
-                   <div style="border: none; padding: 2px 0; font-size: 16px;"><span>Tank Hgt</span><b id="calWlTSum" style="color:var(--neon);">COMPLETE</b></div>
-                 </div>
+              <div
+                style="
+                  display: flex;
+                  gap: 15px;
+                  align-items: center;
+                  border-left: 2px solid var(--border-dark);
+                  padding-left: 15px;
+                "
+              >
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/level-calibration.svg"
+                  style="width: 50px; height: 50px"
+                />
+                <div
+                  class="calibration-rows"
+                  style="border: none; flex-grow: 1; margin: 0"
+                >
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>High SP</span
+                    ><em id="calWlHSum" style="color: var(--orange)"
+                      >PENDING</em
+                    >
+                  </div>
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>Low SP</span
+                    ><em id="calWlLSum" style="color: var(--orange)"
+                      >PENDING</em
+                    >
+                  </div>
+                  <div style="border: none; padding: 2px 0; font-size: 16px">
+                    <span>Tank Hgt</span
+                    ><b id="calWlTSum" style="color: var(--neon)">COMPLETE</b>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="warning" style="margin-top: 15px;">! CALIBRATION DATA LOADED</div>
+            <div class="warning" style="margin-top: 15px">
+              ! CALIBRATION DATA LOADED
+            </div>
           </section>
         </main>
-        
+
         <!-- PAGE 2: pH SENSOR -->
         <main class="dashboard-grid page-content" id="page-ph-sensor">
           <section class="data-panel ph-panel" id="current-ph">
             <div class="panel-heading"><span>CURRENT PH</span><i>LIVE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/ph-drop-large.svg" alt="pH droplet" /><div><strong id="phNow">6.85</strong><span>pH LEVEL</span></div></div>
-            <div class="panel-footer"><span>STATUS:</span><b id="phStatus">NEUTRAL</b><span class="signal">&#9679; &#9679; &#9679;</span></div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/ph-drop-large.svg"
+                alt="pH droplet"
+              />
+              <div><strong id="phNow">6.85</strong><span>pH LEVEL</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>STATUS:</span><b id="phStatus">NEUTRAL</b
+              ><span class="signal">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel voltage-panel" id="probe-voltage">
-            <div class="panel-heading"><span>PROBE VOLTAGE</span><i>STABLE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/parameter-voltage-petir.svg" alt="Voltage" /><div><strong id="voltNow">1385.55</strong><span>mV</span></div></div>
-            <div class="panel-footer"><span>OFFSET:</span><b id="probeOffset">+00.02 mV</b><span class="signal amber">&#9679; &#9679; &#9679;</span></div>
+            <div class="panel-heading">
+              <span>PROBE VOLTAGE</span><i>STABLE</i>
+            </div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/parameter-voltage-petir.svg"
+                alt="Voltage"
+              />
+              <div><strong id="voltNow">1385.55</strong><span>mV</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>OFFSET:</span><b id="probeOffset">+00.02 mV</b
+              ><span class="signal amber">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel temp-panel" id="water-temp">
             <div class="panel-heading"><span>WATER TEMP</span><i>LIVE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/temp-thermometer-large.svg" alt="Thermometer" /><div><strong id="tempNow">--</strong><span>&deg;C</span></div></div>
-            <div class="panel-footer"><span>STATUS:</span><b id="tempStatus">--</b><span class="signal">&#9679; &#9679; &#9679;</span></div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/temp-thermometer-large.svg"
+                alt="Thermometer"
+              />
+              <div><strong id="tempNow">--</strong><span>&deg;C</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>STATUS:</span><b id="tempStatus">--</b
+              ><span class="signal">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel telemetry-panel" id="telemetry">
-            <div class="panel-heading"><span>TELEMETRY HISTORY</span><small>LAST 60 MINUTES</small></div>
-            <div class="chart-wrap"><canvas id="teleChart" aria-label="Grafik riwayat telemetri pH"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top" id="chartMax">7.20</span><span class="axis y-mid" id="chartMid">6.85</span><span class="axis y-bottom" id="chartMin">6.50</span><span class="axis x-left" id="chartStart">13:32</span><span class="axis x-mid" id="chartMiddle">14:02</span><span class="axis x-right" id="chartEnd">14:32</span></div>
+            <div class="panel-heading">
+              <span>TELEMETRY HISTORY</span><small>LAST 60 MINUTES</small>
+            </div>
+            <div class="chart-wrap">
+              <canvas
+                id="teleChart"
+                aria-label="Grafik riwayat telemetri pH"
+              ></canvas>
+              <div class="chart-line" aria-hidden="true"></div>
+              <span class="axis y-top" id="chartMax">7.20</span
+              ><span class="axis y-mid" id="chartMid">6.85</span
+              ><span class="axis y-bottom" id="chartMin">6.50</span
+              ><span class="axis x-left" id="chartStart">13:32</span
+              ><span class="axis x-mid" id="chartMiddle">14:02</span
+              ><span class="axis x-right" id="chartEnd">14:32</span>
+            </div>
           </section>
           <aside class="right-stack">
             <section class="data-panel stats-panel" id="session-stats">
-              <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" /></div>
-              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd id="lastUpdate">--:--:--</dd></div><div><dt>READINGS</dt><dd id="sessionReadings">0</dd></div><div><dt>AVG. PH</dt><dd id="avgPh">--</dd></div><div><dt>AVG. TEMP</dt><dd id="avgTemp">--</dd></div><div><dt>UPTIME</dt><dd class="good">99.8%</dd></div></dl>
+              <div class="panel-heading">
+                <span>SESSION STATS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-statistik-sesi.svg"
+                  alt=""
+                />
+              </div>
+              <dl class="stats-list">
+                <div>
+                  <dt>LAST UPDATE</dt>
+                  <dd id="lastUpdate">--:--:--</dd>
+                </div>
+                <div>
+                  <dt>READINGS</dt>
+                  <dd id="sessionReadings">0</dd>
+                </div>
+                <div>
+                  <dt>AVG. PH</dt>
+                  <dd id="avgPh">--</dd>
+                </div>
+                <div>
+                  <dt>AVG. TEMP</dt>
+                  <dd id="avgTemp">--</dd>
+                </div>
+                <div>
+                  <dt>UPTIME</dt>
+                  <dd class="good">99.8%</dd>
+                </div>
+              </dl>
               <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
             </section>
             <section class="data-panel calibration-panel" id="calibration">
-              <div class="panel-heading"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-pengaturan-kecil.svg" alt="" /></div>
-              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" /><div><b id="calibrationTitle">PROBE CALIBRATED</b><span id="calibrationNote">WAITING FOR CALIBRATION DATA</span></div></div>
-              <div class="calibration-rows"><div><span>pH 4.01</span><b id="cal4">--</b></div><div><span>pH 6.86</span><b id="cal7">--</b></div><div><span>pH 9.18</span><em id="cal10">--</em></div></div>
-              <div class="warning" id="calibrationWarning">! CHECKING CALIBRATION STATUS</div>
+              <div class="panel-heading">
+                <span>CALIBRATION STATUS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="cal-status">
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/ph-drop-small.svg"
+                  alt=""
+                />
+                <div>
+                  <b id="calibrationTitle">PROBE CALIBRATED</b
+                  ><span id="calibrationNote"
+                    >WAITING FOR CALIBRATION DATA</span
+                  >
+                </div>
+              </div>
+              <div class="calibration-rows">
+                <div><span>pH 4.01</span><b id="cal4">--</b></div>
+                <div><span>pH 7.01</span><b id="cal7">--</b></div>
+                <div><span>pH 9.01</span><em id="cal10">--</em></div>
+              </div>
+              <div class="warning" id="calibrationWarning">
+                ! CHECKING CALIBRATION STATUS
+              </div>
             </section>
           </aside>
         </main>
-        
+
         <!-- PAGE 3: TSS SENSOR -->
         <main class="dashboard-grid page-content" id="page-tss-sensor">
           <section class="data-panel ph-panel">
             <div class="panel-heading"><span>CURRENT TSS</span><i>LIVE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/tss-cluster-large.svg" alt="TSS" /><div><strong id="tssNow">0</strong><span>mg/L</span></div></div>
-            <div class="panel-footer"><span>STATUS:</span><b id="tssStatus">NORMAL</b><span class="signal">&#9679; &#9679; &#9679;</span></div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/tss-cluster-large.svg"
+                alt="TSS"
+              />
+              <div><strong id="tssNow">0</strong><span>mg/L</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>STATUS:</span><b id="tssStatus">NORMAL</b
+              ><span class="signal">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel voltage-panel">
-            <div class="panel-heading"><span>SENSOR TURBIDITY</span><i>STABLE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/tss-unit-symbol.svg" alt="NTU" /><div><strong id="ntuNow">0</strong><span>NTU</span></div></div>
-            <div class="panel-footer"><span>OFFSET:</span><b>+0.0 NTU</b><span class="signal amber">&#9679; &#9679; &#9679;</span></div>
+            <div class="panel-heading">
+              <span>SENSOR TURBIDITY</span><i>STABLE</i>
+            </div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/tss-unit-symbol.svg"
+                alt="NTU"
+              />
+              <div><strong id="ntuNow">0</strong><span>NTU</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>OFFSET:</span><b>+0.0 NTU</b
+              ><span class="signal amber">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel telemetry-panel">
-            <div class="panel-heading"><span>TSS TELEMETRY</span><small>LAST 60 MINUTES</small></div>
-            <div class="chart-wrap"><canvas id="tssChart" aria-label="Grafik riwayat telemetri TSS"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top">100</span><span class="axis y-mid">50</span><span class="axis y-bottom">0</span></div>
+            <div class="panel-heading">
+              <span>TSS TELEMETRY</span><small>LAST 60 MINUTES</small>
+            </div>
+            <div class="chart-wrap">
+              <canvas
+                id="tssChart"
+                aria-label="Grafik riwayat telemetri TSS"
+              ></canvas>
+              <div class="chart-line" aria-hidden="true"></div>
+              <span class="axis y-top">100</span
+              ><span class="axis y-mid">50</span
+              ><span class="axis y-bottom">0</span>
+            </div>
+          </section>
+          <section class="data-panel wiper-panel" style="padding: 16px">
+            <div class="panel-heading">
+              <span>KONTROL WIPER TSS</span><i>MANUAL</i>
+            </div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-top: 14px;
+                flex-wrap: wrap;
+              "
+            >
+              <img
+                class="pixel-icon"
+                src="gambarpixel/tss-cluster-small.svg"
+                alt=""
+                style="width: 52px; height: 52px; flex-shrink: 0"
+              />
+              <p
+                style="
+                  flex: 1;
+                  min-width: 200px;
+                  margin: 0;
+                  color: var(--mint);
+                  font-size: 16px;
+                "
+              >
+                Sapu (wiper) probe TSS secara manual untuk membersihkan sensor
+                dari kotoran/endapan. Proses berjalan sekitar 15 detik.
+              </p>
+              <button
+                type="button"
+                class="toggle-switch"
+                id="wiperTriggerBtn"
+                aria-label="Jalankan wiper TSS secara manual"
+              >
+                <img
+                  id="wiperTriggerImg"
+                  src="gambarpixel/controls/toggle_switch_off_red.png"
+                  alt=""
+                />
+              </button>
+              <b class="state-label off" id="wiperStateLabel">SIAP</b>
+            </div>
+            <p
+              class="terminal-note"
+              style="margin-top: 16px"
+              id="wiperStatusText"
+            >
+              &gt; SIAP MENERIMA PERINTAH WIPER
+            </p>
           </section>
           <aside class="right-stack">
             <section class="data-panel stats-panel">
-              <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" /></div>
-              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd class="lastUpdateGeneric">--:--:--</dd></div><div><dt>AVG. TSS</dt><dd id="avgTss">--</dd></div></dl>
+              <div class="panel-heading">
+                <span>SESSION STATS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-statistik-sesi.svg"
+                  alt=""
+                />
+              </div>
+              <dl class="stats-list">
+                <div>
+                  <dt>LAST UPDATE</dt>
+                  <dd class="lastUpdateGeneric">--:--:--</dd>
+                </div>
+                <div>
+                  <dt>AVG. TSS</dt>
+                  <dd id="avgTss">--</dd>
+                </div>
+              </dl>
               <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
             </section>
             <section class="data-panel calibration-panel">
-              <div class="panel-heading"><span>TSS CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-pengaturan-kecil.svg" alt="" /></div>
-              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/tss-cluster-small.svg" alt="" /><div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div></div>
-              <div class="calibration-rows"><div><span>Std A: 0 mg/L</span><b style="color:var(--neon)">COMPLETE</b></div><div><span>Std B: 100 mg/L</span><em style="color:var(--orange)">PENDING</em></div><div><span>Std C: 500 mg/L</span><em style="color:var(--orange)">PENDING</em></div></div>
+              <div class="panel-heading">
+                <span>TSS CALIBRATION STATUS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="cal-status">
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/tss-cluster-small.svg"
+                  alt=""
+                />
+                <div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div>
+              </div>
+              <div class="calibration-rows">
+                <div>
+                  <span>Std A: 0 mg/L</span
+                  ><b style="color: var(--neon)">COMPLETE</b>
+                </div>
+                <div>
+                  <span>Std B: 100 mg/L</span
+                  ><em style="color: var(--orange)">PENDING</em>
+                </div>
+                <div>
+                  <span>Std C: 500 mg/L</span
+                  ><em style="color: var(--orange)">PENDING</em>
+                </div>
+              </div>
               <div class="warning">! CALIBRATION DATA LOADED</div>
+            </section>
+
+            <!-- KALIBRASI HARDWARE TSS NATIVE (two-point langsung ke register sensor) -->
+            <section class="data-panel calibration-panel" id="tssHwCalPanel">
+              <div class="panel-heading">
+                <span>KALIBRASI TSS NATIVE (TANPA MODBUS POLL)</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="calibration-rows">
+                <div>
+                  <span>Reg 13 (Status)</span
+                  ><b id="hwCalReg13" style="color: var(--neon)">--</b>
+                </div>
+                <div>
+                  <span>Reg 14 (Kelembaban)</span
+                  ><b id="hwCalReg14" style="color: var(--neon)">--</b>
+                </div>
+              </div>
+
+              <div style="margin-top: 8px">
+                <button
+                  type="button"
+                  id="btnHwCekStatus"
+                  class="calibrate-button"
+                  style="width: 100%"
+                >
+                  1. CEK STATUS SENSOR
+                </button>
+                <button
+                  type="button"
+                  id="btnHwSiapkan"
+                  class="calibrate-button"
+                  style="width: 100%; margin-top: 6px"
+                >
+                  2. SIAPKAN KALIBRASI (reset factor)
+                </button>
+              </div>
+
+              <div style="margin-top: 10px; font-size: 11px; opacity: 0.8">
+                Celupkan sensor & Partech ke sampel ENCER, tunggu stabil,
+                catat rata-rata pembacaan kedua alat.
+              </div>
+              <button
+                type="button"
+                id="btnHwTitik1Aktif"
+                class="calibrate-button"
+                style="width: 100%; margin-top: 6px"
+              >
+                3. AKTIFKAN TITIK 1 (ENCER)
+              </button>
+              <label style="display: block; font-size: 12px; margin-top: 6px"
+                >Nilai Partech P1
+                <input type="number" step="any" id="hwP1" style="width: 100%"
+              /></label>
+              <label style="display: block; font-size: 12px; margin-top: 6px"
+                >Nilai Sensor Ini S1 (kosongkan = pakai raw live)
+                <input type="number" step="any" id="hwS1" style="width: 100%"
+              /></label>
+              <button
+                type="button"
+                id="btnHwTitik1Simpan"
+                class="calibrate-button"
+                style="width: 100%; margin-top: 6px"
+              >
+                4. SIMPAN TITIK 1
+              </button>
+
+              <div style="margin-top: 10px; font-size: 11px; opacity: 0.8">
+                Bilas, lalu celupkan ke sampel PEKAT, tunggu stabil, catat
+                rata-rata pembacaan kedua alat.
+              </div>
+              <button
+                type="button"
+                id="btnHwTitik2Aktif"
+                class="calibrate-button"
+                style="width: 100%; margin-top: 6px"
+              >
+                5. AKTIFKAN TITIK 2 (PEKAT)
+              </button>
+              <label style="display: block; font-size: 12px; margin-top: 6px"
+                >Nilai Partech P2
+                <input type="number" step="any" id="hwP2" style="width: 100%"
+              /></label>
+              <label style="display: block; font-size: 12px; margin-top: 6px"
+                >Nilai Sensor Ini S2 (kosongkan = pakai raw live)
+                <input type="number" step="any" id="hwS2" style="width: 100%"
+              /></label>
+              <button
+                type="button"
+                id="btnHwTitik2Simpan"
+                class="calibrate-button"
+                style="width: 100%; margin-top: 6px"
+              >
+                6. SIMPAN TITIK 2
+              </button>
+
+              <button
+                type="button"
+                id="btnHwVerifikasiKeluar"
+                class="calibrate-button"
+                style="width: 100%; margin-top: 10px"
+              >
+                7. VERIFIKASI & KELUAR MODE KALIBRASI
+              </button>
+              <button
+                type="button"
+                id="btnHwResetFactor"
+                class="calibrate-button"
+                style="width: 100%; margin-top: 6px; border-color: var(--orange)"
+              >
+                BATALKAN (RESET KE FACTOR 1.0)
+              </button>
+
+              <div class="warning" id="hwCalLog">
+                BELUM ADA PERINTAH DIJALANKAN
+              </div>
+            </section>
+
+            <!-- INPUT SAMPLE KALIBRASI TSS (raw sensor + nilai gravimetri manual) -->
+            <section class="data-panel calibration-panel" id="tssCalSamplePanel">
+              <div class="panel-heading">
+                <span>INPUT SAMPLE KALIBRASI TSS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="calibration-rows">
+                <div>
+                  <span>Raw TSS Saat Ini</span
+                  ><b id="tssCalRawNow" style="color: var(--neon)">--</b>
+                </div>
+              </div>
+              <div style="margin-top: 10px">
+                <label style="display: block; font-size: 12px"
+                  >Raw TSS Manual (isi ini kalau "Raw TSS Saat Ini" di atas
+                  masih "--" -- baca angkanya dari Serial Monitor pakai
+                  command 'T', tidak perlu nunggu WiFi/dashboard online)
+                  <input
+                    type="number"
+                    step="any"
+                    id="inputRawManualTss"
+                    style="width: 100%"
+                /></label>
+                <label style="display: block; font-size: 12px; margin-top: 6px"
+                  >Titik Standard
+                  <select id="selectStandardTss" style="width: 100%">
+                    <option value="std_a">Std A</option>
+                    <option value="std_b">Std B</option>
+                    <option value="std_c">Std C</option>
+                  </select>
+                </label>
+                <label
+                  style="display: block; font-size: 12px; margin-top: 6px"
+                  >Nilai Gravimetri (mg/L, hasil timbang manual)
+                  <input
+                    type="number"
+                    step="any"
+                    id="inputGravimetriTss"
+                    style="width: 100%"
+                /></label>
+                <button
+                  type="button"
+                  id="btnSimpanSampleTss"
+                  class="calibrate-button"
+                  style="width: 100%; margin-top: 8px"
+                >
+                  SIMPAN SAMPLE (raw + gravimetri)
+                </button>
+              </div>
+              <div class="warning" id="tssSampleLog">
+                TARUH PROBE DI LARUTAN STANDARD, TUNGGU RAW STABIL, LALU ISI
+                NILAI GRAVIMETRI
+              </div>
+            </section>
+
+            <!-- FAKTOR KALIBRASI TSS (slope & offset regresi linear) -->
+            <section class="data-panel calibration-panel" id="tssCalFactorPanel">
+              <div class="panel-heading">
+                <span>TSS CALIBRATION FACTOR</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="calibration-rows">
+                <div>
+                  <span>Slope (b1)</span
+                  ><b id="tssCalSlopeNow" style="color: var(--neon)"
+                    >1.000000</b
+                  >
+                </div>
+                <div>
+                  <span>Offset (b0)</span
+                  ><b id="tssCalOffsetNow" style="color: var(--neon)"
+                    >0.000000</b
+                  >
+                </div>
+              </div>
+              <div class="warning" id="tssCalMetaNow">MEMUAT KALIBRASI...</div>
+
+              <div style="margin-top: 10px">
+                <button
+                  type="button"
+                  id="btnHitungKalibrasiTss"
+                  class="calibrate-button"
+                  style="width: 100%"
+                >
+                  HITUNG & TERAPKAN OTOMATIS<br /><small
+                    >(dari tss_calibration_samples)</small
+                  >
+                </button>
+              </div>
+
+              <div style="margin-top: 12px">
+                <label style="display: block; font-size: 12px"
+                  >Slope Manual
+                  <input
+                    type="number"
+                    step="any"
+                    id="inputManualSlope"
+                    style="width: 100%"
+                /></label>
+                <label
+                  style="display: block; font-size: 12px; margin-top: 6px"
+                  >Offset Manual
+                  <input
+                    type="number"
+                    step="any"
+                    id="inputManualOffset"
+                    style="width: 100%"
+                /></label>
+                <button
+                  type="button"
+                  id="btnSimpanManualTss"
+                  class="calibrate-button"
+                  style="width: 100%; margin-top: 8px"
+                >
+                  SIMPAN MANUAL
+                </button>
+              </div>
+
+              <div class="warning" id="tssCalLog"></div>
             </section>
           </aside>
         </main>
-        
+
         <!-- PAGE 4: WATER LEVEL -->
         <main class="dashboard-grid page-content" id="page-water-level">
           <section class="data-panel ph-panel">
-            <div class="panel-heading"><span>CURRENT TANK LEVEL</span><i>LIVE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/level-main-tank.svg" alt="Water Level" /><div><strong id="wlNow">0</strong><span>%</span></div></div>
-            <div class="panel-footer"><span>STATUS:</span><b id="wlStatus">SAFE</b><span class="signal">&#9679; &#9679; &#9679;</span></div>
+            <div class="panel-heading">
+              <span>CURRENT TANK LEVEL</span><i>LIVE</i>
+            </div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/level-main-tank.svg"
+                alt="Water Level"
+              />
+              <div><strong id="wlNow">0</strong><span>%</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>STATUS:</span><b id="wlStatus">SAFE</b
+              ><span class="signal">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel voltage-panel">
-            <div class="panel-heading"><span>ECHO DISTANCE</span><i>STABLE</i></div>
-            <div class="reading"><img class="pixel-icon reading-icon" src="gambarpixel/level-wave-status.svg" alt="Distance" /><div><strong id="distNow">0</strong><span>cm</span></div></div>
-            <div class="panel-footer"><span>OFFSET:</span><b>0 cm</b><span class="signal amber">&#9679; &#9679; &#9679;</span></div>
+            <div class="panel-heading">
+              <span>ECHO DISTANCE</span><i>STABLE</i>
+            </div>
+            <div class="reading">
+              <img
+                class="pixel-icon reading-icon"
+                src="gambarpixel/level-wave-status.svg"
+                alt="Distance"
+              />
+              <div><strong id="distNow">0</strong><span>cm</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>OFFSET:</span><b>0 cm</b
+              ><span class="signal amber">&#9679; &#9679; &#9679;</span>
+            </div>
           </section>
           <section class="data-panel telemetry-panel">
-            <div class="panel-heading"><span>LEVEL TELEMETRY</span><small>LAST 60 MINUTES</small></div>
-            <div class="chart-wrap"><canvas id="wlChart" aria-label="Grafik riwayat telemetri Level"></canvas><div class="chart-line" aria-hidden="true"></div><span class="axis y-top">100</span><span class="axis y-mid">50</span><span class="axis y-bottom">0</span></div>
+            <div class="panel-heading">
+              <span>LEVEL TELEMETRY</span><small>LAST 60 MINUTES</small>
+            </div>
+            <div class="chart-wrap">
+              <canvas
+                id="wlChart"
+                aria-label="Grafik riwayat telemetri Level"
+              ></canvas>
+              <div class="chart-line" aria-hidden="true"></div>
+              <span class="axis y-top">100</span
+              ><span class="axis y-mid">50</span
+              ><span class="axis y-bottom">0</span>
+            </div>
           </section>
           <aside class="right-stack">
             <section class="data-panel stats-panel">
-              <div class="panel-heading"><span>SESSION STATS</span><img class="pixel-icon mini-icon" src="gambarpixel/level-stats.svg" alt="" /></div>
-              <dl class="stats-list"><div><dt>LAST UPDATE</dt><dd class="lastUpdateGeneric">--:--:--</dd></div><div><dt>AVG. LEVEL</dt><dd id="avgWl">--</dd></div></dl>
+              <div class="panel-heading">
+                <span>SESSION STATS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/level-stats.svg"
+                  alt=""
+                />
+              </div>
+              <dl class="stats-list">
+                <div>
+                  <dt>LAST UPDATE</dt>
+                  <dd class="lastUpdateGeneric">--:--:--</dd>
+                </div>
+                <div>
+                  <dt>AVG. LEVEL</dt>
+                  <dd id="avgWl">--</dd>
+                </div>
+              </dl>
               <p class="terminal-note">&gt; SENSOR DATA VIA FIREBASE</p>
             </section>
             <section class="data-panel calibration-panel">
-              <div class="panel-heading"><span>WATER LEVEL CALIBRATION</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-pengaturan-kecil.svg" alt="" /></div>
-              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/level-calibration.svg" alt="" /><div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div></div>
-              <div class="calibration-rows"><div><span>High Setpoint: 80%</span><em style="color:var(--orange)">PENDING</em></div><div><span>Low Setpoint: 20%</span><em style="color:var(--orange)">PENDING</em></div><div><span>Tank Height: 200cm</span><b style="color:var(--neon)">COMPLETE</b></div></div>
+              <div class="panel-heading">
+                <span>WATER LEVEL CALIBRATION</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="cal-status">
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/level-calibration.svg"
+                  alt=""
+                />
+                <div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div>
+              </div>
+              <div class="calibration-rows">
+                <div>
+                  <span>High Setpoint: 80%</span
+                  ><em style="color: var(--orange)">PENDING</em>
+                </div>
+                <div>
+                  <span>Low Setpoint: 20%</span
+                  ><em style="color: var(--orange)">PENDING</em>
+                </div>
+                <div>
+                  <span>Tank Height: 200cm</span
+                  ><b style="color: var(--neon)">COMPLETE</b>
+                </div>
+              </div>
               <div class="warning">! CALIBRATION DATA LOADED</div>
             </section>
           </aside>
@@ -260,99 +1314,221 @@
 
         <!-- PAGE 5: CONTROL VALVE & POMPA -->
         <main class="dashboard-grid page-content" id="page-control-valve">
-          <section class="data-panel control-panel" id="valve-pompa-panel" style="padding: 16px;">
-            <div class="panel-heading"><span>KONTROL VALVE &amp; POMPA</span></div>
+          <section
+            class="data-panel control-panel"
+            id="valve-pompa-panel"
+            style="padding: 16px"
+          >
+            <div class="panel-heading">
+              <span>KONTROL VALVE &amp; POMPA</span>
+            </div>
             <div class="valve-diagram">
               <div class="tank-wrap">
                 <div class="tank-glass">
                   <div class="tank-body">
-                    <div class="tank-fill" id="tankFill" style="height:100%"></div>
+                    <div
+                      class="tank-fill"
+                      id="tankFill"
+                      style="height: 100%"
+                    ></div>
                     <div class="tank-gloss"></div>
                   </div>
                   <div class="tank-rim"></div>
-                  <span class="tank-level-label" id="tankLevelLabel" style="bottom:86%">100%</span>
+                  <span
+                    class="tank-level-label"
+                    id="tankLevelLabel"
+                    style="bottom: 86%"
+                    >100%</span
+                  >
                 </div>
                 <div class="tank-caption" id="tankCaption">Penuh</div>
               </div>
               <div class="valve-pipework">
                 <div class="toggle-row">
                   <span>VALVE: BUKA / TUTUP</span>
-                  <button type="button" class="toggle-switch" id="valveToggle" role="switch" aria-checked="false" aria-label="Buka atau tutup valve">
-                    <img id="valveToggleImg" src="gambarpixel/controls/toggle_switch_off_red.png" alt="" />
+                  <button
+                    type="button"
+                    class="toggle-switch"
+                    id="valveToggle"
+                    role="switch"
+                    aria-checked="false"
+                    aria-label="Buka atau tutup valve"
+                  >
+                    <img
+                      id="valveToggleImg"
+                      src="gambarpixel/controls/toggle_switch_off_red.png"
+                      alt=""
+                    />
                   </button>
                   <b class="state-label off" id="valveStateLabel">TUTUP</b>
                 </div>
                 <div class="pipe-scene">
-                  <div class="pipe-run"><div class="pipe-liquid" id="pipeLiquid"></div></div>
-                  <img class="scene-valve is-closed" id="valveWheelImg" src="gambarpixel/valve/valve-closed.png" alt="Valve" />
-                  <img class="scene-pump is-running" id="pumpMotorImg" src="gambarpixel/valve/pump-running.png" alt="Pompa" />
+                  <div class="pipe-run">
+                    <div class="pipe-liquid" id="pipeLiquid"></div>
+                  </div>
+                  <img
+                    class="scene-valve is-closed"
+                    id="valveWheelImg"
+                    src="gambarpixel/valve/valve-closed.png"
+                    alt="Valve"
+                  />
+                  <img
+                    class="scene-pump is-running"
+                    id="pumpMotorImg"
+                    src="gambarpixel/valve/pump-running.png"
+                    alt="Pompa"
+                  />
                 </div>
                 <div class="toggle-row">
                   <span>POMPA: JALAN / BERHENTI</span>
-                  <button type="button" class="toggle-switch" id="pumpToggle" role="switch" aria-checked="false" aria-label="Jalankan atau hentikan pompa">
-                    <img id="pumpToggleImg" src="gambarpixel/controls/toggle_switch_off_red.png" alt="" />
+                  <button
+                    type="button"
+                    class="toggle-switch"
+                    id="pumpToggle"
+                    role="switch"
+                    aria-checked="false"
+                    aria-label="Jalankan atau hentikan pompa"
+                  >
+                    <img
+                      id="pumpToggleImg"
+                      src="gambarpixel/controls/toggle_switch_off_red.png"
+                      alt=""
+                    />
                   </button>
                   <b class="state-label off" id="pumpStateLabel">BERHENTI</b>
                 </div>
               </div>
             </div>
             <div class="valve-metrics">
-              <div><span>LEVEL CHAMBER:</span><b id="chamberLevelText">100% (Penuh)</b></div>
-              <div><span>LAJU ALIRAN:</span><b id="flowRateText">0 L/min (Mati)</b></div>
+              <div>
+                <span>LEVEL CHAMBER:</span
+                ><b id="chamberLevelText">100% (Penuh)</b>
+              </div>
+              <div>
+                <span>LAJU ALIRAN:</span><b id="flowRateText">0 L/min (Mati)</b>
+              </div>
             </div>
-            <p class="terminal-note" style="margin-top: 16px;" id="controlStatusText">&gt; KONTROL MANUAL VIA SUPABASE</p>
+            <p
+              class="terminal-note"
+              style="margin-top: 16px"
+              id="controlStatusText"
+            >
+              &gt; KONTROL MANUAL VIA SUPABASE
+            </p>
           </section>
           <aside class="right-stack">
             <section class="data-panel stats-panel" id="session-stats-ctrl">
-              <div class="panel-heading"><span>SESSION OVERVIEW</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" /></div>
+              <div class="panel-heading">
+                <span>SESSION OVERVIEW</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-statistik-sesi.svg"
+                  alt=""
+                />
+              </div>
               <dl class="stats-list">
-                <div><dt>AVG pH</dt><dd id="avgPhCtrl">--</dd></div>
-                <div><dt>READINGS</dt><dd id="sessionReadingsCtrl">0</dd></div>
-                <div><dt>AVG TSS</dt><dd id="avgTssCtrl">--</dd></div>
-                <div><dt>READINGS</dt><dd id="sessionReadingsTssCtrl">0</dd></div>
-                <div><dt>AVG LEVEL</dt><dd id="avgWlCtrl">--</dd></div>
-                <div><dt>UPTIME</dt><dd class="good">99.9%</dd></div>
+                <div>
+                  <dt>AVG pH</dt>
+                  <dd id="avgPhCtrl">--</dd>
+                </div>
+                <div>
+                  <dt>READINGS</dt>
+                  <dd id="sessionReadingsCtrl">0</dd>
+                </div>
+                <div>
+                  <dt>AVG TSS</dt>
+                  <dd id="avgTssCtrl">--</dd>
+                </div>
+                <div>
+                  <dt>READINGS</dt>
+                  <dd id="sessionReadingsTssCtrl">0</dd>
+                </div>
+                <div>
+                  <dt>AVG LEVEL</dt>
+                  <dd id="avgWlCtrl">--</dd>
+                </div>
+                <div>
+                  <dt>UPTIME</dt>
+                  <dd class="good">99.9%</dd>
+                </div>
               </dl>
               <p class="terminal-note">&gt; SESSION OVERVIEW</p>
             </section>
             <section class="data-panel calibration-panel" id="calibration-ctrl">
-              <div class="panel-heading"><span>CALIBRATION STATUS</span><img class="pixel-icon mini-icon" src="gambarpixel/ikon-pengaturan-kecil.svg" alt="" /></div>
-              <div class="cal-status"><img class="pixel-icon" src="gambarpixel/ph-drop-small.svg" alt="" /><div><b id="calibrationTitleCtrl">PROBE CALIBRATED</b><span id="calibrationNoteCtrl">WAITING FOR CALIBRATION DATA</span></div></div>
-              <div class="calibration-rows"><div><span>pH 4.01</span><b id="cal4Ctrl">--</b></div><div><span>pH 6.86</span><b id="cal7Ctrl">--</b></div><div><span>pH 9.18</span><em id="cal10Ctrl">--</em></div></div>
-              <div class="warning" id="calibrationWarningCtrl">! CHECKING CALIBRATION STATUS</div>
+              <div class="panel-heading">
+                <span>CALIBRATION STATUS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="cal-status">
+                <img
+                  class="pixel-icon"
+                  src="gambarpixel/ph-drop-small.svg"
+                  alt=""
+                />
+                <div>
+                  <b id="calibrationTitleCtrl">PROBE CALIBRATED</b
+                  ><span id="calibrationNoteCtrl"
+                    >WAITING FOR CALIBRATION DATA</span
+                  >
+                </div>
+              </div>
+              <div class="calibration-rows">
+                <div><span>pH 4.01</span><b id="cal4Ctrl">--</b></div>
+                <div><span>pH 6.86</span><b id="cal7Ctrl">--</b></div>
+                <div><span>pH 9.18</span><em id="cal10Ctrl">--</em></div>
+              </div>
+              <div class="warning" id="calibrationWarningCtrl">
+                ! CHECKING CALIBRATION STATUS
+              </div>
             </section>
           </aside>
         </main>
-
       </div>
-      <footer class="console-footer"><span>HYDROSENSE IOT SYSTEM v2.0</span><span>SYS: NOMINAL</span><span>◉ LOCAL NODE CONNECTED</span></footer>
+      <footer class="console-footer">
+        <span>HYDROSENSE IOT SYSTEM v2.0</span><span>SYS: NOMINAL</span
+        ><span>◉ LOCAL NODE CONNECTED</span>
+      </footer>
     </div>
     <script type="module">
       import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
       const SUPABASE_URL = "https://hgtwrcjjjycdlhuwsgcx.supabase.co";
-      const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_S2nOQnap6hUtYWusISR5Ig_WpOrdrGB";
+      const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_S2nOQnap6hUtYWusISR5Ig_WpOrdrGB";
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+      // Snapshot bacaan terakhir (diisi tiap refreshDashboard()) -- dipakai
+      // panel "Input Sample Kalibrasi TSS" untuk ambil raw TSS terkini tanpa
+      // fetch terpisah.
+      let latestSensorSnapshot = null;
+
       // Navigation Logic (SPA)
-      const navLinks = document.querySelectorAll('.nav-link');
-      const pages = document.querySelectorAll('.page-content');
-      
-      navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
+      const navLinks = document.querySelectorAll(".nav-link");
+      const pages = document.querySelectorAll(".page-content");
+
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
           e.preventDefault();
-          navLinks.forEach(l => l.classList.remove('active'));
-          pages.forEach(p => p.classList.remove('active'));
-          
-          link.classList.add('active');
-          const target = link.getAttribute('data-target');
-          document.getElementById(target).classList.add('active');
+          navLinks.forEach((l) => l.classList.remove("active"));
+          pages.forEach((p) => p.classList.remove("active"));
+
+          link.classList.add("active");
+          const target = link.getAttribute("data-target");
+          document.getElementById(target).classList.add("active");
         });
       });
 
       // Supabase Logic
       const numeric = (value) => {
+        // Number(null) === 0 dan Number("") === 0 -- keduanya HARUS dianggap
+        // "tidak ada data" (mis. baris TSS-only dengan ph:null dari Supabase),
+        // bukan literal angka 0, supaya tidak salah tampil sebagai pH 0.00.
+        if (value === null || value === undefined || value === "") return null;
         const n = Number(value);
         return Number.isFinite(n) ? n : null;
       };
@@ -371,18 +1547,28 @@
       const formatTime = (value) => {
         const ms = parseTimestamp(value);
         if (ms === null) return "--:--:--";
-        return new Date(ms).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+        return new Date(ms).toLocaleTimeString("id-ID", {
+          timeZone: "Asia/Makassar",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
       };
       const formatDate = (value) => {
         const ms = parseTimestamp(value);
         if (ms === null) return "--.--.----";
-        return new Date(ms).toLocaleDateString("id-ID");
+        return new Date(ms).toLocaleDateString("id-ID", {
+          timeZone: "Asia/Makassar",
+        });
       };
 
       async function getLatestSensorData() {
         const { data, error } = await supabase
           .from("Hydrosense table")
-          .select("id, timestamp, ph, tss, water_temperature, water_level")
+          .select(
+            "id, timestamp, ph, tss, tss_raw, water_temperature, water_level",
+          )
           .order("timestamp", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -407,68 +1593,139 @@
           ph: numeric(row?.ph),
           temp: numeric(row?.water_temperature),
           tss: numeric(row?.tss),
+          tssRaw: numeric(row?.tss_raw),
           wl: numeric(row?.water_level),
           voltage: null,
           ntu: null,
-          dist: null
+          dist: null,
         };
       }
 
       function updateClock() {
         const now = new Date();
-        document.querySelector("#dateNow").textContent = `DATE // ${now.toLocaleDateString("id-ID")}`;
-        document.querySelector("#timeNow").textContent = `${now.toLocaleTimeString("id-ID")} WIB`;
+        document.querySelector("#dateNow").textContent =
+          `DATE // ${now.toLocaleDateString("id-ID", { timeZone: "Asia/Makassar" })}`;
+        document.querySelector("#timeNow").textContent =
+          `${now.toLocaleTimeString("id-ID", { timeZone: "Asia/Makassar", hour12: false })} WITA`;
       }
-      
+
       function paintChart(entries, canvasId) {
         const canvas = document.querySelector(canvasId);
-        if(!canvas) return;
-        const rect = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
-        canvas.width = Math.max(1, Math.floor(rect.width * ratio)); canvas.height = Math.max(1, Math.floor(rect.height * ratio));
-        const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect(),
+          ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+        canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
         let mapFn;
-        if (canvasId === "#teleChart") mapFn = e => numeric(e.ph);
-        else if (canvasId === "#tssChart") mapFn = e => numeric(e.tss);
-        else if (canvasId === "#wlChart") mapFn = e => numeric(e.wl);
-        
-        const points = entries.map(mapFn).filter((value) => value !== null && value !== undefined);
+        if (canvasId === "#teleChart") mapFn = (e) => numeric(e.ph);
+        else if (canvasId === "#tssChart") mapFn = (e) => numeric(e.tss);
+        else if (canvasId === "#wlChart") mapFn = (e) => numeric(e.wl);
+
+        const points = entries
+          .map(mapFn)
+          .filter((value) => value !== null && value !== undefined);
         if (!points.length) return;
-        
-        const low = Math.min(...points), high = Math.max(...points), padding = Math.max(.05, (high - low) * .35);
-        let min = low - padding, max = high + padding;
+
+        const low = Math.min(...points),
+          high = Math.max(...points),
+          padding = Math.max(0.05, (high - low) * 0.35);
+        let min = low - padding,
+          max = high + padding;
         if (canvasId === "#tssChart" || canvasId === "#wlChart") {
-           if (max - min < 1) { max += 10; min = Math.max(0, min - 10); }
+          if (max - min < 1) {
+            max += 10;
+            min = Math.max(0, min - 10);
+          }
         }
-        
-        const width = rect.width, height = rect.height, left = 43, right = 18, top = 12, bottom = 31;
-        
+
+        const width = rect.width,
+          height = rect.height,
+          left = 43,
+          right = 18,
+          top = 12,
+          bottom = 31;
+
         if (canvasId === "#teleChart") {
-          document.querySelector("#chartMax").textContent = max.toFixed(2); document.querySelector("#chartMid").textContent = ((min + max) / 2).toFixed(2); document.querySelector("#chartMin").textContent = min.toFixed(2);
-          document.querySelector("#chartStart").textContent = formatTime(entries[0].timestamp).slice(0, 5); document.querySelector("#chartMiddle").textContent = formatTime(entries[Math.floor(entries.length / 2)].timestamp).slice(0, 5); document.querySelector("#chartEnd").textContent = formatTime(entries.at(-1).timestamp).slice(0, 5);
+          document.querySelector("#chartMax").textContent = max.toFixed(2);
+          document.querySelector("#chartMid").textContent = (
+            (min + max) /
+            2
+          ).toFixed(2);
+          document.querySelector("#chartMin").textContent = min.toFixed(2);
+          document.querySelector("#chartStart").textContent = formatTime(
+            entries[0].timestamp,
+          ).slice(0, 5);
+          document.querySelector("#chartMiddle").textContent = formatTime(
+            entries[Math.floor(entries.length / 2)].timestamp,
+          ).slice(0, 5);
+          document.querySelector("#chartEnd").textContent = formatTime(
+            entries.at(-1).timestamp,
+          ).slice(0, 5);
         }
-        
-        ctx.beginPath(); ctx.strokeStyle = "#00ff55"; ctx.lineWidth = 2; ctx.shadowColor = "#00ff55"; ctx.shadowBlur = 5;
-        entries.forEach((entry, index) => { 
-          const value = mapFn(entry); 
-          if (value === null || value === undefined) return; 
-          const x = left + (index / Math.max(entries.length - 1, 1)) * (width - left - right); 
-          const y = top + ((max - value) / (max - min)) * (height - top - bottom); 
-          index ? ctx.lineTo(x, y) : ctx.moveTo(x, y); 
-        }); 
+
+        ctx.beginPath();
+        ctx.strokeStyle = "#00ff55";
+        ctx.lineWidth = 2;
+        ctx.shadowColor = "#00ff55";
+        ctx.shadowBlur = 5;
+        entries.forEach((entry, index) => {
+          const value = mapFn(entry);
+          if (value === null || value === undefined) return;
+          const x =
+            left +
+            (index / Math.max(entries.length - 1, 1)) * (width - left - right);
+          const y =
+            top + ((max - value) / (max - min)) * (height - top - bottom);
+          index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
         ctx.stroke();
       }
-      
+
       function updateLatest(latest, isConnected) {
         if (!isConnected) {
-          const els = ["#phNow", "#phStatus", "#voltNow", "#tempNow", "#tempStatus", "#phNowSummary", "#phStatusSummary", "#tssNow", "#tssStatus", "#tssNowSummary", "#tssStatusSummary", "#ntuNow", "#wlNow", "#wlStatus", "#wlNowSummary", "#wlStatusSummary", "#distNow"];
-          els.forEach(selector => { const el = document.querySelector(selector); if(el) el.textContent = "-"; }); document.querySelector("#phStatusSummaryText").innerHTML = "-"; document.querySelector("#tssStatusSummaryText").innerHTML = "-"; document.querySelector("#wlStatusSummaryText").innerHTML = "-"; document.querySelector("#voltNowSummary").textContent = "-"; document.querySelector("#tempNowSummary").textContent = "-"; document.querySelector("#ntuNowSummary").textContent = "-"; document.querySelector("#distNowSummary").textContent = "-";
-          
-          document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
-          document.querySelectorAll(".lastUpdateGeneric").forEach(el => el.textContent = formatTime(latest?.timestamp));
+          const els = [
+            "#phNow",
+            "#phStatus",
+            "#voltNow",
+            "#tempNow",
+            "#tempStatus",
+            "#phNowSummary",
+            "#phStatusSummary",
+            "#tssNow",
+            "#tssStatus",
+            "#tssNowSummary",
+            "#tssStatusSummary",
+            "#ntuNow",
+            "#wlNow",
+            "#wlStatus",
+            "#wlNowSummary",
+            "#wlStatusSummary",
+            "#distNow",
+          ];
+          els.forEach((selector) => {
+            const el = document.querySelector(selector);
+            if (el) el.textContent = "-";
+          });
+          document.querySelector("#phStatusSummaryText").innerHTML = "-";
+          document.querySelector("#tssStatusSummaryText").innerHTML = "-";
+          document.querySelector("#wlStatusSummaryText").innerHTML = "-";
+          document.querySelector("#voltNowSummary").textContent = "-";
+          document.querySelector("#tempNowSummary").textContent = "-";
+          document.querySelector("#ntuNowSummary").textContent = "-";
+          document.querySelector("#distNowSummary").textContent = "-";
+
+          document.querySelector("#lastUpdate").textContent = formatTime(
+            latest?.timestamp,
+          );
+          document
+            .querySelectorAll(".lastUpdateGeneric")
+            .forEach((el) => (el.textContent = formatTime(latest?.timestamp)));
           return;
         }
-        
+
         const ph = numeric(latest?.ph);
         const temp = numeric(latest?.temp);
         const tss = numeric(latest?.tss);
@@ -478,18 +1735,26 @@
         if (ph !== null) {
           const txt = ph.toFixed(2);
           const st = ph < 6.5 ? "ACIDIC" : ph > 7.5 ? "ALKALINE" : "NEUTRAL";
-          document.querySelector("#phNow").textContent = txt; document.querySelector("#phStatus").textContent = st;
-          document.querySelector("#phNowSummary").textContent = txt; document.querySelector("#phStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
+          document.querySelector("#phNow").textContent = txt;
+          document.querySelector("#phStatus").textContent = st;
+          document.querySelector("#phNowSummary").textContent = txt;
+          document.querySelector("#phStatusSummaryText").innerHTML =
+            'LIVE <span class="signal" style="margin-left:5px;">&#9679;</span>';
         } else {
-          document.querySelector("#phNow").textContent = "-"; document.querySelector("#phStatus").textContent = "-";
-          document.querySelector("#phNowSummary").textContent = "-"; document.querySelector("#phStatusSummaryText").innerHTML = "-";
+          document.querySelector("#phNow").textContent = "-";
+          document.querySelector("#phStatus").textContent = "-";
+          document.querySelector("#phNowSummary").textContent = "-";
+          document.querySelector("#phStatusSummaryText").innerHTML = "-";
         }
         if (temp !== null) {
           const tempSt = temp < 20 ? "COLD" : temp > 32 ? "HOT" : "NORMAL";
-          document.querySelector("#tempNow").textContent = temp.toFixed(1); document.querySelector("#tempStatus").textContent = tempSt;
-          document.querySelector("#tempNowSummary").textContent = temp.toFixed(1) + " \u00B0C";
+          document.querySelector("#tempNow").textContent = temp.toFixed(1);
+          document.querySelector("#tempStatus").textContent = tempSt;
+          document.querySelector("#tempNowSummary").textContent =
+            temp.toFixed(1) + " \u00B0C";
         } else {
-          document.querySelector("#tempNow").textContent = "-"; document.querySelector("#tempStatus").textContent = "-";
+          document.querySelector("#tempNow").textContent = "-";
+          document.querySelector("#tempStatus").textContent = "-";
           document.querySelector("#tempNowSummary").textContent = "-";
         }
 
@@ -499,10 +1764,13 @@
           document.querySelector("#tssNowSummary").textContent = tss.toFixed(1);
           const tssSt = tss < 50 ? "NORMAL" : "HIGH";
           document.querySelector("#tssStatus").textContent = tssSt;
-          document.querySelector("#tssStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
+          document.querySelector("#tssStatusSummaryText").innerHTML =
+            'LIVE <span class="signal" style="margin-left:5px;">&#9679;</span>';
         } else {
-          document.querySelector("#tssNow").textContent = "-"; document.querySelector("#tssNowSummary").textContent = "-";
-          document.querySelector("#tssStatus").textContent = "-"; document.querySelector("#tssStatusSummaryText").innerHTML = "-";
+          document.querySelector("#tssNow").textContent = "-";
+          document.querySelector("#tssNowSummary").textContent = "-";
+          document.querySelector("#tssStatus").textContent = "-";
+          document.querySelector("#tssStatusSummaryText").innerHTML = "-";
         }
 
         // Water Level Sensor
@@ -511,10 +1779,13 @@
           document.querySelector("#wlNowSummary").textContent = wl.toFixed(0);
           const wlSt = wl < 20 ? "LOW" : wl > 90 ? "HIGH" : "SAFE";
           document.querySelector("#wlStatus").textContent = wlSt;
-          document.querySelector("#wlStatusSummaryText").innerHTML = "LIVE <span class=\"signal\" style=\"margin-left:5px;\">&#9679;</span>";
+          document.querySelector("#wlStatusSummaryText").innerHTML =
+            'LIVE <span class="signal" style="margin-left:5px;">&#9679;</span>';
         } else {
-          document.querySelector("#wlNow").textContent = "-"; document.querySelector("#wlNowSummary").textContent = "-";
-          document.querySelector("#wlStatus").textContent = "-"; document.querySelector("#wlStatusSummaryText").innerHTML = "-";
+          document.querySelector("#wlNow").textContent = "-";
+          document.querySelector("#wlNowSummary").textContent = "-";
+          document.querySelector("#wlStatus").textContent = "-";
+          document.querySelector("#wlStatusSummaryText").innerHTML = "-";
         }
 
         // Belum tersedia di database
@@ -525,66 +1796,137 @@
         document.querySelector("#distNow").textContent = "-";
         document.querySelector("#distNowSummary").textContent = "-";
 
-        document.querySelector("#lastUpdate").textContent = formatTime(latest?.timestamp);
-        document.querySelectorAll(".lastUpdateGeneric").forEach(el => el.textContent = formatTime(latest?.timestamp));
+        document.querySelector("#lastUpdate").textContent = formatTime(
+          latest?.timestamp,
+        );
+        document
+          .querySelectorAll(".lastUpdateGeneric")
+          .forEach((el) => (el.textContent = formatTime(latest?.timestamp)));
       }
 
       async function refreshDashboard() {
         try {
-          const [latestRow, historyRows] = await Promise.all([getLatestSensorData(), getSensorHistory()]);
+          const [latestRow, historyRows] = await Promise.all([
+            getLatestSensorData(),
+            getSensorHistory(),
+          ]);
           const latest = normalizeSensorRow(latestRow);
-          const entries = historyRows.map(normalizeSensorRow).filter((entry) => entry.timestamp).sort((a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp));
+          latestSensorSnapshot = latest;
+          const entries = historyRows
+            .map(normalizeSensorRow)
+            .filter((entry) => entry.timestamp)
+            .sort(
+              (a, b) =>
+                parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp),
+            );
 
           const latestMs = parseTimestamp(latest?.timestamp);
-          const isConnected = latestMs !== null && (Date.now() - latestMs) < 60000;
+          const isConnected =
+            latestMs !== null && Date.now() - latestMs < 60000;
 
           updateLatest(latest || {}, isConnected);
 
           paintChart(entries, "#teleChart");
           paintChart(entries, "#tssChart");
           paintChart(entries, "#wlChart");
-          
-          document.querySelector("#readingCount").textContent = String(entries.length).padStart(6, "0"); 
-          document.querySelector("#sessionReadings").textContent = entries.length;
-          document.querySelector("#sessionReadingsSummary").textContent = entries.length;
-          document.querySelector("#sessionReadingsTssSummary").textContent = entries.length;
-          document.querySelector("#sessionReadingsCtrl").textContent = entries.length;
-          document.querySelector("#sessionReadingsTssCtrl").textContent = entries.length;
 
-          const phEntries = entries.filter(e => numeric(e.ph) !== null);
-          document.querySelector("#avgPh").textContent = phEntries.length ? (phEntries.reduce((total, entry) => total + Number(entry.ph), 0) / phEntries.length).toFixed(2) : "--";
-          document.querySelector("#avgPhSummary").textContent = document.querySelector("#avgPh").textContent;
-          document.querySelector("#avgPhCtrl").textContent = document.querySelector("#avgPh").textContent;
+          document.querySelector("#readingCount").textContent = String(
+            entries.length,
+          ).padStart(6, "0");
+          document.querySelector("#sessionReadings").textContent =
+            entries.length;
+          document.querySelector("#sessionReadingsSummary").textContent =
+            entries.length;
+          document.querySelector("#sessionReadingsTssSummary").textContent =
+            entries.length;
+          document.querySelector("#sessionReadingsCtrl").textContent =
+            entries.length;
+          document.querySelector("#sessionReadingsTssCtrl").textContent =
+            entries.length;
 
-          const tempEntries = entries.filter(e => numeric(e.temp ?? e.temperature) !== null);
-          document.querySelector("#avgTemp").textContent = tempEntries.length ? (tempEntries.reduce((total, entry) => total + Number(entry.temp ?? entry.temperature), 0) / tempEntries.length).toFixed(1) + " \u00B0C" : "--";
+          const phEntries = entries.filter((e) => numeric(e.ph) !== null);
+          document.querySelector("#avgPh").textContent = phEntries.length
+            ? (
+                phEntries.reduce(
+                  (total, entry) => total + Number(entry.ph),
+                  0,
+                ) / phEntries.length
+              ).toFixed(2)
+            : "--";
+          document.querySelector("#avgPhSummary").textContent =
+            document.querySelector("#avgPh").textContent;
+          document.querySelector("#avgPhCtrl").textContent =
+            document.querySelector("#avgPh").textContent;
 
-          const tssEntries = entries.filter(e => numeric(e.tss) !== null);
-          document.querySelector("#avgTss").textContent = tssEntries.length ? (tssEntries.reduce((total, entry) => total + Number(entry.tss), 0) / tssEntries.length).toFixed(1) : "0";
-          document.querySelector("#avgTssSummary").textContent = document.querySelector("#avgTss").textContent + " mg/L";
-          document.querySelector("#avgTssCtrl").textContent = document.querySelector("#avgTssSummary").textContent;
+          const tempEntries = entries.filter(
+            (e) => numeric(e.temp ?? e.temperature) !== null,
+          );
+          document.querySelector("#avgTemp").textContent = tempEntries.length
+            ? (
+                tempEntries.reduce(
+                  (total, entry) =>
+                    total + Number(entry.temp ?? entry.temperature),
+                  0,
+                ) / tempEntries.length
+              ).toFixed(1) + " \u00B0C"
+            : "--";
 
-          const wlEntries = entries.filter(e => numeric(e.wl) !== null);
-          document.querySelector("#avgWl").textContent = wlEntries.length ? (wlEntries.reduce((total, entry) => total + Number(entry.wl), 0) / wlEntries.length).toFixed(0) + "%" : "0%";
-          document.querySelector("#avgWlSummary").textContent = document.querySelector("#avgWl").textContent;
-          document.querySelector("#avgWlCtrl").textContent = document.querySelector("#avgWl").textContent;
-          
+          const tssEntries = entries.filter((e) => numeric(e.tss) !== null);
+          document.querySelector("#avgTss").textContent = tssEntries.length
+            ? (
+                tssEntries.reduce(
+                  (total, entry) => total + Number(entry.tss),
+                  0,
+                ) / tssEntries.length
+              ).toFixed(1)
+            : "0";
+          document.querySelector("#avgTssSummary").textContent =
+            document.querySelector("#avgTss").textContent + " mg/L";
+          document.querySelector("#avgTssCtrl").textContent =
+            document.querySelector("#avgTssSummary").textContent;
+
+          const wlEntries = entries.filter((e) => numeric(e.wl) !== null);
+          document.querySelector("#avgWl").textContent = wlEntries.length
+            ? (
+                wlEntries.reduce(
+                  (total, entry) => total + Number(entry.wl),
+                  0,
+                ) / wlEntries.length
+              ).toFixed(0) + "%"
+            : "0%";
+          document.querySelector("#avgWlSummary").textContent =
+            document.querySelector("#avgWl").textContent;
+          document.querySelector("#avgWlCtrl").textContent =
+            document.querySelector("#avgWl").textContent;
+
           if (isConnected) {
-            document.querySelector("#connectionStatus").textContent = "SUPABASE ONLINE";
-            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-online";
+            document.querySelector("#connectionStatus").textContent =
+              "SUPABASE ONLINE";
+            document.querySelector("#wifiIcon").className =
+              "pixel-icon wifi-icon is-online";
           } else {
-            document.querySelector("#connectionStatus").textContent = "NO RECENT DATA";
-            document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline";
+            document.querySelector("#connectionStatus").textContent =
+              "NO RECENT DATA";
+            document.querySelector("#wifiIcon").className =
+              "pixel-icon wifi-icon is-offline";
           }
-          document.querySelectorAll(".chart-line").forEach(el => el.hidden = true);
+          document
+            .querySelectorAll(".chart-line")
+            .forEach((el) => (el.hidden = true));
         } catch (error) {
-          document.querySelector("#connectionStatus").textContent = "SUPABASE OFFLINE";
-          document.querySelector("#wifiIcon").className = "pixel-icon wifi-icon is-offline";
+          document.querySelector("#connectionStatus").textContent =
+            "SUPABASE OFFLINE";
+          document.querySelector("#wifiIcon").className =
+            "pixel-icon wifi-icon is-offline";
           console.error("Supabase refresh failed:", error);
         }
       }
 
-      updateClock(); refreshDashboard(); setInterval(updateClock, 1000); setInterval(refreshDashboard, 5000); window.addEventListener("resize", refreshDashboard);
+      updateClock();
+      refreshDashboard();
+      setInterval(updateClock, 1000);
+      setInterval(refreshDashboard, 5000);
+      window.addEventListener("resize", refreshDashboard);
 
       // Control Valve & Pompa — kirim perintah manual ke Supabase (dibaca ESP32 dari tabel system_control)
       (function () {
@@ -594,15 +1936,23 @@
         const VALVE_CLOSED = "gambarpixel/valve/valve-closed.png";
         const PUMP_RUN = "gambarpixel/valve/pump-running.png";
         const PUMP_STOP = "gambarpixel/valve/pump-stopped.png";
-        const DRAIN_STEP = 4, FILL_STEP = 3, TICK_MS = 1500;
+        const DRAIN_STEP = 4,
+          FILL_STEP = 3,
+          TICK_MS = 1500;
         const CONTROL_TABLE = "system_control";
         const DEVICE_ID = "hydrosense-inlet-01";
 
-        let valveOpen = false, pumpOn = false, level = 100, simTimer = null, sending = false;
+        let valveOpen = false,
+          pumpOn = false,
+          level = 100,
+          simTimer = null,
+          sending = false,
+          wiperRunning = false;
 
         const byId = (id) => document.getElementById(id);
         const panel = byId("page-control-valve");
-        if (!panel) return;
+        const wiperBtn = byId("wiperTriggerBtn");
+        if (!panel && !wiperBtn) return;
 
         function setControlStatus(text, isError) {
           const el = byId("controlStatusText");
@@ -615,18 +1965,23 @@
           byId("valveToggleImg").src = valveOpen ? TOGGLE_ON : TOGGLE_OFF;
           byId("valveToggle").setAttribute("aria-checked", String(valveOpen));
           byId("valveStateLabel").textContent = valveOpen ? "BUKA" : "TUTUP";
-          byId("valveStateLabel").className = "state-label " + (valveOpen ? "on" : "off");
+          byId("valveStateLabel").className =
+            "state-label " + (valveOpen ? "on" : "off");
 
           byId("pumpToggleImg").src = pumpOn ? TOGGLE_ON : TOGGLE_OFF;
           byId("pumpToggle").setAttribute("aria-checked", String(pumpOn));
           byId("pumpStateLabel").textContent = pumpOn ? "JALAN" : "BERHENTI";
-          byId("pumpStateLabel").className = "state-label " + (pumpOn ? "on" : "off");
+          byId("pumpStateLabel").className =
+            "state-label " + (pumpOn ? "on" : "off");
 
           byId("valveWheelImg").src = valveOpen ? VALVE_OPEN : VALVE_CLOSED;
-          byId("valveWheelImg").className = "scene-valve " + (valveOpen ? "is-open" : "is-closed");
-          byId("pipeLiquid").className = "pipe-liquid" + (valveOpen ? " is-flowing" : "");
+          byId("valveWheelImg").className =
+            "scene-valve " + (valveOpen ? "is-open" : "is-closed");
+          byId("pipeLiquid").className =
+            "pipe-liquid" + (valveOpen ? " is-flowing" : "");
           byId("pumpMotorImg").src = pumpOn ? PUMP_RUN : PUMP_STOP;
-          byId("pumpMotorImg").className = "scene-pump " + (pumpOn ? "is-running" : "is-stopped");
+          byId("pumpMotorImg").className =
+            "scene-pump " + (pumpOn ? "is-running" : "is-stopped");
         }
 
         function renderLevel() {
@@ -635,16 +1990,32 @@
           byId("tankLevelLabel").textContent = Math.round(level) + "%";
           byId("tankLevelLabel").style.bottom = Math.min(level, 86) + "%";
 
-          const caption = pumpOn ? "Mengisi" : valveOpen ? "Mengosong" : (level >= 100 ? "Penuh" : "Diam");
+          const caption = pumpOn
+            ? "Mengisi"
+            : valveOpen
+              ? "Mengosong"
+              : level >= 100
+                ? "Penuh"
+                : "Diam";
           byId("tankCaption").textContent = caption;
 
-          const desc = level <= 0 ? "Kosong" : level <= 15 ? "Rendah" : level >= 100 ? "Penuh" : "Normal";
-          byId("chamberLevelText").textContent = `${Math.round(level)}% (${desc})`;
+          const desc =
+            level <= 0
+              ? "Kosong"
+              : level <= 15
+                ? "Rendah"
+                : level >= 100
+                  ? "Penuh"
+                  : "Normal";
+          byId("chamberLevelText").textContent =
+            `${Math.round(level)}% (${desc})`;
 
           const parts = [];
           if (pumpOn) parts.push("Isi 22 L/min");
           if (valveOpen) parts.push("Buang 18 L/min");
-          byId("flowRateText").textContent = parts.length ? parts.join(" / ") : "0 L/min (Mati)";
+          byId("flowRateText").textContent = parts.length
+            ? parts.join(" / ")
+            : "0 L/min (Mati)";
         }
 
         function tick() {
@@ -654,45 +2025,601 @@
         }
 
         // Kirim perintah manual ke Supabase. ESP32 membaca baris TERBARU dari
-        // tabel system_control (order by updated_at desc) lalu mengeksekusi
-        // ke pin valve/pompa fisik saat mode = "manual".
-        async function sendControlCommand() {
+        // tabel system_control (order by id desc) lalu mengeksekusi ke pin
+        // valve/pompa/wiper fisik saat mode = "manual". wiperCmd hanya diisi
+        // "bersihkan" sesaat (satu baris) saat tombol wiper ditekan -- setiap
+        // insert baris baru otomatis jadi trigger tersendiri di sisi ESP32
+        // (dideteksi lewat id baris, bukan lewat isi teks command).
+        async function sendControlCommand(wiperCmd) {
           sending = true;
           setControlStatus("MENGIRIM PERINTAH...", false);
           try {
-            const { error } = await supabase.from(CONTROL_TABLE).insert({
+            const payload = {
               device_id: DEVICE_ID,
               mode: "manual",
               valve_cmd: valveOpen ? "buka" : "tutup",
-              pump_cmd: pumpOn ? "jalan" : "berhenti"
-            });
+              pump_cmd: pumpOn ? "jalan" : "berhenti",
+              wiper_cmd: wiperCmd || "diam",
+            };
+            const { error } = await supabase
+              .from(CONTROL_TABLE)
+              .insert(payload);
             if (error) throw error;
             setControlStatus("PERINTAH TERKIRIM KE SUPABASE", false);
           } catch (error) {
             console.error("Gagal kirim perintah kontrol:", error);
             setControlStatus("GAGAL KIRIM: " + error.message, true);
+            throw error;
           } finally {
             sending = false;
           }
         }
 
-        byId("valveToggle").addEventListener("click", () => {
-          if (sending) return;
-          valveOpen = !valveOpen;
-          renderControls();
-          sendControlCommand();
-        });
+        if (byId("valveToggle")) {
+          byId("valveToggle").addEventListener("click", () => {
+            if (sending) return;
+            valveOpen = !valveOpen;
+            renderControls();
+            sendControlCommand();
+          });
+        }
 
-        byId("pumpToggle").addEventListener("click", () => {
-          if (sending) return;
-          pumpOn = !pumpOn;
-          renderControls();
-          sendControlCommand();
-        });
+        // Status ASLI pompa dari alat (tabel device_status, ditulis firmware).
+        // Dipoll tiap 3 detik; kalau alat menolak (interlock chamber penuh)
+        // toggle dikembalikan ke BERHENTI dan muncul peringatan.
+        async function syncPumpStatus() {
+          if (sending || !byId("pumpToggle")) return;
+          try {
+            const { data, error } = await supabase
+              .from("device_status")
+              .select("pump_on,pump_note,updated_at")
+              .eq("device_id", DEVICE_ID)
+              .maybeSingle();
+            if (error || !data) return;
+            // Heartbeat alat (mode manual tidak mengirim data pH/TSS): kalau
+            // status pompa segar (<60 dtk), tandai alat online.
+            const hbMs = Date.parse(data.updated_at);
+            const statusEl = document.querySelector("#connectionStatus");
+            if (
+              statusEl &&
+              Number.isFinite(hbMs) &&
+              Date.now() - hbMs < 60000 &&
+              statusEl.textContent === "NO RECENT DATA"
+            ) {
+              statusEl.textContent = "ALAT ONLINE (MANUAL)";
+              document.querySelector("#wifiIcon").className =
+                "pixel-icon wifi-icon is-online";
+            }
+            if (data.pump_note === "ditolak_chamber_penuh") {
+              pumpOn = false;
+              setControlStatus(
+                "POMPA DITOLAK ALAT - CHAMBER PENUH (INTERLOCK)",
+                true,
+              );
+            } else if (pumpOn !== data.pump_on) {
+              pumpOn = data.pump_on;
+              setControlStatus("STATUS POMPA DARI ALAT: " + data.pump_note, false);
+            }
+            renderControls();
+            renderLevel();
+          } catch (e) {
+            console.error("Gagal baca status pompa:", e);
+          }
+        }
+        setInterval(syncPumpStatus, 3000);
 
-        renderControls();
-        renderLevel();
-        simTimer = setInterval(tick, TICK_MS);
+        if (byId("pumpToggle")) {
+          byId("pumpToggle").addEventListener("click", () => {
+            if (sending) return;
+            pumpOn = !pumpOn;
+            renderControls();
+            sendControlCommand();
+          });
+        }
+
+        // ---------------- Kontrol Wiper TSS (menu TSS) ----------------
+        const WIPER_DURATION_MS = 15000; // sinkron dengan durasi startScraping() di firmware
+
+        function setWiperStatus(text, isError) {
+          const el = byId("wiperStatusText");
+          if (!el) return;
+          el.textContent = "> " + text;
+          el.style.color = isError ? "var(--orange)" : "";
+        }
+
+        function renderWiper() {
+          const img = byId("wiperTriggerImg");
+          const label = byId("wiperStateLabel");
+          const btn = byId("wiperTriggerBtn");
+          if (img) img.src = wiperRunning ? TOGGLE_ON : TOGGLE_OFF;
+          if (btn) btn.setAttribute("aria-checked", String(wiperRunning));
+          if (btn) btn.disabled = wiperRunning || sending;
+          if (label) {
+            label.textContent = wiperRunning ? "BERJALAN" : "SIAP";
+            label.className = "state-label " + (wiperRunning ? "on" : "off");
+          }
+        }
+
+        if (wiperBtn) {
+          wiperBtn.addEventListener("click", async () => {
+            if (sending || wiperRunning) return;
+            wiperRunning = true;
+            renderWiper();
+            setWiperStatus("MENYAPU SENSOR TSS...", false);
+            try {
+              await sendControlCommand("bersihkan");
+              setTimeout(() => {
+                wiperRunning = false;
+                renderWiper();
+                setWiperStatus("WIPER SELESAI", false);
+              }, WIPER_DURATION_MS);
+            } catch (error) {
+              wiperRunning = false;
+              renderWiper();
+              setWiperStatus(
+                "GAGAL KIRIM PERINTAH WIPER: " + error.message,
+                true,
+              );
+            }
+          });
+        }
+
+        renderWiper();
+
+        if (panel) {
+          renderControls();
+          renderLevel();
+          simTimer = setInterval(tick, TICK_MS);
+        }
+      })();
+
+      // ---------------- Kalibrasi TSS (slope & offset) ----------------
+      // Faktor Y = slope*X + offset dihitung dari tss_calibration_samples
+      // (regresi linear least squares, sama seperti calibrateLinearRegression()
+      // di firmware) atau diisi manual, lalu disimpan ke tss_calibration_config.
+      // ESP32 membaca baris terbaru tabel itu secara berkala dan menerapkannya.
+      (function () {
+        const el = (id) => document.getElementById(id);
+        const DEVICE_ID = "hydrosense-inlet-01";
+
+        function setTssCalLog(text, isError) {
+          const box = el("tssCalLog");
+          if (!box) return;
+          box.textContent = "> " + text;
+          box.style.color = isError ? "var(--orange)" : "";
+        }
+
+        async function muatKalibrasiTssAktif() {
+          const { data, error } = await supabase
+            .from("tss_calibration_config")
+            .select("slope, cal_offset, source, created_at")
+            .order("id", { ascending: false })
+            .limit(1);
+
+          const slopeEl = el("tssCalSlopeNow");
+          const offsetEl = el("tssCalOffsetNow");
+          const metaEl = el("tssCalMetaNow");
+
+          if (error || !data || data.length === 0) {
+            if (slopeEl) slopeEl.textContent = "1.000000";
+            if (offsetEl) offsetEl.textContent = "0.000000";
+            if (metaEl)
+              metaEl.textContent =
+                "! BELUM ADA KALIBRASI (default slope=1, offset=0)";
+            return;
+          }
+
+          const row = data[0];
+          if (slopeEl) slopeEl.textContent = Number(row.slope).toFixed(6);
+          if (offsetEl)
+            offsetEl.textContent = Number(row.cal_offset).toFixed(6);
+          if (metaEl) {
+            const waktu = row.created_at
+              ? new Date(row.created_at).toLocaleString("id-ID", {
+                  timeZone: "Asia/Makassar",
+                })
+              : "-";
+            metaEl.textContent =
+              (row.source === "manual" ? "MANUAL" : "REGRESI OTOMATIS") +
+              " · " +
+              waktu;
+          }
+        }
+
+        function leastSquares(points) {
+          // Y = slope*X + offset -- rumus sama dgn calibrateLinearRegression()
+          // di TSS_Sensor.cpp (firmware)
+          const n = points.length;
+          let sumX = 0,
+            sumY = 0,
+            sumXY = 0,
+            sumX2 = 0;
+          for (const p of points) {
+            sumX += p.x;
+            sumY += p.y;
+            sumXY += p.x * p.y;
+            sumX2 += p.x * p.x;
+          }
+          const denom = n * sumX2 - sumX * sumX;
+          if (denom === 0) return null;
+          const slope = (n * sumXY - sumX * sumY) / denom;
+          const offset = (sumY - slope * sumX) / n;
+          return { slope, offset };
+        }
+
+        async function hitungKalibrasiTssOtomatis() {
+          const btn = el("btnHitungKalibrasiTss");
+          if (btn) btn.disabled = true;
+          setTssCalLog("Mengambil sample kalibrasi...", false);
+          try {
+            const { data, error } = await supabase
+              .from("tss_calibration_samples")
+              .select("standard, tss, raw_value")
+              .eq("aksi", "kalibrasi");
+            if (error) throw error;
+
+            // Rata-ratakan tiap titik standard (std_a/b/c) dulu supaya noise
+            // antar-sample tidak ikut merusak garis regresi, baru fit garis
+            // lurus lewat titik rata-rata tsb.
+            const grup = {};
+            for (const row of data || []) {
+              const raw = numeric(row.raw_value);
+              const actual = numeric(row.tss);
+              if (raw === null || actual === null) continue;
+              if (!grup[row.standard])
+                grup[row.standard] = { sumRaw: 0, sumActual: 0, n: 0 };
+              grup[row.standard].sumRaw += raw;
+              grup[row.standard].sumActual += actual;
+              grup[row.standard].n += 1;
+            }
+
+            const titik = Object.values(grup)
+              .filter((g) => g.n > 0)
+              .map((g) => ({ x: g.sumRaw / g.n, y: g.sumActual / g.n }));
+
+            if (titik.length < 2) {
+              setTssCalLog(
+                "Gagal: butuh minimal 2 titik standard dengan sample lengkap (raw_value & tss terisi).",
+                true,
+              );
+              return;
+            }
+
+            const hasil = leastSquares(titik);
+            if (!hasil) {
+              setTssCalLog(
+                "Gagal: raw_value pada semua titik sama (tidak ada variasi).",
+                true,
+              );
+              return;
+            }
+
+            const { error: insertError } = await supabase
+              .from("tss_calibration_config")
+              .insert({
+                device_id: DEVICE_ID,
+                slope: hasil.slope,
+                cal_offset: hasil.offset,
+                source: "regression",
+                points_count: titik.length,
+              });
+            if (insertError) throw insertError;
+
+            setTssCalLog(
+              `Berhasil: Y = ${hasil.slope.toFixed(6)}X + ${hasil.offset.toFixed(6)} (dari ${titik.length} titik standard)`,
+              false,
+            );
+            await muatKalibrasiTssAktif();
+          } catch (err) {
+            setTssCalLog("Gagal hitung kalibrasi: " + err.message, true);
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        }
+
+        async function simpanKalibrasiTssManual() {
+          const btn = el("btnSimpanManualTss");
+          const slope = Number(el("inputManualSlope")?.value);
+          const offset = Number(el("inputManualOffset")?.value);
+          if (!Number.isFinite(slope) || !Number.isFinite(offset)) {
+            setTssCalLog("Isi slope & offset dengan angka yang valid.", true);
+            return;
+          }
+          if (btn) btn.disabled = true;
+          try {
+            const { error } = await supabase
+              .from("tss_calibration_config")
+              .insert({
+                device_id: DEVICE_ID,
+                slope,
+                cal_offset: offset,
+                source: "manual",
+              });
+            if (error) throw error;
+            setTssCalLog(
+              `Kalibrasi manual disimpan: Y = ${slope}X + ${offset}`,
+              false,
+            );
+            await muatKalibrasiTssAktif();
+          } catch (err) {
+            setTssCalLog("Gagal simpan manual: " + err.message, true);
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        }
+
+        if (el("btnHitungKalibrasiTss")) {
+          el("btnHitungKalibrasiTss").addEventListener(
+            "click",
+            hitungKalibrasiTssOtomatis,
+          );
+        }
+        if (el("btnSimpanManualTss")) {
+          el("btnSimpanManualTss").addEventListener(
+            "click",
+            simpanKalibrasiTssManual,
+          );
+        }
+
+        // -------- Input sample kalibrasi (raw sensor + gravimetri manual) --------
+        function setTssSampleLog(text, isError) {
+          const box = el("tssSampleLog");
+          if (!box) return;
+          box.textContent = "> " + text;
+          box.style.color = isError ? "var(--orange)" : "";
+        }
+
+        function tampilkanRawTssTerkini() {
+          const rawEl = el("tssCalRawNow");
+          if (!rawEl) return;
+          const raw = latestSensorSnapshot?.tssRaw;
+          rawEl.textContent = raw === null || raw === undefined
+            ? "--"
+            : raw.toFixed(2) + " mg/L";
+        }
+        // Bacaan raw datang dari refreshDashboard() (siklus lain) -- cukup
+        // dipoll pelan di sini supaya panel ini selalu ikut update.
+        setInterval(tampilkanRawTssTerkini, 2000);
+        tampilkanRawTssTerkini();
+
+        async function simpanSampleKalibrasiTss() {
+          const btn = el("btnSimpanSampleTss");
+          const standard = el("selectStandardTss")?.value;
+          const gravimetri = Number(el("inputGravimetriTss")?.value);
+
+          // Prioritaskan input manual (dibaca dari Serial Monitor 'T') --
+          // tidak tergantung ESP32 harus online/berhasil kirim ke
+          // Hydrosense table dulu, yang sering gagal kalau WiFi tidak stabil.
+          const rawManualStr = el("inputRawManualTss")?.value;
+          const rawManual =
+            rawManualStr !== "" && rawManualStr !== undefined
+              ? Number(rawManualStr)
+              : null;
+          const raw =
+            rawManual !== null && Number.isFinite(rawManual)
+              ? rawManual
+              : latestSensorSnapshot?.tssRaw;
+
+          if (raw === null || raw === undefined) {
+            setTssSampleLog(
+              "Raw TSS belum tersedia -- isi 'Raw TSS Manual' (baca dari Serial Monitor 'T'), atau pastikan alat online & sudah kirim data.",
+              true,
+            );
+            return;
+          }
+          if (!Number.isFinite(gravimetri)) {
+            setTssSampleLog("Isi nilai gravimetri dengan angka yang valid.", true);
+            return;
+          }
+
+          if (btn) btn.disabled = true;
+          try {
+            // sample_index harus 1-20 (constraint tabel) -- pakai jumlah
+            // sample "kalibrasi" yang sudah ada untuk standard ini + 1.
+            const { count, error: countError } = await supabase
+              .from("tss_calibration_samples")
+              .select("id", { count: "exact", head: true })
+              .eq("standard", standard)
+              .eq("aksi", "kalibrasi");
+            if (countError) throw countError;
+
+            const sampleIndex = (count || 0) + 1;
+            if (sampleIndex > 20) {
+              setTssSampleLog(
+                `Sudah ada 20 sample untuk ${standard}. Hapus sample lama dulu di Supabase kalau mau ulangi titik ini.`,
+                true,
+              );
+              return;
+            }
+
+            const { error } = await supabase
+              .from("tss_calibration_samples")
+              .insert({
+                device_id: DEVICE_ID,
+                standard,
+                aksi: "kalibrasi",
+                sample_index: sampleIndex,
+                tss: gravimetri,
+                suhu: latestSensorSnapshot?.temp ?? 0,
+                raw_value: raw,
+              });
+            if (error) throw error;
+
+            setTssSampleLog(
+              `Sample #${sampleIndex} untuk ${standard} disimpan (raw=${raw.toFixed(2)}, gravimetri=${gravimetri}).`,
+              false,
+            );
+            if (el("inputGravimetriTss")) el("inputGravimetriTss").value = "";
+            if (el("inputRawManualTss")) el("inputRawManualTss").value = "";
+          } catch (err) {
+            setTssSampleLog("Gagal simpan sample: " + err.message, true);
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        }
+
+        if (el("btnSimpanSampleTss")) {
+          el("btnSimpanSampleTss").addEventListener(
+            "click",
+            simpanSampleKalibrasiTss,
+          );
+        }
+
+        muatKalibrasiTssAktif();
+      })();
+
+      // ---------------- Kalibrasi Hardware TSS (native, two-point) ----------------
+      // Wizard step-by-step yang mengirim perintah ke tabel
+      // tss_hw_calibration_cmd -- ESP32 yang eksekusi baca/tulis register
+      // fisik sensor (lihat Panduan Kalibrasi Sensor TSS), menggantikan
+      // Modbus Poll + USB-RS485 manual.
+      (function () {
+        const el = (id) => document.getElementById(id);
+        const DEVICE_ID = "hydrosense-inlet-01";
+        const CMD_TABLE = "tss_hw_calibration_cmd";
+
+        const semuaTombolHw = () =>
+          [
+            "btnHwCekStatus",
+            "btnHwSiapkan",
+            "btnHwTitik1Aktif",
+            "btnHwTitik1Simpan",
+            "btnHwTitik2Aktif",
+            "btnHwTitik2Simpan",
+            "btnHwVerifikasiKeluar",
+            "btnHwResetFactor",
+          ]
+            .map(el)
+            .filter(Boolean);
+
+        function setHwButtonsDisabled(disabled) {
+          semuaTombolHw().forEach((btn) => (btn.disabled = disabled));
+        }
+
+        function setHwCalLog(text, isError) {
+          const box = el("hwCalLog");
+          if (!box) return;
+          box.textContent = "> " + text;
+          box.style.color = isError ? "var(--orange)" : "";
+        }
+
+        async function pollHasilPerintahHw(id) {
+          const MAX_TRIES = 20; // device poll tiap 2s -- 20x1.5s cukup untuk timeout 30s
+          for (let i = 0; i < MAX_TRIES; i++) {
+            await new Promise((r) => setTimeout(r, 1500));
+            const { data, error } = await supabase
+              .from(CMD_TABLE)
+              .select("status, pesan, reg13, reg14")
+              .eq("id", id)
+              .maybeSingle();
+            if (error) {
+              setHwCalLog("Gagal cek hasil: " + error.message, true);
+              return;
+            }
+            if (data && data.status !== "pending") {
+              setHwCalLog(
+                (data.status === "sukses" ? "OK: " : "GAGAL: ") +
+                  (data.pesan || ""),
+                data.status !== "sukses",
+              );
+              if (data.reg13 !== null && el("hwCalReg13"))
+                el("hwCalReg13").textContent = data.reg13;
+              if (data.reg14 !== null && el("hwCalReg14"))
+                el("hwCalReg14").textContent = data.reg14;
+              return;
+            }
+          }
+          setHwCalLog(
+            "Timeout: device tidak merespons 30 detik (alat offline?).",
+            true,
+          );
+        }
+
+        async function kirimPerintahHw(perintah, nilaiTarget, nilaiAktual) {
+          setHwCalLog(`Mengirim perintah: ${perintah}...`, false);
+          setHwButtonsDisabled(true);
+          try {
+            const payload = { device_id: DEVICE_ID, perintah };
+            if (nilaiTarget !== undefined && nilaiTarget !== null)
+              payload.nilai_target = nilaiTarget;
+            if (nilaiAktual !== undefined && nilaiAktual !== null)
+              payload.nilai_aktual = nilaiAktual;
+
+            const { data, error } = await supabase
+              .from(CMD_TABLE)
+              .insert(payload)
+              .select("id")
+              .single();
+            if (error) throw error;
+
+            await pollHasilPerintahHw(data.id);
+          } catch (err) {
+            setHwCalLog("Gagal kirim perintah: " + err.message, true);
+          } finally {
+            setHwButtonsDisabled(false);
+          }
+        }
+
+        function bacaAngka(id) {
+          const v = Number(el(id)?.value);
+          return Number.isFinite(v) && el(id)?.value !== "" ? v : null;
+        }
+
+        if (el("btnHwCekStatus"))
+          el("btnHwCekStatus").addEventListener("click", () =>
+            kirimPerintahHw("cek_status"),
+          );
+
+        if (el("btnHwSiapkan"))
+          el("btnHwSiapkan").addEventListener("click", () =>
+            kirimPerintahHw("siapkan"),
+          );
+
+        if (el("btnHwTitik1Aktif"))
+          el("btnHwTitik1Aktif").addEventListener("click", () =>
+            kirimPerintahHw("set_titik1"),
+          );
+
+        if (el("btnHwTitik1Simpan"))
+          el("btnHwTitik1Simpan").addEventListener("click", () => {
+            const p1 = bacaAngka("hwP1");
+            if (p1 === null) {
+              setHwCalLog("Isi nilai Partech P1 dulu.", true);
+              return;
+            }
+            kirimPerintahHw("tulis_titik1", p1, bacaAngka("hwS1"));
+          });
+
+        if (el("btnHwTitik2Aktif"))
+          el("btnHwTitik2Aktif").addEventListener("click", () =>
+            kirimPerintahHw("set_titik2"),
+          );
+
+        if (el("btnHwTitik2Simpan"))
+          el("btnHwTitik2Simpan").addEventListener("click", () => {
+            const p2 = bacaAngka("hwP2");
+            if (p2 === null) {
+              setHwCalLog("Isi nilai Partech P2 dulu.", true);
+              return;
+            }
+            kirimPerintahHw("tulis_titik2", p2, bacaAngka("hwS2"));
+          });
+
+        if (el("btnHwVerifikasiKeluar"))
+          el("btnHwVerifikasiKeluar").addEventListener("click", () =>
+            kirimPerintahHw("verifikasi_keluar"),
+          );
+
+        if (el("btnHwResetFactor"))
+          el("btnHwResetFactor").addEventListener("click", () => {
+            if (
+              !confirm(
+                "Batalkan kalibrasi & reset factor sensor ke 1.0 (normal)?",
+              )
+            )
+              return;
+            kirimPerintahHw("reset_factor");
+          });
       })();
     </script>
   </body>
