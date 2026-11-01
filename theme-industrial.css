@@ -1,0 +1,471 @@
+/* =====================================================================
+ * Tema industrial (gaya HMI ISA-101) untuk dashboard HydroSense.
+ * Dimuat SETELAH style.css dan menimpa tema pixel tanpa mengubah HTML/JS:
+ *  - latar abu-abu netral, warna hanya untuk status & alarm
+ *  - font sans-serif + angka tabular
+ *  - ikon dekoratif pixel disembunyikan, toggle/valve/pompa digambar ulang
+ * ===================================================================== */
+
+:root {
+  --page: #c9ced3;
+  --screen: #e4e7ea;
+  --panel: #f4f5f6;
+  --panel-deep: #eceef0;
+  --border: #9aa3ab;
+  --border-dark: #cfd4d9;
+  --text: #1f2933;
+  --mint: #5b6670; /* teks sekunder / label */
+  --neon: #0b5cad; /* nilai proses normal: biru tua */
+  --orange: #b25e00; /* nilai sekunder / peringatan */
+  --ok: #1e7d32;
+  --alarm: #c62828;
+  --header: #2b3540;
+  --header-text: #e9edf1;
+  --font-ui: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-num: "Consolas", "Roboto Mono", "Courier New", monospace;
+}
+
+body {
+  padding: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+/* ---------- Bingkai & header ---------- */
+.console-frame {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--screen);
+  border: none;
+  box-shadow: none;
+}
+.top-header {
+  min-height: 56px;
+  padding: 8px 20px;
+  background: var(--header);
+  border-bottom: 3px solid var(--neon);
+}
+.brand {
+  color: var(--header-text);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: none;
+}
+.brand span span {
+  color: #7fb6ea;
+}
+.brand-mark,
+.pixel-icon {
+  display: none !important;
+}
+.header-status,
+.date-block span,
+.score-box span {
+  color: #b7c1cb;
+  font-size: 13px;
+}
+.date-block strong,
+.score-box strong {
+  color: var(--header-text);
+  font-family: var(--font-num);
+  font-size: 18px;
+  font-weight: 600;
+}
+.wifi-status,
+.score-box {
+  border-left: 1px solid #4a5764;
+  color: var(--header-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.wifi-status::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f0a500;
+}
+.wifi-status:has(.is-online)::before {
+  background: #43a047;
+}
+.wifi-status:has(.is-offline)::before {
+  background: var(--alarm);
+}
+
+/* ---------- Sidebar ---------- */
+.screen-layout {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+.sidebar {
+  padding: 14px 10px;
+  background: #d7dbdf;
+  border-right: 1px solid var(--border);
+}
+.profile {
+  border-bottom: 1px solid var(--border);
+}
+.profile strong {
+  font-size: 14px;
+}
+.profile span {
+  color: var(--ok);
+  font-size: 12px;
+  font-weight: 600;
+}
+.calibrate-button {
+  min-height: 0;
+  margin: 14px 0;
+  padding: 10px;
+  color: #fff;
+  line-height: 1.2;
+  background: var(--neon);
+  border: 1px solid #08467f;
+  border-radius: 3px;
+  box-shadow: none;
+}
+.calibrate-button:hover {
+  color: #fff;
+  background: #08467f;
+}
+.calibrate-button span {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.side-nav {
+  gap: 2px;
+}
+.side-nav a {
+  min-height: 40px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-left: 4px solid transparent;
+  border-radius: 2px;
+}
+.side-nav a:hover {
+  color: var(--text);
+  background: #c8cdd2;
+}
+.side-nav .active,
+.side-nav a.active:hover {
+  color: var(--neon);
+  background: var(--panel);
+  border-left-color: var(--neon);
+}
+.side-tool {
+  display: none;
+}
+
+/* ---------- Panel ---------- */
+.dashboard-grid {
+  gap: 12px;
+  padding: 14px;
+}
+.data-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.panel-heading {
+  color: var(--text);
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-dark) !important;
+}
+.panel-heading i,
+.panel-heading small {
+  font-size: 12px;
+}
+.reading strong {
+  color: var(--neon);
+  font-family: var(--font-num);
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: none !important;
+}
+.voltage-panel .reading strong,
+.temp-panel .reading strong {
+  color: var(--text);
+  text-shadow: none;
+}
+.reading span {
+  color: var(--mint);
+  font-size: 12px !important;
+  letter-spacing: 0.05em;
+}
+.panel-footer {
+  color: var(--mint);
+  font-size: 13px;
+  border-top: 1px solid var(--border-dark);
+}
+.panel-footer b,
+.valve-metrics b,
+.stats-list dd,
+.calibration-rows b {
+  font-family: var(--font-num);
+  font-weight: 600;
+}
+.signal {
+  color: var(--ok);
+}
+.signal.amber {
+  color: var(--orange);
+}
+.ph-panel .reading-icon,
+.voltage-panel .reading-icon,
+.temp-panel .reading-icon,
+.cal-status img,
+.wifi-icon {
+  animation: none !important;
+}
+
+/* ---------- Grafik ---------- */
+.chart-wrap {
+  border: 1px solid var(--border);
+  background-color: #fff;
+  background-image:
+    linear-gradient(#e6e9ec 1px, transparent 1px),
+    linear-gradient(90deg, #e6e9ec 1px, transparent 1px);
+}
+.chart-line {
+  filter: none;
+}
+.axis {
+  color: var(--mint);
+  font-family: var(--font-num);
+  font-size: 11px;
+}
+
+/* ---------- Statistik, kalibrasi, catatan ---------- */
+.stats-list,
+.calibration-rows,
+.cal-status,
+.valve-metrics {
+  font-size: 13px;
+}
+.stats-list .good {
+  color: var(--ok);
+}
+.warning {
+  color: var(--alarm);
+  background: #fdecea;
+  border-color: #f2b8b5;
+}
+.terminal-note {
+  color: var(--text);
+  font-family: var(--font-num);
+  font-size: 12px;
+  background: #eceef0;
+  border: 1px solid var(--border-dark);
+  border-left: 3px solid var(--neon);
+}
+.valve-metrics {
+  border-top: 1px solid var(--border-dark);
+}
+
+/* ---------- Tangki ---------- */
+.tank-body,
+.tank-rim {
+  background: #fff;
+  border: 2px solid #6b7680;
+  box-shadow: none;
+}
+.tank-fill {
+  background: #4a90d9;
+}
+.tank-fill::before,
+.tank-gloss {
+  display: none;
+}
+.tank-level-label {
+  color: var(--text);
+  font-family: var(--font-num);
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 0 3px #fff;
+}
+.tank-caption {
+  color: var(--mint);
+  font-size: 13px;
+}
+
+/* ---------- Toggle ON/OFF (gambar pixel diganti saklar CSS) ---------- */
+.toggle-row {
+  font-size: 13px;
+  font-weight: 600;
+}
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 26px;
+  background: #b0b8bf;
+  border: 1px solid #7d8790;
+  border-radius: 13px;
+  transition: background 0.2s;
+}
+.toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: left 0.2s;
+}
+.toggle-switch img {
+  display: none;
+}
+.toggle-switch:has(img[src*="on_green"]) {
+  background: var(--ok);
+  border-color: #145a23;
+}
+.toggle-switch:has(img[src*="on_green"])::after {
+  left: 28px;
+}
+.toggle-switch:focus-visible {
+  outline: 2px solid var(--neon);
+  outline-offset: 2px;
+}
+.state-label {
+  min-width: 80px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 2px;
+}
+.state-label.on {
+  color: #fff;
+  background: var(--ok);
+}
+.state-label.off {
+  color: var(--text);
+  background: #d5dade;
+}
+
+/* ---------- Diagram pipa, valve, pompa ---------- */
+.pipe-run {
+  background: #9aa3ab;
+  border-top: 1px solid #6b7680;
+  border-bottom: 1px solid #6b7680;
+}
+.pipe-run::before,
+.pipe-run::after {
+  background: #b0b8bf;
+  border: 1px solid #6b7680;
+}
+.pipe-liquid {
+  background: #d5dade;
+}
+.pipe-liquid.is-flowing {
+  background: repeating-linear-gradient(
+    90deg,
+    #4a90d9 0 10px,
+    #7fb3e8 10px 19px
+  );
+  box-shadow: none;
+}
+.scene-valve,
+.scene-pump {
+  filter: none !important;
+  animation: none !important;
+  image-rendering: auto;
+}
+/* Simbol P&ID: valve kupu-kupu (hijau = buka, abu = tutup), pompa sentrifugal */
+.scene-valve {
+  height: 64px;
+  top: 44px;
+}
+.scene-valve.is-open {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 16 L32 32 L8 48 Z M56 16 L32 32 L56 48 Z' fill='%231e7d32' stroke='%23145a23' stroke-width='2'/%3E%3Cline x1='32' y1='32' x2='32' y2='8' stroke='%23333' stroke-width='3'/%3E%3Crect x='22' y='4' width='20' height='6' fill='%23333'/%3E%3C/svg%3E");
+}
+.scene-valve.is-closed {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 16 L32 32 L8 48 Z M56 16 L32 32 L56 48 Z' fill='%23ffffff' stroke='%23555' stroke-width='2'/%3E%3Cline x1='32' y1='32' x2='32' y2='8' stroke='%23333' stroke-width='3'/%3E%3Crect x='22' y='4' width='20' height='6' fill='%23333'/%3E%3C/svg%3E");
+}
+.scene-pump {
+  height: 64px;
+  top: 44px;
+}
+.scene-pump.is-running {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='24' fill='%231e7d32' stroke='%23145a23' stroke-width='2'/%3E%3Cpath d='M20 18 L50 32 L20 46 Z' fill='%23ffffff'/%3E%3C/svg%3E");
+}
+.scene-pump.is-stopped {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='24' fill='%23ffffff' stroke='%23555' stroke-width='2'/%3E%3Cpath d='M20 18 L50 32 L20 46 Z' fill='%23b0b8bf'/%3E%3C/svg%3E");
+}
+
+/* ---------- Footer ---------- */
+.console-footer {
+  padding: 6px 20px;
+  color: var(--mint);
+  font-size: 12px;
+  background: #d7dbdf;
+  border-top: 1px solid var(--border);
+}
+
+/* Jarak tanggal & jam di header (ikon pemisahnya disembunyikan) */
+#timeNow {
+  margin-left: 12px;
+}
+
+/* Grafik hiasan dari tema pixel: tidak pernah menampilkan data, sembunyikan */
+.chart-line {
+  display: none !important;
+}
+/* Label sumbu diberi latar supaya tidak tertimpa garis/grid */
+.axis {
+  padding: 0 3px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Form kalibrasi: kolom input & tombol yang nyaman dipakai operator */
+.calibration-panel input,
+.calibration-panel select {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-family: var(--font-num);
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.calibration-panel input:focus,
+.calibration-panel select:focus {
+  outline: 2px solid var(--neon);
+  outline-offset: -1px;
+}
+.calibration-panel label,
+.calibration-panel input + label {
+  display: block;
+  margin-top: 8px;
+  color: var(--mint);
+  font-size: 12px;
+}
+button.calibrate-button {
+  min-height: 38px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+button.calibrate-button * {
+  font-size: 11px !important;
+  font-weight: 400;
+}

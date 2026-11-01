@@ -1,0 +1,887 @@
+/* =====================================================================
+ * Redesign mengikuti Figma "HydroSense Dashboard - Industrial HMI"
+ * (https://www.figma.com/design/xfYYk6x00FgazEgt81hhpR). Dimuat setelah
+ * theme-industrial.css.
+ * ===================================================================== */
+:root {
+  --page: #dfe3e7;
+  --screen: #dfe3e7;
+  --side: #26313c;
+  --side-deep: #1d2630;
+  --warn: #f0a500;
+  --info: #0b5cad;
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.08),
+    0 2px 8px rgba(16, 24, 40, 0.06);
+}
+.top-header {
+  background: var(--side-deep);
+}
+.wifi-status,
+.score-box {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 14px;
+  background: #263342;
+}
+
+/* ---------- Sidebar gelap ---------- */
+.sidebar {
+  color: #c7d1db;
+  background: var(--side);
+  border-right: none;
+}
+.profile {
+  border-bottom: 1px solid #3a4754;
+}
+.profile strong {
+  color: #fff;
+}
+.profile span {
+  color: #6fcf7f;
+}
+.calibrate-button[href] {
+  color: #cfe3f7;
+  background: transparent;
+  border: 1px solid #4a90d9;
+}
+.calibrate-button[href]:hover {
+  color: #fff;
+  background: var(--info);
+}
+.side-nav a {
+  gap: 12px;
+  color: #c7d1db;
+  border-left: none;
+  border-radius: 6px;
+}
+.side-nav a:hover {
+  color: #fff;
+  background: #313e4b;
+}
+.side-nav .active,
+.side-nav a.active:hover {
+  color: #fff;
+  background: var(--info);
+}
+.nav-ic {
+  flex: none;
+}
+
+/* ---------- Kartu di semua halaman ---------- */
+.data-panel {
+  background: #fff;
+  border: 1px solid #d5dbe1;
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+}
+
+/* ---------- Halaman Dashboard Utama ---------- */
+#page-dashboard-utama.hmi-page {
+  display: none !important;
+}
+#page-dashboard-utama.hmi-page.active {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.hmi-titlebar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hmi-titlebar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.hmi-titlebar p {
+  margin: 2px 0 0;
+  color: var(--mint);
+  font-size: 12px;
+}
+.hmi-mode {
+  display: flex;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  background: #fff;
+  border: 1px solid #c3cad1;
+  border-radius: 6px;
+}
+.hmi-mode span {
+  padding: 8px 16px;
+  color: var(--mint);
+}
+.hmi-mode .on {
+  color: #fff;
+  background: var(--text);
+}
+.hmi-card {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #d5dbe1;
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+}
+
+/* KPI */
+.hmi-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.hmi-kpi {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px 14px 22px;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.hmi-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(16, 24, 40, 0.12);
+}
+.hmi-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  background: #b0b8bf;
+  transition: background 0.3s;
+}
+.hmi-kpi[data-st="ok"]::before {
+  background: var(--ok);
+}
+.hmi-kpi[data-st="warn"]::before {
+  background: var(--warn);
+}
+.hmi-kpi[data-st="alarm"]::before {
+  background: var(--alarm);
+}
+.hmi-kpi[data-st="info"]::before {
+  background: var(--info);
+}
+.hmi-kpi[data-st="alarm"] {
+  animation: hmi-alarm 1.6s ease-in-out infinite;
+}
+@keyframes hmi-alarm {
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(198, 40, 40, 0.25),
+      var(--card-shadow);
+  }
+}
+.kpi-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.kpi-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.kpi-ic {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--info);
+  background: #e8f0f9;
+  border-radius: 6px;
+}
+.hmi-pill {
+  padding: 3px 9px;
+  color: var(--mint);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #eceef0;
+  border-radius: 10px;
+}
+.hmi-pill.ok {
+  color: var(--ok);
+  background: #e3f3e6;
+}
+.hmi-pill.warn {
+  color: #a15c00;
+  background: #fff3dc;
+}
+.hmi-pill.alarm {
+  color: var(--alarm);
+  background: #fdecea;
+}
+.hmi-pill.info {
+  color: var(--info);
+  background: #e8f0f9;
+}
+.kpi-val {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+.kpi-val b {
+  color: var(--info);
+  font-family: var(--font-num);
+  font-size: 40px;
+  line-height: 1;
+}
+.hmi-kpi[data-st="warn"] .kpi-val b {
+  color: #a15c00;
+}
+.hmi-kpi[data-st="alarm"] .kpi-val b {
+  color: var(--alarm);
+}
+.hmi-kpi[data-st="offline"] .kpi-val b {
+  color: #8a949e;
+}
+.kpi-val span,
+.kpi-sub {
+  color: var(--mint);
+  font-size: 12px;
+}
+.kpi-sub b,
+.kpi-foot b,
+.kpi-mini b {
+  color: var(--text);
+  font-family: var(--font-num);
+}
+.kpi-bar {
+  position: relative;
+  height: 8px;
+  margin: 14px 0 6px;
+  background: #e6e9ec;
+  border-radius: 4px;
+}
+.kpi-bar .fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: #4a90d9;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.hmi-kpi[data-st="warn"] .kpi-bar .fill {
+  background: var(--warn);
+}
+.hmi-kpi[data-st="alarm"] .kpi-bar .fill {
+  background: var(--alarm);
+}
+.kpi-bar .band {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  background: rgba(30, 125, 50, 0.14);
+  border-right: 2px solid var(--text);
+  border-left: 2px solid var(--text);
+}
+.kpi-bar .mark {
+  position: absolute;
+  top: -5px;
+  width: 3px;
+  height: 18px;
+  margin-left: -1px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: left 0.6s ease;
+}
+.kpi-bar .mark.limit {
+  margin-left: -3px;
+  background: var(--alarm);
+}
+.kpi-scale {
+  display: flex;
+  justify-content: space-between;
+  color: #8a949e;
+  font-family: var(--font-num);
+  font-size: 10px;
+}
+.kpi-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 8px;
+  color: var(--mint);
+  font-size: 11px;
+  border-top: 1px solid #eef0f2;
+}
+.kpi-foot .signal {
+  display: none;
+}
+.kpi-mini {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.kpi-mini div {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 6px;
+  color: var(--mint);
+  border-top: 1px solid #eef0f2;
+}
+
+/* Grafik + panel samping */
+.hmi-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 16px;
+}
+.panel-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e6e9ec;
+}
+.panel-h h2 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.hmi-tabs {
+  display: flex;
+  gap: 4px;
+}
+.hmi-tabs button {
+  padding: 5px 14px;
+  color: var(--mint);
+  font: 600 12px var(--font-ui);
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 5px;
+}
+.hmi-tabs button:hover {
+  background: #f1f3f5;
+}
+.hmi-tabs button.on {
+  color: var(--info);
+  background: #e8f0f9;
+}
+.hmi-chart {
+  position: relative;
+  height: 320px;
+  margin: 14px 18px 0;
+}
+.hmi-chart canvas {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+.hmi-chart.hovering::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 28px;
+  left: var(--cx);
+  width: 1px;
+  pointer-events: none;
+  background: rgba(31, 41, 51, 0.35);
+}
+.hmi-tooltip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  min-width: 130px;
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 11px;
+  pointer-events: none;
+  background: rgba(29, 38, 48, 0.92);
+  border-radius: 6px;
+}
+.hmi-tooltip[hidden] {
+  display: none;
+}
+.hmi-tooltip b {
+  font-family: var(--font-num);
+  font-size: 14px;
+}
+.hmi-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 8px 18px 14px;
+  color: var(--mint);
+  font-size: 11px;
+}
+.hmi-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.hmi-legend .lg-line {
+  background: var(--info);
+}
+.hmi-legend .lg-limit {
+  background: var(--alarm);
+}
+.hmi-legend .lg-band {
+  height: 8px;
+  background: rgba(30, 125, 50, 0.25);
+}
+.hmi-legend .hint {
+  margin-left: auto;
+  font-style: italic;
+}
+.hmi-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hmi-link {
+  color: var(--info);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hmi-link:hover {
+  text-decoration: underline;
+}
+.hmi-act {
+  padding: 4px 18px 10px;
+}
+.act-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  color: var(--mint);
+  border-bottom: 1px solid #eef0f2;
+}
+.act-row:last-child {
+  border-bottom: none;
+}
+.act-row .name {
+  flex: 1;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.act-row small {
+  display: block;
+  margin-top: 2px;
+  color: #8a949e;
+  font-size: 11px;
+  font-weight: 400;
+}
+.hmi-state {
+  min-width: 84px;
+  padding: 5px 0;
+  color: var(--text);
+  font-size: 11px;
+  text-align: center;
+  background: #e6e9ec;
+  border-radius: 4px;
+}
+.hmi-state.on {
+  color: #fff;
+  background: var(--ok);
+}
+.hmi-alarm-card {
+  flex: 1;
+}
+.hmi-alarms {
+  margin: 0;
+  padding: 4px 18px 12px;
+  list-style: none;
+}
+.hmi-alarms .al {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  font-size: 12px;
+  border-bottom: 1px solid #eef0f2;
+}
+.hmi-alarms .al:last-child {
+  border-bottom: none;
+}
+.hmi-alarms .sev {
+  flex: none;
+  width: 4px;
+  background: #8a949e;
+  border-radius: 2px;
+}
+.hmi-alarms .sev.ok {
+  background: var(--ok);
+}
+.hmi-alarms .sev.warn {
+  background: var(--warn);
+}
+.hmi-alarms .sev.alarm {
+  background: var(--alarm);
+}
+.hmi-alarms .sev.info {
+  background: var(--info);
+}
+.hmi-alarms .txt {
+  flex: 1;
+}
+.hmi-alarms .txt b {
+  display: block;
+}
+.hmi-alarms .txt span,
+.hmi-alarms time {
+  color: #8a949e;
+  font-size: 11px;
+}
+.hmi-alarms time {
+  font-family: var(--font-num);
+}
+
+/* Ringkasan kalibrasi */
+.calstrip-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  padding: 10px 18px 14px;
+}
+.calstrip-grid div {
+  display: grid;
+  gap: 4px;
+  padding: 0 12px;
+  color: var(--mint);
+  font-size: 12px;
+  border-left: 1px solid #eef0f2;
+}
+.calstrip-grid div:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.calstrip-grid b {
+  color: var(--text);
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .hmi-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hmi-row {
+    grid-template-columns: 1fr;
+  }
+  .calstrip-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+}
+@media (max-width: 690px) {
+  .hmi-kpis {
+    grid-template-columns: 1fr;
+  }
+  .hmi-titlebar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hmi-kpi,
+  .hmi-kpi[data-st="alarm"],
+  .kpi-bar .fill,
+  .kpi-bar .mark {
+    animation: none;
+    transition: none;
+  }
+}
+
+
+/* ---------- Kartu KPI: 5 kolom, bisa diklik ---------- */
+.hmi-kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.hmi-kpi .kpi-val b {
+  font-size: 36px;
+}
+.hmi-kpi.is-link {
+  cursor: pointer;
+}
+.hmi-kpi.is-link::after {
+  content: "Lihat detail →";
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  padding: 2px 8px;
+  color: var(--info);
+  font-size: 11px;
+  font-weight: 600;
+  background: #fff;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.hmi-kpi.is-link:hover::after,
+.hmi-kpi.is-link:focus-visible::after {
+  opacity: 1;
+}
+.hmi-kpi.is-link:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
+@media (max-width: 1400px) {
+  .hmi-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Status LoRa di header ---------- */
+.lora-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  color: #c7d1db;
+  font-size: 12px;
+  background: #263342;
+  border-radius: 14px;
+}
+.lora-status b {
+  color: #e9edf1;
+  font-size: 11px;
+}
+.lora-dot {
+  width: 9px;
+  height: 9px;
+  background: #8a949e;
+  border-radius: 50%;
+}
+.lora-status[data-st="ok"] .lora-dot {
+  background: #43a047;
+}
+
+/* =====================================================================
+ * Panel kalibrasi (halaman Kalibrasi + ringkasan di halaman lain)
+ * ===================================================================== */
+.calibration-panel {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.calibration-panel > .panel-heading {
+  margin: 0;
+  padding: 12px 18px !important;
+  background: #f6f7f9;
+  border-bottom: 1px solid #e6e9ec !important;
+}
+.calibration-panel > *:not(.panel-heading) {
+  margin-right: 18px;
+  margin-left: 18px;
+}
+.calibration-panel > *:last-child {
+  margin-bottom: 16px;
+}
+.cal-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #f1f6fc;
+  border: 1px solid #d6e4f3;
+  border-radius: 6px;
+}
+.cal-status::before {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--info);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(11, 92, 173, 0.15);
+}
+.cal-status b {
+  display: block;
+  color: var(--text) !important;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+.cal-status span {
+  display: block;
+  color: var(--mint) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+}
+.calibration-rows {
+  margin-top: 10px;
+}
+.calibration-rows div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 9px 0 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid #eef0f2 !important;
+}
+.calibration-rows div:last-child {
+  border-bottom: none !important;
+}
+.calibration-rows span {
+  color: var(--text);
+  font-size: 13px !important;
+}
+.calibration-rows b,
+.calibration-rows em {
+  padding: 2px 9px;
+  color: var(--mint) !important;
+  font-family: var(--font-num);
+  font-size: 11px !important;
+  font-style: normal;
+  font-weight: 700;
+  background: #eceef0;
+  border-radius: 10px;
+}
+/* nilai angka (slope/offset/raw) tampil sebagai angka, bukan badge */
+#tssCalFactorPanel .calibration-rows b,
+#tssCalSamplePanel .calibration-rows b,
+#tssHwCalPanel .calibration-rows b {
+  padding: 0;
+  color: var(--info) !important;
+  font-size: 15px !important;
+  background: none;
+}
+
+/* Kotak status / log: netral, bukan alarm merah */
+.calibration-panel .warning {
+  margin-top: 12px;
+  padding: 10px 12px !important;
+  color: var(--text) !important;
+  font-family: var(--font-num);
+  font-size: 12px !important;
+  line-height: 1.5;
+  text-transform: none;
+  background: #f6f7f9 !important;
+  border: 1px solid #e1e5e9 !important;
+  border-left: 3px solid var(--info) !important;
+  border-radius: 4px;
+}
+.calibration-panel .warning:empty {
+  display: none;
+}
+
+/* Teks petunjuk & label input */
+.calibration-panel > div[style*="font-size: 11px"],
+.calibration-panel div[style*="opacity: 0.8"] {
+  margin-top: 14px !important;
+  padding: 8px 10px;
+  color: #4a5560;
+  font-size: 12px !important;
+  line-height: 1.5;
+  background: #fffbea;
+  border: 1px solid #f1e3a6;
+  border-radius: 4px;
+  opacity: 1 !important;
+}
+.calibration-panel label {
+  display: block;
+  margin-top: 10px !important;
+  color: var(--mint);
+  font-size: 12px !important;
+  font-weight: 600;
+}
+.calibration-panel input,
+.calibration-panel select {
+  margin-top: 4px;
+  min-height: 36px;
+  border-color: #c3cad1;
+  border-radius: 6px;
+}
+
+/* Tombol langkah: outline; tombol simpan: biru penuh; batal: merah outline */
+.calibration-panel button.calibrate-button {
+  min-height: 38px;
+  margin-top: 8px !important;
+  color: var(--info);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  background: #fff;
+  border: 1px solid #9cbfe3;
+  border-radius: 6px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.calibration-panel button.calibrate-button:hover {
+  color: #fff;
+  background: var(--info);
+}
+.calibration-panel button.calibrate-button:disabled {
+  color: #8a949e;
+  cursor: not-allowed;
+  background: #f1f3f5;
+  border-color: #d5dbe1;
+}
+#btnHwTitik1Simpan,
+#btnHwTitik2Simpan,
+#btnSimpanSampleTss,
+#btnSimpanManualTss,
+#btnHitungKalibrasiTss,
+#btnHwVerifikasiKeluar {
+  color: #fff;
+  background: var(--info);
+  border-color: var(--info);
+}
+#btnHwTitik1Simpan:hover,
+#btnHwTitik2Simpan:hover,
+#btnSimpanSampleTss:hover,
+#btnSimpanManualTss:hover,
+#btnHitungKalibrasiTss:hover,
+#btnHwVerifikasiKeluar:hover {
+  background: #08467f;
+}
+#btnHwResetFactor {
+  color: var(--alarm);
+  border-color: #efb3b0;
+}
+#btnHwResetFactor:hover {
+  color: #fff;
+  background: var(--alarm);
+}
+
+/* Label "belum aktif" untuk kalibrasi TSS native (dimatikan di firmware) */
+#tssHwCalPanel > .panel-heading::after {
+  content: "BELUM AKTIF DI FIRMWARE";
+  padding: 2px 8px;
+  color: #a15c00;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: #fff3dc;
+  border-radius: 10px;
+}
+
+/* Tombol/label yang langsung di dalam panel kalibrasi: lebar ikut margin panel */
+.calibration-panel > button,
+.calibration-panel > label,
+.calibration-panel > div > button {
+  width: calc(100% - 36px) !important;
+  box-sizing: border-box;
+}
+.calibration-panel > div > button {
+  width: 100% !important;
+}
+/* Kartu KPI 5 kolom: judul & label tidak patah baris */
+.hmi-kpi {
+  padding: 14px 14px 12px 18px;
+}
+.kpi-title,
+.hmi-pill,
+.kpi-foot,
+.kpi-foot b {
+  white-space: nowrap;
+}
+.kpi-foot {
+  gap: 8px;
+}
