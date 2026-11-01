@@ -3116,8 +3116,7 @@
           else if (!segar) c.textContent = "alat offline";
           else if (hb.mode !== "otomatis") c.textContent = "mode manual";
           else if (hb.fase === "siklus berjalan") {
-            const s = Math.max(0, hb.sisa - Math.floor((Date.now() - hb.diterimaMs) / 1000));
-            c.textContent = "siklus berjalan (berikutnya " + fmtHitung(s) + ")";
+            c.textContent = "siklus berjalan (jeda dihitung setelah selesai)";
           } else {
             const s = Math.max(0, hb.sisa - Math.floor((Date.now() - hb.diterimaMs) / 1000));
             c.textContent = s === 0 ? "segera mulai" : fmtHitung(s);
