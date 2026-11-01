@@ -1411,18 +1411,17 @@
       }
 
       async function getSensorHistory() {
-        // 60 menit TERAKHIR (sesuai judul grafik). Sebelumnya order ascending +
-        // limit(50) mengambil 50 baris paling LAMA di tabel, jadi rata-rata dan
-        // grafik tidak pernah ikut data terbaru.
-        const sejak = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        // 120 pembacaan TERAKHIR, tanpa melihat jam (tetap tampil walau alat
+        // sedang offline). Sebelumnya order ascending + limit(50) mengambil 50
+        // baris paling LAMA di tabel, jadi rata-rata dan grafik tidak pernah
+        // ikut data terbaru. Diambil descending lalu dibalik ke urutan waktu.
         const { data, error } = await supabase
           .from("Hydrosense table")
           .select("id, timestamp, ph, tss, water_temperature, water_level")
-          .gte("timestamp", sejak)
-          .order("timestamp", { ascending: true })
-          .limit(500);
+          .order("timestamp", { ascending: false })
+          .limit(120);
         if (error) throw new Error(`Supabase history error: ${error.message}`);
-        return data || [];
+        return (data || []).reverse();
       }
 
       // Level air dikirim ESP32 terpisah tiap 5 detik ke tabel sendiri, supaya
@@ -1749,7 +1748,9 @@
           const isConnected =
             latestMs !== null && Date.now() - latestMs < 60000;
 
-          updateLatest(latest || {}, isConnected);
+          // Tampilkan pembacaan TERAKHIR walau alat offline (status koneksi
+          // tetap ditandai terpisah di indikator atas).
+          updateLatest(latest || {}, !!latest);
 
           paintChart(entries, "#teleChart");
           paintChart(entries, "#tssChart");
