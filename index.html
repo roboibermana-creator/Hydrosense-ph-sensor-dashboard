@@ -1411,11 +1411,16 @@
       }
 
       async function getSensorHistory() {
+        // 60 menit TERAKHIR (sesuai judul grafik). Sebelumnya order ascending +
+        // limit(50) mengambil 50 baris paling LAMA di tabel, jadi rata-rata dan
+        // grafik tidak pernah ikut data terbaru.
+        const sejak = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         const { data, error } = await supabase
           .from("Hydrosense table")
           .select("id, timestamp, ph, tss, water_temperature, water_level")
+          .gte("timestamp", sejak)
           .order("timestamp", { ascending: true })
-          .limit(50);
+          .limit(500);
         if (error) throw new Error(`Supabase history error: ${error.message}`);
         return data || [];
       }
@@ -2247,7 +2252,7 @@
             `${Math.round(level)}% (${desc})`;
 
           const parts = [];
-          if (pumpOn) parts.push("Isi 22 L/min");
+          if (pumpOn) parts.push("Isi 0,4 L/min (400 mL/mnt)");
           if (valveOpen) parts.push("Buang 18 L/min");
           byId("flowRateText").textContent = parts.length
             ? parts.join(" / ")
