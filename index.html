@@ -1323,9 +1323,10 @@
                   >
                 </div>
                 <div>
-                  <span>Baca sensor tiap</span
+                  <span>Lama baca sensor (setelah stabil)</span
                   ><span class="sched-dur"
-                    ><input type="number" id="schedBaca" min="5" max="3600" step="1" style="width: 70px; text-align: right" /> dtk</span
+                    ><input type="number" id="schedBacaM" min="0" max="60" step="1" style="width: 56px; text-align: right" /> mnt
+                    <input type="number" id="schedBacaS" min="0" max="59" step="1" style="width: 46px; text-align: right" /> dtk</span
                   >
                 </div>
                 <div>
@@ -1339,9 +1340,12 @@
                 SIMPAN JADWAL
               </button>
               <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
-                Satu siklus (isi, ukur, buang) dimulai tiap N menit. Pompa
-                berhenti lebih awal kalau float switch HIGH, valve menutup lebih
-                awal kalau float switch LOW. Berlaku saat alat di mode otomatis.
+                Urutan satu siklus: pompa isi (berhenti saat float switch HIGH,
+                atau saat waktu maks habis) → tunggu stabil → sensor dibaca
+                terus selama "lama baca" → nilai stabil di ujung jendela dikirim
+                → valve buka sampai float switch LOW (atau waktu maks habis).
+                Siklus berikutnya dimulai tiap N menit setelah valve menutup.
+                Berlaku saat alat di mode otomatis.
               </div>
               <div class="warning" id="schedLog">&gt; MEMUAT JADWAL...</div>
             </section>
@@ -3115,8 +3119,8 @@
           if (!hb) c.textContent = "--";
           else if (!segar) c.textContent = "alat offline";
           else if (hb.mode !== "otomatis") c.textContent = "mode manual";
-          else if (hb.fase === "siklus berjalan") {
-            c.textContent = "siklus berjalan (jeda dihitung setelah selesai)";
+          else if (hb.fase && hb.fase.startsWith("siklus")) {
+            c.textContent = hb.fase + " (hitung mundur mulai setelah valve menutup)";
           } else {
             const s = Math.max(0, hb.sisa - Math.floor((Date.now() - hb.diterimaMs) / 1000));
             c.textContent = s === 0 ? "segera mulai" : fmtHitung(s);
@@ -3192,10 +3196,10 @@
             isiDur("schedIntervalM", "schedIntervalS", data.interval_detik);
             isiDur("schedPompaM", "schedPompaS", data.pompa_detik);
             isiDur("schedValveM", "schedValveS", data.valve_detik);
-            el("schedBaca").value = data.baca_sensor_detik;
+            isiDur("schedBacaM", "schedBacaS", data.baca_sensor_detik);
             el("schedStabil").value = data.stabil_detik;
             setSchedLog(
-              `Jadwal aktif: siklus tiap ${fmtDur(data.interval_detik)}, pompa maks ${fmtDur(data.pompa_detik)}, valve maks ${fmtDur(data.valve_detik)}, baca sensor tiap ${data.baca_sensor_detik} dtk, stabil ${data.stabil_detik} dtk`,
+              `Jadwal aktif: siklus tiap ${fmtDur(data.interval_detik)}, pompa maks ${fmtDur(data.pompa_detik)}, valve maks ${fmtDur(data.valve_detik)}, baca sensor ${fmtDur(data.baca_sensor_detik)}, stabil ${data.stabil_detik} dtk`,
               false,
             );
           } else {
@@ -3207,7 +3211,7 @@
           const interval = bacaDur("schedIntervalM", "schedIntervalS");
           const pompa = bacaDur("schedPompaM", "schedPompaS");
           const valve = bacaDur("schedValveM", "schedValveS");
-          const baca = Math.round(Number(el("schedBaca").value));
+          const baca = bacaDur("schedBacaM", "schedBacaS");
           const stabil = Math.round(Number(el("schedStabil").value));
           if (
             !(interval >= 10 && interval <= 86400) ||
@@ -3217,7 +3221,7 @@
             !(stabil >= 1 && stabil <= 600)
           ) {
             setSchedLog(
-              "Nilai tidak valid: siklus 10 dtk-24 jam, pompa & valve 1 dtk-2 jam, baca sensor 5-3600 dtk, stabil 1-600 dtk.",
+              "Nilai tidak valid: siklus 10 dtk-24 jam, pompa & valve 1 dtk-2 jam, lama baca sensor 5 dtk-60 mnt, stabil 1-600 dtk.",
               true,
             );
             return;
@@ -3239,7 +3243,7 @@
             );
             if (error) throw error;
             setSchedLog(
-              `Tersimpan: siklus tiap ${fmtDur(interval)}, pompa maks ${fmtDur(pompa)}, valve maks ${fmtDur(valve)}, baca sensor tiap ${baca} dtk, stabil ${stabil} dtk. Alat membaca perubahan dalam sekitar 30 detik.`,
+              `Tersimpan: siklus tiap ${fmtDur(interval)}, pompa maks ${fmtDur(pompa)}, valve maks ${fmtDur(valve)}, baca sensor ${fmtDur(baca)}, stabil ${stabil} dtk. Alat membaca perubahan dalam sekitar 30 detik.`,
               false,
             );
           } catch (err) {
