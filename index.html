@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1f292a" />
     <title>HydroSense — IoT Monitor</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=20261101b" />
     <style>
       .page-content {
         display: none !important;
@@ -84,10 +84,27 @@
       }
       #page-control-valve .control-panel {
         grid-column: 1 / 3;
+        grid-row: 1;
+      }
+      #page-control-valve #mode-panel {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: start;
+      }
+      #page-control-valve #auto-schedule-panel {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: start;
+      }
+      #page-control-valve .right-stack {
+        grid-column: 3;
         grid-row: 1 / 3;
       }
       @media (max-width: 690px) {
-        #page-control-valve .control-panel {
+        #page-control-valve .control-panel,
+        #page-control-valve #mode-panel,
+        #page-control-valve #auto-schedule-panel,
+        #page-control-valve .right-stack {
           grid-column: auto;
           grid-row: auto;
         }
@@ -115,8 +132,8 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="theme-industrial.css" />
-    <link rel="stylesheet" href="theme-hmi.css" />
+    <link rel="stylesheet" href="theme-industrial.css?v=20261101b" />
+    <link rel="stylesheet" href="theme-hmi.css?v=20261101b" />
   </head>
   <body>
     <div class="console-frame">
@@ -1242,8 +1259,7 @@
               &gt; KONTROL MANUAL VIA SUPABASE
             </p>
           </section>
-          <aside class="right-stack">
-            <section class="data-panel calibration-panel" id="mode-panel">
+          <section class="data-panel calibration-panel" id="mode-panel">
               <div class="panel-heading">
                 <span>MODE OPERASI</span
                 ><img
@@ -1321,6 +1337,7 @@
               </div>
               <div class="warning" id="schedLog">&gt; MEMUAT JADWAL...</div>
             </section>
+            <aside class="right-stack">
             <section class="data-panel stats-panel" id="session-stats-ctrl">
               <div class="panel-heading">
                 <span>SESSION OVERVIEW</span
