@@ -1243,6 +1243,63 @@
             </p>
           </section>
           <aside class="right-stack">
+            <section class="data-panel calibration-panel" id="mode-panel">
+              <div class="panel-heading">
+                <span>MODE OPERASI</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="calibration-rows">
+                <div><span>Mode saat ini</span><b id="modeNowText">--</b></div>
+              </div>
+              <div style="display: flex; gap: 6px; margin-top: 8px">
+                <button type="button" id="btnModeManual" class="calibrate-button" style="flex: 1">MANUAL</button>
+                <button type="button" id="btnModeOtomatis" class="calibrate-button" style="flex: 1">OTOMATIS</button>
+              </div>
+              <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
+                Manual: pompa dan valve hanya bergerak saat kamu menekan
+                tombolnya. Otomatis: alat menjalankan siklus isi, ukur, buang
+                sesuai jadwal di bawah. Menekan toggle pompa atau valve
+                otomatis kembali ke mode manual.
+              </div>
+              <div class="warning" id="modeLog">&gt; MEMBACA MODE...</div>
+            </section>
+            <section class="data-panel calibration-panel" id="auto-schedule-panel">
+              <div class="panel-heading">
+                <span>JADWAL MODE OTOMATIS</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="calibration-rows">
+                <div>
+                  <span>Siklus tiap (menit)</span
+                  ><input type="number" id="schedInterval" min="1" max="1440" step="1" style="width: 70px; text-align: right" />
+                </div>
+                <div>
+                  <span>Pompa maks. nyala (menit)</span
+                  ><input type="number" id="schedPompa" min="1" max="120" step="1" style="width: 70px; text-align: right" />
+                </div>
+                <div>
+                  <span>Valve maks. buka (menit)</span
+                  ><input type="number" id="schedValve" min="1" max="120" step="1" style="width: 70px; text-align: right" />
+                </div>
+              </div>
+              <button type="button" id="btnSimpanJadwal" class="calibrate-button" style="width: 100%; margin-top: 8px">
+                SIMPAN JADWAL
+              </button>
+              <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
+                Satu siklus (isi, ukur, buang) dimulai tiap N menit. Pompa
+                berhenti lebih awal kalau float switch HIGH, valve menutup lebih
+                awal kalau float switch LOW. Berlaku saat alat di mode otomatis.
+              </div>
+              <div class="warning" id="schedLog">&gt; MEMUAT JADWAL...</div>
+            </section>
             <section class="data-panel stats-panel" id="session-stats-ctrl">
               <div class="panel-heading">
                 <span>SESSION OVERVIEW</span
@@ -2920,6 +2977,162 @@
           } finally {
             phButtons().forEach((b) => (b.disabled = false));
           }
+        }
+
+        // ---------- Pilih mode operasi (kolom "mode" di system_control) ----------
+        // Alat membaca baris TERBARU system_control. Pindah mode = insert baris
+        // baru dengan mode yang dipilih. valve_cmd dibawa dari baris terakhir
+        // (supaya valve tidak bergerak karena pindah mode) dan pump_cmd
+        // "berhenti" (aman).
+        function tampilkanMode(mode) {
+          const teks = mode === "otomatis" ? "OTOMATIS" : mode === "manual" ? "MANUAL" : "--";
+          if (el("modeNowText")) el("modeNowText").textContent = teks;
+          if (el("btnModeManual"))
+            el("btnModeManual").style.opacity = mode === "manual" ? "1" : "0.55";
+          if (el("btnModeOtomatis"))
+            el("btnModeOtomatis").style.opacity = mode === "otomatis" ? "1" : "0.55";
+          document.querySelectorAll("#dashModeBadge [data-mode]").forEach((s) => {
+            s.classList.toggle("on", s.dataset.mode === mode);
+          });
+        }
+
+        async function bacaModeTerakhir() {
+          const { data, error } = await supabase
+            .from(CONTROL_TABLE)
+            .select("id,mode,valve_cmd")
+            .eq("device_id", DEVICE_ID)
+            .order("id", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          return data;
+        }
+
+        async function refreshMode() {
+          if (!el("modeNowText")) return;
+          try {
+            const d = await bacaModeTerakhir();
+            tampilkanMode(d ? d.mode : null);
+          } catch (e) {
+            console.error("Gagal baca mode:", e);
+          }
+        }
+
+        async function setMode(modeBaru) {
+          if (
+            modeBaru === "otomatis" &&
+            !confirm(
+              "Pindah ke mode OTOMATIS? Alat akan menjalankan pompa dan valve sendiri sesuai jadwal.",
+            )
+          )
+            return;
+          const log = el("modeLog");
+          try {
+            const terakhir = await bacaModeTerakhir();
+            const { error } = await supabase.from(CONTROL_TABLE).insert({
+              device_id: DEVICE_ID,
+              mode: modeBaru,
+              valve_cmd: terakhir?.valve_cmd || "tutup",
+              pump_cmd: "berhenti",
+              wiper_cmd: "diam",
+            });
+            if (error) throw error;
+            tampilkanMode(modeBaru);
+            if (log) {
+              log.textContent = "> MODE " + modeBaru.toUpperCase() + " DIKIRIM KE ALAT";
+              log.style.color = "";
+            }
+          } catch (err) {
+            if (log) {
+              log.textContent = "> GAGAL PINDAH MODE: " + err.message;
+              log.style.color = "var(--orange)";
+            }
+          }
+        }
+
+        if (el("btnModeManual")) {
+          el("btnModeManual").addEventListener("click", () => setMode("manual"));
+          el("btnModeOtomatis").addEventListener("click", () => setMode("otomatis"));
+          refreshMode();
+          setInterval(refreshMode, 5000);
+        }
+
+        // ---------- Jadwal siklus mode otomatis (tabel auto_schedule) ----------
+        const SCHED_TABLE = "auto_schedule";
+        function setSchedLog(text, isError) {
+          const box = el("schedLog");
+          if (!box) return;
+          box.textContent = "> " + text;
+          box.style.color = isError ? "var(--orange)" : "";
+        }
+
+        async function muatJadwal() {
+          if (!el("schedInterval")) return;
+          const { data, error } = await supabase
+            .from(SCHED_TABLE)
+            .select("interval_menit,pompa_menit,valve_menit")
+            .eq("device_id", DEVICE_ID)
+            .maybeSingle();
+          if (error) {
+            setSchedLog("Gagal memuat jadwal: " + error.message, true);
+            return;
+          }
+          if (data) {
+            el("schedInterval").value = data.interval_menit;
+            el("schedPompa").value = data.pompa_menit;
+            el("schedValve").value = data.valve_menit;
+            setSchedLog(
+              `Jadwal aktif: tiap ${data.interval_menit} mnt, pompa maks ${data.pompa_menit} mnt, valve maks ${data.valve_menit} mnt`,
+              false,
+            );
+          } else {
+            setSchedLog("Belum ada jadwal tersimpan (pakai bawaan alat).", false);
+          }
+        }
+
+        async function simpanJadwal() {
+          const interval = Math.round(Number(el("schedInterval").value));
+          const pompa = Math.round(Number(el("schedPompa").value));
+          const valve = Math.round(Number(el("schedValve").value));
+          if (
+            !(interval >= 1 && interval <= 1440) ||
+            !(pompa >= 1 && pompa <= 120) ||
+            !(valve >= 1 && valve <= 120)
+          ) {
+            setSchedLog(
+              "Nilai tidak valid: siklus 1-1440, pompa 1-120, valve 1-120 menit.",
+              true,
+            );
+            return;
+          }
+          const btn = el("btnSimpanJadwal");
+          btn.disabled = true;
+          try {
+            const { error } = await supabase.from(SCHED_TABLE).upsert(
+              {
+                device_id: DEVICE_ID,
+                interval_menit: interval,
+                pompa_menit: pompa,
+                valve_menit: valve,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "device_id" },
+            );
+            if (error) throw error;
+            setSchedLog(
+              `Tersimpan: tiap ${interval} mnt, pompa maks ${pompa} mnt, valve maks ${valve} mnt. Alat membaca perubahan dalam sekitar 30 detik.`,
+              false,
+            );
+          } catch (err) {
+            setSchedLog("Gagal menyimpan: " + err.message, true);
+          } finally {
+            btn.disabled = false;
+          }
+        }
+
+        if (el("btnSimpanJadwal")) {
+          el("btnSimpanJadwal").addEventListener("click", simpanJadwal);
+          muatJadwal();
         }
 
         phButtons().forEach((btn) =>
