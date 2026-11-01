@@ -408,6 +408,81 @@ body {
   content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='24' fill='%23ffffff' stroke='%23555' stroke-width='2'/%3E%3Cpath d='M20 18 L50 32 L20 46 Z' fill='%23b0b8bf'/%3E%3C/svg%3E");
 }
 
+/* ---------- Tata letak halaman Kontrol Valve & Pompa ----------
+   Diagram dipusatkan dengan lebar terbatas (bukan merentang selebar panel),
+   dan tiap baris kontrol jadi kartu: label | saklar | status. */
+/* Panel tidak ikut memanjang setinggi kolom kanan; diagram menempel di atas
+   (bukan terpusat vertikal di ruang kosong). */
+#page-control-valve .control-panel {
+  align-self: start;
+  min-height: 0;
+}
+/* Kolom kanan: tiap panel setinggi isinya (bukan ditarik 1fr 1fr). */
+#page-control-valve .right-stack {
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  align-content: start;
+}
+.valve-diagram {
+  flex: 0 0 auto;
+  justify-content: center;
+  gap: 36px;
+  width: 100%;
+  max-width: 860px;
+  margin: 24px auto 8px;
+}
+.valve-pipework {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 560px;
+  padding-left: 0;
+  gap: 18px;
+}
+.toggle-row {
+  display: grid;
+  grid-template-columns: 1fr auto 92px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f4f6f8;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.toggle-row .state-label {
+  min-width: 0;
+  width: 92px;
+}
+.pipe-scene {
+  height: 108px;
+}
+.pipe-run {
+  left: -36px;
+  right: 70px;
+}
+.scene-pump {
+  right: 4px;
+}
+.valve-metrics {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+}
+@media (max-width: 760px) {
+  .valve-diagram {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .valve-pipework {
+    width: 100%;
+    max-width: none;
+  }
+  .pipe-run {
+    left: 0;
+  }
+}
+
 /* ---------- Footer ---------- */
 .console-footer {
   padding: 6px 20px;

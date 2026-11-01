@@ -1278,16 +1278,37 @@
               </div>
               <div class="calibration-rows">
                 <div>
-                  <span>Siklus tiap (menit)</span
-                  ><input type="number" id="schedInterval" min="1" max="1440" step="1" style="width: 70px; text-align: right" />
+                  <span>Siklus tiap</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedIntervalM" min="0" max="1440" step="1" style="width: 56px; text-align: right" /> mnt
+                    <input type="number" id="schedIntervalS" min="0" max="59" step="1" style="width: 46px; text-align: right" /> dtk</span
+                  >
                 </div>
                 <div>
-                  <span>Pompa maks. nyala (menit)</span
-                  ><input type="number" id="schedPompa" min="1" max="120" step="1" style="width: 70px; text-align: right" />
+                  <span>Pompa maks. nyala</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedPompaM" min="0" max="120" step="1" style="width: 56px; text-align: right" /> mnt
+                    <input type="number" id="schedPompaS" min="0" max="59" step="1" style="width: 46px; text-align: right" /> dtk</span
+                  >
                 </div>
                 <div>
-                  <span>Valve maks. buka (menit)</span
-                  ><input type="number" id="schedValve" min="1" max="120" step="1" style="width: 70px; text-align: right" />
+                  <span>Valve maks. buka</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedValveM" min="0" max="120" step="1" style="width: 56px; text-align: right" /> mnt
+                    <input type="number" id="schedValveS" min="0" max="59" step="1" style="width: 46px; text-align: right" /> dtk</span
+                  >
+                </div>
+                <div>
+                  <span>Baca sensor tiap</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedBaca" min="5" max="3600" step="1" style="width: 70px; text-align: right" /> dtk</span
+                  >
+                </div>
+                <div>
+                  <span>Tunggu stabil sebelum baca</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedStabil" min="1" max="600" step="1" style="width: 70px; text-align: right" /> dtk</span
+                  >
                 </div>
               </div>
               <button type="button" id="btnSimpanJadwal" class="calibrate-button" style="width: 100%; margin-top: 8px">
@@ -3066,11 +3087,24 @@
           box.style.color = isError ? "var(--orange)" : "";
         }
 
+        // Durasi disimpan dalam DETIK; di layar dipecah menit + detik.
+        const fmtDur = (d) => `${Math.floor(d / 60)} mnt ${d % 60} dtk`;
+        function isiDur(idM, idS, detik) {
+          el(idM).value = Math.floor(detik / 60);
+          el(idS).value = detik % 60;
+        }
+        function bacaDur(idM, idS) {
+          return (
+            Math.round(Number(el(idM).value) || 0) * 60 +
+            Math.round(Number(el(idS).value) || 0)
+          );
+        }
+
         async function muatJadwal() {
-          if (!el("schedInterval")) return;
+          if (!el("schedIntervalM")) return;
           const { data, error } = await supabase
             .from(SCHED_TABLE)
-            .select("interval_menit,pompa_menit,valve_menit")
+            .select("interval_detik,pompa_detik,valve_detik,baca_sensor_detik,stabil_detik")
             .eq("device_id", DEVICE_ID)
             .maybeSingle();
           if (error) {
@@ -3078,11 +3112,13 @@
             return;
           }
           if (data) {
-            el("schedInterval").value = data.interval_menit;
-            el("schedPompa").value = data.pompa_menit;
-            el("schedValve").value = data.valve_menit;
+            isiDur("schedIntervalM", "schedIntervalS", data.interval_detik);
+            isiDur("schedPompaM", "schedPompaS", data.pompa_detik);
+            isiDur("schedValveM", "schedValveS", data.valve_detik);
+            el("schedBaca").value = data.baca_sensor_detik;
+            el("schedStabil").value = data.stabil_detik;
             setSchedLog(
-              `Jadwal aktif: tiap ${data.interval_menit} mnt, pompa maks ${data.pompa_menit} mnt, valve maks ${data.valve_menit} mnt`,
+              `Jadwal aktif: siklus tiap ${fmtDur(data.interval_detik)}, pompa maks ${fmtDur(data.pompa_detik)}, valve maks ${fmtDur(data.valve_detik)}, baca sensor tiap ${data.baca_sensor_detik} dtk, stabil ${data.stabil_detik} dtk`,
               false,
             );
           } else {
@@ -3091,16 +3127,20 @@
         }
 
         async function simpanJadwal() {
-          const interval = Math.round(Number(el("schedInterval").value));
-          const pompa = Math.round(Number(el("schedPompa").value));
-          const valve = Math.round(Number(el("schedValve").value));
+          const interval = bacaDur("schedIntervalM", "schedIntervalS");
+          const pompa = bacaDur("schedPompaM", "schedPompaS");
+          const valve = bacaDur("schedValveM", "schedValveS");
+          const baca = Math.round(Number(el("schedBaca").value));
+          const stabil = Math.round(Number(el("schedStabil").value));
           if (
-            !(interval >= 1 && interval <= 1440) ||
-            !(pompa >= 1 && pompa <= 120) ||
-            !(valve >= 1 && valve <= 120)
+            !(interval >= 10 && interval <= 86400) ||
+            !(pompa >= 1 && pompa <= 7200) ||
+            !(valve >= 1 && valve <= 7200) ||
+            !(baca >= 5 && baca <= 3600) ||
+            !(stabil >= 1 && stabil <= 600)
           ) {
             setSchedLog(
-              "Nilai tidak valid: siklus 1-1440, pompa 1-120, valve 1-120 menit.",
+              "Nilai tidak valid: siklus 10 dtk-24 jam, pompa & valve 1 dtk-2 jam, baca sensor 5-3600 dtk, stabil 1-600 dtk.",
               true,
             );
             return;
@@ -3111,16 +3151,18 @@
             const { error } = await supabase.from(SCHED_TABLE).upsert(
               {
                 device_id: DEVICE_ID,
-                interval_menit: interval,
-                pompa_menit: pompa,
-                valve_menit: valve,
+                interval_detik: interval,
+                pompa_detik: pompa,
+                valve_detik: valve,
+                baca_sensor_detik: baca,
+                stabil_detik: stabil,
                 updated_at: new Date().toISOString(),
               },
               { onConflict: "device_id" },
             );
             if (error) throw error;
             setSchedLog(
-              `Tersimpan: tiap ${interval} mnt, pompa maks ${pompa} mnt, valve maks ${valve} mnt. Alat membaca perubahan dalam sekitar 30 detik.`,
+              `Tersimpan: siklus tiap ${fmtDur(interval)}, pompa maks ${fmtDur(pompa)}, valve maks ${fmtDur(valve)}, baca sensor tiap ${baca} dtk, stabil ${stabil} dtk. Alat membaca perubahan dalam sekitar 30 detik.`,
               false,
             );
           } catch (err) {
