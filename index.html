@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1f292a" />
     <title>HydroSense — IoT Monitor</title>
-    <link rel="stylesheet" href="style.css?v=20261101b" />
+    <link rel="stylesheet" href="style.css?v=20261101d" />
     <style>
       .page-content {
         display: none !important;
@@ -83,7 +83,7 @@
         }
       }
       #page-control-valve .control-panel {
-        grid-column: 1 / 3;
+        grid-column: 1 / -1;
         grid-row: 1;
       }
       #page-control-valve #mode-panel {
@@ -92,9 +92,16 @@
         align-self: start;
       }
       #page-control-valve #auto-schedule-panel {
-        grid-column: 2;
+        grid-column: 2 / -1;
         grid-row: 2;
         align-self: start;
+      }
+      /* isi panel jadwal dibatasi lebarnya supaya label dan isian tidak
+         terpisah jauh di layar lebar */
+      #page-control-valve #auto-schedule-panel > :not(.panel-heading) {
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
       }
       #page-control-valve .right-stack {
         grid-column: 3;
@@ -132,8 +139,8 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="theme-industrial.css?v=20261101b" />
-    <link rel="stylesheet" href="theme-hmi.css?v=20261101b" />
+    <link rel="stylesheet" href="theme-industrial.css?v=20261101d" />
+    <link rel="stylesheet" href="theme-hmi.css?v=20261101d" />
   </head>
   <body>
     <div class="console-frame">
@@ -1337,7 +1344,7 @@
               </div>
               <div class="warning" id="schedLog">&gt; MEMUAT JADWAL...</div>
             </section>
-            <aside class="right-stack">
+            <aside class="right-stack" style="display: none" hidden>
             <section class="data-panel stats-panel" id="session-stats-ctrl">
               <div class="panel-heading">
                 <span>SESSION OVERVIEW</span
