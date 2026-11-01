@@ -414,7 +414,7 @@
                 <div class="hmi-act">
                   <div class="act-row">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M3 8l9 4-9 4V8zM21 8l-9 4 9 4V8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
-                    <div class="name">Motorized Valve<small>Relay GPIO48 / GPIO47</small></div>
+                    <div class="name">Motorized Valve<small>Relay GPIO47 (buka) / GPIO21 (tutup)</small></div>
                     <b class="hmi-state" id="dashValveState">--</b>
                   </div>
                   <div class="act-row">
@@ -793,6 +793,28 @@
                   <div><span>pH 7.01</span><b id="cal7">--</b></div>
                   <div><span>pH 9.01</span><em id="cal10">--</em></div>
                 </div>
+                <div style="margin-top: 8px">
+                  <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="kalibrasi_ph4" style="width: 100%">
+                    KALIBRASI TITIK 1 (BUFFER pH 4.01)
+                  </button>
+                  <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="kalibrasi_ph10" style="width: 100%; margin-top: 6px">
+                    KALIBRASI TITIK 2 (BUFFER pH 9.01)
+                  </button>
+                  <div style="display: flex; gap: 6px; margin-top: 6px">
+                    <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph4" style="flex: 1">VERIF 4.01</button>
+                    <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph7" style="flex: 1">VERIF 6.86</button>
+                    <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph10" style="flex: 1">VERIF 9.01</button>
+                  </div>
+                  <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="reset" style="width: 100%; margin-top: 6px">
+                    RESET DATA KALIBRASI
+                  </button>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
+                  Bilas probe, celupkan ke buffer yang sesuai, aduk pelan, lalu
+                  tekan tombolnya. Alat menunggu pembacaan stabil (bisa
+                  beberapa menit) sebelum menulis ke sensor.
+                </div>
+                <div class="warning" id="phCalLog">> SIAP</div>
                 <div class="warning" id="calibrationWarning">
                   ! CHECKING CALIBRATION STATUS
                 </div>
@@ -2281,6 +2303,8 @@
         // Status ASLI pompa dari alat (tabel device_status, ditulis firmware).
         // Dipoll tiap 3 detik; kalau alat menolak (interlock chamber penuh)
         // toggle dikembalikan ke BERHENTI dan muncul peringatan.
+        let pumpClickAt = 0;
+        const PUMP_SYNC_HOLD_MS = 20000; // maks. tunggu alat melapor setelah klik
         async function syncPumpStatus() {
           if (sending || !byId("pumpToggle")) return;
           try {
@@ -2309,6 +2333,14 @@
               document.querySelector("#wifiIcon").className =
                 "pixel-icon wifi-icon is-online";
             }
+            // Setelah toggle diklik, alat butuh beberapa detik (poll perintah +
+            // lapor status) sebelum device_status ikut berubah. Selama masa
+            // tunggu itu, status lama dari alat TIDAK boleh menimpa pilihan
+            // user -- kalau tidak, toggle balik sendiri.
+            const sejakKlik = Date.now() - pumpClickAt;
+            const statusBasi =
+              Number.isFinite(hbMs) && hbMs < pumpClickAt - 1000;
+            if (sejakKlik < PUMP_SYNC_HOLD_MS && statusBasi) return;
             if (data.pump_note === "ditolak_chamber_penuh") {
               pumpOn = false;
               setControlStatus(
@@ -2331,6 +2363,7 @@
           byId("pumpToggle").addEventListener("click", () => {
             if (sending) return;
             pumpOn = !pumpOn;
+            pumpClickAt = Date.now();
             renderControls();
             sendControlCommand();
           });
@@ -2828,6 +2861,72 @@
           el("btnHwVerifikasiKeluar").addEventListener("click", () =>
             kirimPerintahHw("verifikasi_keluar"),
           );
+
+        // ---------- Kalibrasi / verifikasi pH dari web (tabel ph_calibration_cmd) ----------
+        // ESP32 membaca baris baru, menjalankan proses yang sama seperti
+        // perintah Serial (blocking sampai pembacaan stabil), lalu mengisi
+        // status + pesan. Karena bisa lama, polling hasil dibatasi 3 menit.
+        const PH_CMD_TABLE = "ph_calibration_cmd";
+        const phButtons = () => [...document.querySelectorAll(".ph-cal-btn")];
+
+        function setPhCalLog(text, isError) {
+          const box = el("phCalLog");
+          if (!box) return;
+          box.textContent = "> " + text;
+          box.style.color = isError ? "var(--orange)" : "";
+        }
+
+        async function kirimPerintahPh(perintah) {
+          phButtons().forEach((b) => (b.disabled = true));
+          setPhCalLog("Mengirim perintah: " + perintah + "...", false);
+          try {
+            const { data, error } = await supabase
+              .from(PH_CMD_TABLE)
+              .insert({ device_id: DEVICE_ID, perintah })
+              .select("id")
+              .single();
+            if (error) throw error;
+            setPhCalLog("Menunggu alat (stabilisasi pembacaan, bisa beberapa menit)...", false);
+            const MAKS_TUNGGU_MS = 180000;
+            const mulai = Date.now();
+            while (Date.now() - mulai < MAKS_TUNGGU_MS) {
+              await new Promise((r) => setTimeout(r, 2000));
+              const { data: hasil, error: errCek } = await supabase
+                .from(PH_CMD_TABLE)
+                .select("status,pesan")
+                .eq("id", data.id)
+                .maybeSingle();
+              if (errCek) {
+                setPhCalLog("Gagal cek hasil: " + errCek.message, true);
+                return;
+              }
+              if (hasil && hasil.status !== "pending") {
+                setPhCalLog(
+                  (hasil.status === "sukses" ? "OK: " : "GAGAL: ") + (hasil.pesan || ""),
+                  hasil.status !== "sukses",
+                );
+                return;
+              }
+            }
+            setPhCalLog("Timeout: alat tidak merespons 3 menit (offline?).", true);
+          } catch (err) {
+            setPhCalLog("Gagal kirim perintah: " + err.message, true);
+          } finally {
+            phButtons().forEach((b) => (b.disabled = false));
+          }
+        }
+
+        phButtons().forEach((btn) =>
+          btn.addEventListener("click", () => {
+            const cmd = btn.dataset.phCmd;
+            if (
+              cmd === "reset" &&
+              !confirm("Hapus data kalibrasi pH yang tersimpan di alat?")
+            )
+              return;
+            kirimPerintahPh(cmd);
+          }),
+        );
 
         if (el("btnHwResetFactor"))
           el("btnHwResetFactor").addEventListener("click", () => {
