@@ -3029,6 +3029,7 @@
         // baru dengan mode yang dipilih. valve_cmd dibawa dari baris terakhir
         // (supaya valve tidak bergerak karena pindah mode) dan pump_cmd
         // "berhenti" (aman).
+        const CONTROL_TABLE = "system_control";
         function tampilkanMode(mode) {
           const teks = mode === "otomatis" ? "OTOMATIS" : mode === "manual" ? "MANUAL" : "--";
           if (el("modeNowText")) el("modeNowText").textContent = teks;
