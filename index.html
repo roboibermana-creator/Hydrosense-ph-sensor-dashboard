@@ -1330,6 +1330,18 @@
                   >
                 </div>
                 <div>
+                  <span>Jeda antar sampel</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedSampel" min="0.2" max="10" step="0.1" style="width: 70px; text-align: right" /> dtk</span
+                  >
+                </div>
+                <div>
+                  <span>Data ekstrem dibuang (tiap sisi)</span
+                  ><span class="sched-dur"
+                    ><input type="number" id="schedTrim" min="0" max="40" step="1" style="width: 70px; text-align: right" /> %</span
+                  >
+                </div>
+                <div>
                   <span>Tunggu stabil sebelum baca</span
                   ><span class="sched-dur"
                     ><input type="number" id="schedStabil" min="1" max="600" step="1" style="width: 70px; text-align: right" /> dtk</span
@@ -1342,8 +1354,8 @@
               <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
                 Urutan satu siklus: pompa isi (berhenti saat float switch HIGH,
                 atau saat waktu maks habis) → tunggu stabil → pH & TSS disampel
-                tiap 0,5 dtk selama "lama baca" (10 dtk = 20 sampel), disaring
-                trimmed mean 20% (buang 4 terendah & 4 tertinggi) → hasil
+                tiap "jeda antar sampel" selama "lama baca", disaring
+                trimmed mean (persen data ekstrem yang dibuang bisa diatur) → hasil
                 olahan dikirim
                 → valve buka sampai float switch LOW (atau waktu maks habis).
                 Siklus berikutnya dimulai tiap N menit setelah valve menutup.
@@ -3193,7 +3205,7 @@
           if (!el("schedIntervalM")) return;
           const { data, error } = await supabase
             .from(SCHED_TABLE)
-            .select("interval_detik,pompa_detik,valve_detik,baca_sensor_detik,stabil_detik")
+            .select("interval_detik,pompa_detik,valve_detik,baca_sensor_detik,stabil_detik,sampel_ms,trim_persen")
             .eq("device_id", DEVICE_ID)
             .maybeSingle();
           if (error) {
@@ -3206,6 +3218,8 @@
             isiDur("schedValveM", "schedValveS", data.valve_detik);
             isiDur("schedBacaM", "schedBacaS", data.baca_sensor_detik);
             el("schedStabil").value = data.stabil_detik;
+            el("schedSampel").value = (data.sampel_ms ?? 1000) / 1000;
+            el("schedTrim").value = data.trim_persen ?? 15;
             setSchedLog(
               `Jadwal aktif: siklus tiap ${fmtDur(data.interval_detik)}, pompa maks ${fmtDur(data.pompa_detik)}, valve maks ${fmtDur(data.valve_detik)}, baca sensor ${fmtDur(data.baca_sensor_detik)}, stabil ${data.stabil_detik} dtk`,
               false,
@@ -3221,15 +3235,19 @@
           const valve = bacaDur("schedValveM", "schedValveS");
           const baca = bacaDur("schedBacaM", "schedBacaS");
           const stabil = Math.round(Number(el("schedStabil").value));
+          const sampelMs = Math.round(Number(el("schedSampel").value) * 1000);
+          const trim = Math.round(Number(el("schedTrim").value));
           if (
             !(interval >= 10 && interval <= 86400) ||
             !(pompa >= 1 && pompa <= 7200) ||
             !(valve >= 1 && valve <= 7200) ||
             !(baca >= 5 && baca <= 3600) ||
-            !(stabil >= 1 && stabil <= 600)
+            !(stabil >= 1 && stabil <= 600) ||
+            !(sampelMs >= 200 && sampelMs <= 10000) ||
+            !(trim >= 0 && trim <= 40)
           ) {
             setSchedLog(
-              "Nilai tidak valid: siklus 10 dtk-24 jam, pompa & valve 1 dtk-2 jam, lama baca sensor 5 dtk-60 mnt, stabil 1-600 dtk.",
+              "Nilai tidak valid: siklus 10 dtk-24 jam, pompa & valve 1 dtk-2 jam, lama baca sensor 5 dtk-60 mnt, stabil 1-600 dtk, jeda sampel 0,2-10 dtk, data dibuang 0-40%.",
               true,
             );
             return;
@@ -3245,13 +3263,15 @@
                 valve_detik: valve,
                 baca_sensor_detik: baca,
                 stabil_detik: stabil,
+                sampel_ms: sampelMs,
+                trim_persen: trim,
                 updated_at: new Date().toISOString(),
               },
               { onConflict: "device_id" },
             );
             if (error) throw error;
             setSchedLog(
-              `Tersimpan: siklus tiap ${fmtDur(interval)}, pompa maks ${fmtDur(pompa)}, valve maks ${fmtDur(valve)}, baca sensor ${fmtDur(baca)}, stabil ${stabil} dtk. Alat membaca perubahan dalam sekitar 30 detik.`,
+              `Tersimpan: siklus tiap ${fmtDur(interval)}, pompa maks ${fmtDur(pompa)}, valve maks ${fmtDur(valve)}, baca sensor ${fmtDur(baca)}, stabil ${stabil} dtk, sampel tiap ${sampelMs / 1000} dtk, buang ${trim}%. Alat membaca perubahan dalam sekitar 30 detik.`,
               false,
             );
           } catch (err) {
