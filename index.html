@@ -2436,6 +2436,40 @@
         // toggle dikembalikan ke BERHENTI dan muncul peringatan.
         let pumpClickAt = 0;
         const PUMP_SYNC_HOLD_MS = 20000; // maks. tunggu alat melapor setelah klik
+        let autoAktif = false; // true = alat mode otomatis & denyutnya segar
+
+        // Kondisi NYATA alat (denyut tiap 5 dtk di device_status): pompa, valve,
+        // float switch. Di mode otomatis panel tangki mengikuti kondisi ini, dan
+        // float switch HIGH (chamber penuh) langsung melompatkan level ke 100%.
+        async function syncKondisiAlat() {
+          if (!byId("pumpToggle")) return;
+          try {
+            const { data, error } = await supabase
+              .from("device_status")
+              .select("mode,heartbeat_at,pompa_nyala,valve_buka,float_high")
+              .eq("device_id", DEVICE_ID)
+              .maybeSingle();
+            if (error || !data) return;
+            const segar = Date.now() - Date.parse(data.heartbeat_at) < 20000;
+            autoAktif = segar && data.mode === "otomatis";
+            if (!segar) return;
+            if (autoAktif) {
+              if (data.pompa_nyala !== null) pumpOn = data.pompa_nyala;
+              if (data.valve_buka !== null) valveOpen = data.valve_buka;
+              setControlStatus(
+                "MODE OTOMATIS: tampilan mengikuti kondisi alat",
+                false,
+              );
+            }
+            if (data.float_high === true) level = 100;
+            renderControls();
+            renderLevel();
+          } catch (e) {
+            console.error("Gagal baca kondisi alat:", e);
+          }
+        }
+        setInterval(syncKondisiAlat, 3000);
+        syncKondisiAlat();
         async function syncPumpStatus() {
           if (sending || !byId("pumpToggle")) return;
           try {
@@ -2450,6 +2484,9 @@
               netEl.textContent =
                 "IP " + (data.ip_address || "--") +
                 " / MAC " + (data.mac_address || "--");
+            // Mode otomatis: tampilan pompa/valve/level diatur syncKondisiAlat()
+            // dari kondisi nyata alat, bukan dari status manual yang basi.
+            if (autoAktif) return;
             // Heartbeat alat (mode manual tidak mengirim data pH/TSS): kalau
             // status pompa segar (<60 dtk), tandai alat online.
             const hbMs = Date.parse(data.updated_at);
