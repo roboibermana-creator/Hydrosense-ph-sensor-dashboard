@@ -1167,6 +1167,32 @@
                   </button>
                 </div>
 
+                <div style="margin-top: 14px; border-top: 1px solid #d4d9de; padding-top: 10px">
+                  <div style="font-size: 12px; font-weight: 700">
+                    CARI REGISTER WIPER (tulis 1 nilai, lihat/dengar wiper)
+                  </div>
+                  <div style="display: flex; gap: 8px; margin-top: 6px">
+                    <label style="flex: 1; font-size: 12px"
+                      >Alamat (8-31)
+                      <input type="number" id="inputWiperAlamat" min="8" max="31" step="1" value="18" style="width: 100%"
+                    /></label>
+                    <label style="flex: 1; font-size: 12px"
+                      >Nilai
+                      <input type="number" id="inputWiperNilai" min="0" max="65535" step="1" value="66" style="width: 100%"
+                    /></label>
+                  </div>
+                  <button
+                    type="button"
+                    id="btnUjiWiper"
+                    class="calibrate-button"
+                    style="width: 100%; margin-top: 8px"
+                  >
+                    TULIS & UJI WIPER<br /><small
+                      >(alat mode manual; coba 18/66, 10/1, 9/1, 8/1)</small
+                    >
+                  </button>
+                </div>
+
                 <div class="warning" id="tssCalLog"></div>
               </section>
           </div>
@@ -2917,7 +2943,7 @@
         if (!el("btnBacaFaktor")) return;
         const DEVICE_ID = "hydrosense-inlet-01";
         const CMD_TABLE = "tss_hw_calibration_cmd";
-        const TOMBOL = ["btnBacaFaktor", "btnTulisFaktor", "btnHitungFaktor", "btnUjiFaktor"];
+        const TOMBOL = ["btnBacaFaktor", "btnTulisFaktor", "btnHitungFaktor", "btnUjiFaktor", "btnUjiWiper"];
         let faktorSekarang = null;
 
         function setLog(text, isError) {
@@ -2943,12 +2969,13 @@
           if (t) el("faktorTssNow").textContent = Number(t[1]).toFixed(2) + " mg/L";
         }
 
-        async function kirim(perintah, nilai, maksDetik) {
+        async function kirim(perintah, nilai, maksDetik, aktual) {
           setLog(`Mengirim perintah: ${perintah}...`, false);
           kunci(true);
           try {
             const payload = { device_id: DEVICE_ID, perintah };
             if (nilai !== undefined) payload.nilai_target = nilai;
+            if (aktual !== undefined) payload.nilai_aktual = aktual;
             const { data, error } = await supabase
               .from(CMD_TABLE)
               .insert(payload)
@@ -3003,6 +3030,16 @@
           )
             return;
           await kirim("tulis_faktor", v, 60);
+        });
+
+        el("btnUjiWiper").addEventListener("click", async () => {
+          const alamat = Math.round(Number(el("inputWiperAlamat").value));
+          const nilai = Math.round(Number(el("inputWiperNilai").value));
+          if (!(alamat >= 8 && alamat <= 31) || !(nilai >= 0 && nilai <= 65535)) {
+            setLog("Alamat harus 8-31 dan nilai 0-65535.", true);
+            return;
+          }
+          await kirim("uji_wiper", alamat, 40, nilai);
         });
 
         el("btnUjiFaktor").addEventListener("click", async () => {
