@@ -2970,7 +2970,7 @@
         }
 
         async function kirim(perintah, nilai, maksDetik, aktual) {
-          setLog(`Mengirim perintah: ${perintah}...`, false);
+          setLog(`Perintah ${perintah} terkirim. Alat membalas dalam ~30-60 detik, JANGAN kirim perintah lain dulu...`, false);
           kunci(true);
           try {
             const payload = { device_id: DEVICE_ID, perintah };
@@ -3003,7 +3003,7 @@
                 return r;
               }
             }
-            setLog("Timeout: alat tidak merespons (offline atau mode otomatis?).", true);
+            setLog("Timeout: alat belum membalas (offline, mode otomatis, atau sedang sibuk). Cek lagi nanti di tabel tss_hw_calibration_cmd.", true);
             return null;
           } catch (err) {
             setLog("Gagal kirim perintah: " + err.message, true);
@@ -3014,7 +3014,7 @@
         }
 
         el("btnBacaFaktor").addEventListener("click", () =>
-          kirim("baca_faktor", undefined, 30),
+          kirim("baca_faktor", undefined, 100),
         );
 
         el("btnTulisFaktor").addEventListener("click", async () => {
@@ -3029,7 +3029,7 @@
             )
           )
             return;
-          await kirim("tulis_faktor", v, 60);
+          await kirim("tulis_faktor", v, 130);
         });
 
         el("btnUjiWiper").addEventListener("click", async () => {
@@ -3039,7 +3039,7 @@
             setLog("Alamat harus 8-31 dan nilai 0-65535.", true);
             return;
           }
-          await kirim("uji_wiper", alamat, 40, nilai);
+          await kirim("uji_wiper", alamat, 100, nilai);
         });
 
         el("btnUjiFaktor").addEventListener("click", async () => {
@@ -3049,7 +3049,7 @@
             )
           )
             return;
-          await kirim("uji_faktor", undefined, 75);
+          await kirim("uji_faktor", undefined, 150);
         });
 
         // Faktor baru = faktor sekarang x (jumlah raw*gravimetri / jumlah raw^2):
