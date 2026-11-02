@@ -2317,6 +2317,11 @@
       setInterval(refreshDashboard, 5000);
       window.addEventListener("resize", refreshDashboard);
 
+      // Denyut alat terakhir dari device_status (diisi pollDenyut, dibaca panel
+      // countdown & panel raw TSS di blok IIFE yang berbeda -> harus di sini).
+      // { sisa, fase, mode, diterimaMs, hbMs, tssRaw }
+      let hb = null;
+
       // Control Valve & Pompa — kirim perintah manual ke Supabase (dibaca ESP32 dari tabel system_control)
       (function () {
         const TOGGLE_ON = "gambarpixel/controls/toggle_switch_on_green.png";
@@ -2835,7 +2840,6 @@
           box.style.color = isError ? "var(--orange)" : "";
         }
 
-        let hb = null; // denyut alat { sisa, fase, mode, diterimaMs, hbMs, tssRaw }
         function tampilkanRawTssTerkini() {
           const rawEl = el("tssCalRawNow");
           if (!rawEl) return;
