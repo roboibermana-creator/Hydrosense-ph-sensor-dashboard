@@ -2277,9 +2277,13 @@
         const VALVE_CLOSED = "gambarpixel/valve/valve-closed.png";
         const PUMP_RUN = "gambarpixel/valve/pump-running.png";
         const PUMP_STOP = "gambarpixel/valve/pump-stopped.png";
-        const DRAIN_STEP = 4,
-          FILL_STEP = 3,
-          TICK_MS = 1500;
+        // Animasi tangki: penuh 100% dalam 3 mnt 30 dtk saat pompa jalan,
+        // kosong dalam 1 mnt saat valve terbuka.
+        const TICK_MS = 1500,
+          FILL_DETIK = 210,
+          DRAIN_DETIK = 60,
+          FILL_STEP = 100 / (FILL_DETIK * 1000 / TICK_MS),
+          DRAIN_STEP = 100 / (DRAIN_DETIK * 1000 / TICK_MS);
         const CONTROL_TABLE = "system_control";
         const DEVICE_ID = "hydrosense-inlet-01";
 
