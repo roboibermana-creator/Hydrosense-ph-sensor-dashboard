@@ -1090,7 +1090,7 @@
                   NILAI GRAVIMETRI
                 </div>
               </section>
-              <!-- FAKTOR KALIBRASI TSS (slope & offset regresi linear) -->
+              <!-- FAKTOR KALIBRASI TSS: faktor di dalam sensor (alamat 4-5) -->
               <section class="data-panel calibration-panel" id="tssCalFactorPanel">
                 <div class="panel-heading">
                   <span>TSS CALIBRATION FACTOR</span
@@ -1102,58 +1102,68 @@
                 </div>
                 <div class="calibration-rows">
                   <div>
-                    <span>Slope (b1)</span
-                    ><b id="tssCalSlopeNow" style="color: var(--neon)"
-                      >1.000000</b
-                    >
+                    <span>Faktor sensor (alamat 4-5)</span
+                    ><b id="faktorNow" style="color: var(--neon)">--</b>
                   </div>
                   <div>
-                    <span>Offset (b0)</span
-                    ><b id="tssCalOffsetNow" style="color: var(--neon)"
-                      >0.000000</b
-                    >
+                    <span>TSS raw terbaca</span
+                    ><b id="faktorTssNow" style="color: var(--neon)">--</b>
                   </div>
                 </div>
-                <div class="warning" id="tssCalMetaNow">MEMUAT KALIBRASI...</div>
+                <div class="warning" id="faktorMeta">
+                  ALAMAT 4-5 MASIH DUGAAN: JALANKAN "UJI FAKTOR" DULU. RENTANG
+                  0,11-9,99. ALAT HARUS MODE MANUAL UNTUK MENULIS.
+                </div>
 
                 <div style="margin-top: 10px">
                   <button
                     type="button"
-                    id="btnHitungKalibrasiTss"
+                    id="btnBacaFaktor"
                     class="calibrate-button"
                     style="width: 100%"
                   >
-                    HITUNG & TERAPKAN OTOMATIS<br /><small
-                      >(dari tss_calibration_samples)</small
-                    >
+                    BACA FAKTOR SENSOR
                   </button>
                 </div>
 
                 <div style="margin-top: 12px">
                   <label style="display: block; font-size: 12px"
-                    >Slope Manual
+                    >Faktor baru
                     <input
                       type="number"
                       step="any"
-                      id="inputManualSlope"
-                      style="width: 100%"
-                  /></label>
-                  <label
-                    style="display: block; font-size: 12px; margin-top: 6px"
-                    >Offset Manual
-                    <input
-                      type="number"
-                      step="any"
-                      id="inputManualOffset"
+                      min="0.11"
+                      max="9.99"
+                      id="inputFaktorBaru"
                       style="width: 100%"
                   /></label>
                   <button
                     type="button"
-                    id="btnSimpanManualTss"
+                    id="btnTulisFaktor"
                     class="calibrate-button"
                     style="width: 100%; margin-top: 8px"
                   >
-                    SIMPAN MANUAL
+                    TERAPKAN KE SENSOR
+                  </button>
+                  <button
+                    type="button"
+                    id="btnHitungFaktor"
+                    class="calibrate-button"
+                    style="width: 100%; margin-top: 8px"
+                  >
+                    HITUNG DARI SAMPEL<br /><small
+                      >(tss_calibration_samples, isi kolom di atas)</small
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    id="btnUjiFaktor"
+                    class="calibrate-button"
+                    style="width: 100%; margin-top: 8px"
+                  >
+                    UJI FAKTOR (otomatis)<br /><small
+                      >(tulis 2x lalu dikembalikan, ~25 dtk)</small
+                    >
                   </button>
                 </div>
 
@@ -2897,6 +2907,158 @@
         }
 
         muatKalibrasiTssAktif();
+      })();
+
+      // ---------------- Faktor kalibrasi di dalam sensor TSS (alamat 4-5) ----------------
+      // ESP32 mengeksekusi perintah baca/tulis/uji lewat tabel
+      // tss_hw_calibration_cmd (tanpa USB/Serial Monitor).
+      (function () {
+        const el = (id) => document.getElementById(id);
+        if (!el("btnBacaFaktor")) return;
+        const DEVICE_ID = "hydrosense-inlet-01";
+        const CMD_TABLE = "tss_hw_calibration_cmd";
+        const TOMBOL = ["btnBacaFaktor", "btnTulisFaktor", "btnHitungFaktor", "btnUjiFaktor"];
+        let faktorSekarang = null;
+
+        function setLog(text, isError) {
+          const box = el("tssCalLog");
+          if (!box) return;
+          box.textContent = "> " + text;
+          box.style.color = isError ? "var(--orange)" : "";
+        }
+        function kunci(disabled) {
+          TOMBOL.forEach((id) => {
+            if (el(id)) el(id).disabled = disabled;
+          });
+        }
+        function tampil(pesan) {
+          const f = /faktor=([-+0-9.eE]+)/.exec(pesan || "");
+          if (f) {
+            faktorSekarang = Number(f[1]);
+            el("faktorNow").textContent = faktorSekarang.toFixed(4);
+          }
+          const t =
+            /tss_raw=([-+0-9.eE]+)/.exec(pesan || "") ||
+            /tss_sesudah=([-+0-9.eE]+)/.exec(pesan || "");
+          if (t) el("faktorTssNow").textContent = Number(t[1]).toFixed(2) + " mg/L";
+        }
+
+        async function kirim(perintah, nilai, maksDetik) {
+          setLog(`Mengirim perintah: ${perintah}...`, false);
+          kunci(true);
+          try {
+            const payload = { device_id: DEVICE_ID, perintah };
+            if (nilai !== undefined) payload.nilai_target = nilai;
+            const { data, error } = await supabase
+              .from(CMD_TABLE)
+              .insert(payload)
+              .select("id")
+              .single();
+            if (error) throw error;
+            const tries = Math.ceil((maksDetik || 30) / 1.5);
+            for (let i = 0; i < tries; i++) {
+              await new Promise((r) => setTimeout(r, 1500));
+              const { data: r, error: e2 } = await supabase
+                .from(CMD_TABLE)
+                .select("status, pesan")
+                .eq("id", data.id)
+                .maybeSingle();
+              if (e2) {
+                setLog("Gagal cek hasil: " + e2.message, true);
+                return null;
+              }
+              if (r && r.status !== "pending") {
+                setLog(
+                  (r.status === "sukses" ? "OK: " : "GAGAL: ") + (r.pesan || ""),
+                  r.status !== "sukses",
+                );
+                tampil(r.pesan);
+                return r;
+              }
+            }
+            setLog("Timeout: alat tidak merespons (offline atau mode otomatis?).", true);
+            return null;
+          } catch (err) {
+            setLog("Gagal kirim perintah: " + err.message, true);
+            return null;
+          } finally {
+            kunci(false);
+          }
+        }
+
+        el("btnBacaFaktor").addEventListener("click", () =>
+          kirim("baca_faktor", undefined, 30),
+        );
+
+        el("btnTulisFaktor").addEventListener("click", async () => {
+          const v = Number(el("inputFaktorBaru").value);
+          if (!Number.isFinite(v) || v < 0.11 || v > 9.99) {
+            setLog("Isi faktor baru 0,11 - 9,99.", true);
+            return;
+          }
+          if (
+            !confirm(
+              `Tulis faktor ${v} ke sensor (alamat 4-5)?\nFaktor lama akan tertimpa.`,
+            )
+          )
+            return;
+          await kirim("tulis_faktor", v, 60);
+        });
+
+        el("btnUjiFaktor").addEventListener("click", async () => {
+          if (
+            !confirm(
+              "Uji faktor: alat menulis faktor 2x lipat, membandingkan TSS, lalu mengembalikan faktor awal (~25 detik, alat harus mode MANUAL). Lanjut?",
+            )
+          )
+            return;
+          await kirim("uji_faktor", undefined, 75);
+        });
+
+        // Faktor baru = faktor sekarang x (jumlah raw*gravimetri / jumlah raw^2):
+        // raw di sampel sudah memuat faktor yang aktif saat sampel diambil.
+        el("btnHitungFaktor").addEventListener("click", async () => {
+          if (faktorSekarang === null) {
+            setLog('Tekan "BACA FAKTOR SENSOR" dulu supaya faktor sekarang diketahui.', true);
+            return;
+          }
+          kunci(true);
+          try {
+            const { data, error } = await supabase
+              .from("tss_calibration_samples")
+              .select("tss, raw_value")
+              .eq("aksi", "kalibrasi");
+            if (error) throw error;
+            let sxy = 0,
+              sxx = 0,
+              n = 0;
+            for (const row of data || []) {
+              const raw = numeric(row.raw_value);
+              const act = numeric(row.tss);
+              if (raw === null || act === null || raw <= 0) continue;
+              sxy += raw * act;
+              sxx += raw * raw;
+              n++;
+            }
+            if (n < 1 || sxx === 0) {
+              setLog("Belum ada sampel kalibrasi (raw & gravimetri) yang valid.", true);
+              return;
+            }
+            const baru = faktorSekarang * (sxy / sxx);
+            el("inputFaktorBaru").value = baru.toFixed(4);
+            setLog(
+              `Dari ${n} sampel: faktor ${faktorSekarang.toFixed(4)} -> ${baru.toFixed(4)}` +
+                (baru < 0.11 || baru > 9.99
+                  ? " (DI LUAR rentang 0,11-9,99, tidak bisa ditulis ke sensor)"
+                  : ". Periksa angkanya lalu tekan TERAPKAN KE SENSOR."),
+              baru < 0.11 || baru > 9.99,
+            );
+          } catch (err) {
+            setLog("Gagal hitung dari sampel: " + err.message, true);
+          } finally {
+            kunci(false);
+          }
+        });
       })();
 
       // ---------------- Kalibrasi Hardware TSS (native, two-point) ----------------
