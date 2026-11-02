@@ -1323,7 +1323,7 @@
                   >
                 </div>
                 <div>
-                  <span>Lama baca sensor (setelah stabil)</span
+                  <span>Lama sampling pH & TSS (setelah stabil)</span
                   ><span class="sched-dur"
                     ><input type="number" id="schedBacaM" min="0" max="60" step="1" style="width: 56px; text-align: right" /> mnt
                     <input type="number" id="schedBacaS" min="0" max="59" step="1" style="width: 46px; text-align: right" /> dtk</span
@@ -1341,8 +1341,10 @@
               </button>
               <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
                 Urutan satu siklus: pompa isi (berhenti saat float switch HIGH,
-                atau saat waktu maks habis) → tunggu stabil → sensor dibaca
-                terus selama "lama baca" → nilai stabil di ujung jendela dikirim
+                atau saat waktu maks habis) → tunggu stabil → pH & TSS disampel
+                tiap 0,5 dtk selama "lama baca" (10 dtk = 20 sampel), disaring
+                trimmed mean 20% (buang 4 terendah & 4 tertinggi) → hasil
+                olahan dikirim
                 → valve buka sampai float switch LOW (atau waktu maks habis).
                 Siklus berikutnya dimulai tiap N menit setelah valve menutup.
                 Berlaku saat alat di mode otomatis.
@@ -1508,7 +1510,7 @@
         const { data, error } = await supabase
           .from("Hydrosense table")
           .select(
-            "id, timestamp, ph, tss, tss_raw, water_temperature, water_level",
+            "id, timestamp, ph, tss, water_temperature, water_level",
           )
           .order("timestamp", { ascending: false })
           .limit(1)
@@ -1593,7 +1595,7 @@
           ph: numeric(row?.ph),
           temp: numeric(row?.water_temperature),
           tss: numeric(row?.tss),
-          tssRaw: numeric(row?.tss_raw),
+          tssRaw: null, // raw TSS tidak di tabel utama; wizard kalibrasi memakai hb.tssRaw (device_status)
           wl: numeric(row?.water_level),
           voltage: null,
           ntu: null,
@@ -2734,10 +2736,11 @@
           box.style.color = isError ? "var(--orange)" : "";
         }
 
+        let hb = null; // denyut alat { sisa, fase, mode, diterimaMs, hbMs, tssRaw }
         function tampilkanRawTssTerkini() {
           const rawEl = el("tssCalRawNow");
           if (!rawEl) return;
-          const raw = latestSensorSnapshot?.tssRaw;
+          const raw = hb?.tssRaw;
           rawEl.textContent = raw === null || raw === undefined
             ? "--"
             : raw.toFixed(2) + " mg/L";
@@ -2763,7 +2766,7 @@
           const raw =
             rawManual !== null && Number.isFinite(rawManual)
               ? rawManual
-              : latestSensorSnapshot?.tssRaw;
+              : hb?.tssRaw;
 
           if (raw === null || raw === undefined) {
             setTssSampleLog(
@@ -3104,7 +3107,7 @@
         // ---------- Countdown siklus berikutnya (denyut alat di device_status) ----------
         // Alat mengirim mode/fase/next_cycle_s + heartbeat_at tiap 5 detik. Sisa
         // detik dihitung turun di browser antar poll; denyut >20 dtk = alat offline.
-        let hb = null; // { sisa, fase, mode, diterimaMs, hbMs }
+        // (hb dideklarasikan di atas tampilkanRawTssTerkini)
         const fmtHitung = (s) =>
           `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
         function renderCountdown() {
@@ -3130,7 +3133,7 @@
           try {
             const { data } = await supabase
               .from("device_status")
-              .select("mode,fase,next_cycle_s,heartbeat_at")
+              .select("mode,fase,next_cycle_s,heartbeat_at,tss_raw")
               .eq("device_id", DEVICE_ID)
               .maybeSingle();
             if (data)
@@ -3140,6 +3143,7 @@
                 mode: data.mode,
                 diterimaMs: Date.now(),
                 hbMs: Date.parse(data.heartbeat_at),
+                tssRaw: data.tss_raw === null || data.tss_raw === undefined ? null : Number(data.tss_raw),
               };
           } catch (e) {
             console.error("Gagal baca denyut:", e);
