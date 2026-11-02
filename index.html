@@ -2437,6 +2437,7 @@
         let pumpClickAt = 0;
         const PUMP_SYNC_HOLD_MS = 20000; // maks. tunggu alat melapor setelah klik
         let autoAktif = false; // true = alat mode otomatis & denyutnya segar
+        let faseSebelumnya = null; // untuk mendeteksi awal siklus
 
         // Kondisi NYATA alat (denyut tiap 5 dtk di device_status): pompa, valve,
         // float switch. Di mode otomatis panel tangki mengikuti kondisi ini, dan
@@ -2446,7 +2447,7 @@
           try {
             const { data, error } = await supabase
               .from("device_status")
-              .select("mode,heartbeat_at,pompa_nyala,valve_buka,float_high")
+              .select("mode,fase,heartbeat_at,pompa_nyala,valve_buka,float_high")
               .eq("device_id", DEVICE_ID)
               .maybeSingle();
             if (error || !data) return;
@@ -2454,6 +2455,15 @@
             autoAktif = segar && data.mode === "otomatis";
             if (!segar) return;
             if (autoAktif) {
+              // Awal siklus (pompa mulai mengisi): tangki dianggap kosong, karena
+              // siklus sebelumnya berakhir dengan pembuangan. Float switch HIGH
+              // di bawah tetap menang.
+              if (
+                data.fase === "siklus: pompa mengisi" &&
+                faseSebelumnya !== "siklus: pompa mengisi"
+              )
+                level = 0;
+              faseSebelumnya = data.fase;
               if (data.pompa_nyala !== null) pumpOn = data.pompa_nyala;
               if (data.valve_buka !== null) valveOpen = data.valve_buka;
               setControlStatus(
