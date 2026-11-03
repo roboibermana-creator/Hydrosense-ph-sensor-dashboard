@@ -130,14 +130,6 @@
           grid-template-columns: 1fr;
         }
       }
-      #page-tss-sensor .wiper-panel {
-        grid-column: 1 / 3;
-      }
-      @media (max-width: 690px) {
-        #page-tss-sensor .wiper-panel {
-          grid-column: auto;
-        }
-      }
     </style>
     <link rel="stylesheet" href="theme-industrial.css?v=20261101d" />
     <link rel="stylesheet" href="theme-hmi.css?v=20261101d" />
@@ -633,59 +625,6 @@
               ><span class="axis y-bottom">0</span>
             </div>
           </section>
-          <section class="data-panel wiper-panel" style="padding: 16px">
-            <div class="panel-heading">
-              <span>KONTROL WIPER TSS</span><i>MANUAL</i>
-            </div>
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                margin-top: 14px;
-                flex-wrap: wrap;
-              "
-            >
-              <img
-                class="pixel-icon"
-                src="gambarpixel/tss-cluster-small.svg"
-                alt=""
-                style="width: 52px; height: 52px; flex-shrink: 0"
-              />
-              <p
-                style="
-                  flex: 1;
-                  min-width: 200px;
-                  margin: 0;
-                  color: var(--mint);
-                  font-size: 16px;
-                "
-              >
-                Sapu (wiper) probe TSS secara manual untuk membersihkan sensor
-                dari kotoran/endapan. Proses berjalan sekitar 15 detik.
-              </p>
-              <button
-                type="button"
-                class="toggle-switch"
-                id="wiperTriggerBtn"
-                aria-label="Jalankan wiper TSS secara manual"
-              >
-                <img
-                  id="wiperTriggerImg"
-                  src="gambarpixel/controls/toggle_switch_off_red.png"
-                  alt=""
-                />
-              </button>
-              <b class="state-label off" id="wiperStateLabel">SIAP</b>
-            </div>
-            <p
-              class="terminal-note"
-              style="margin-top: 16px"
-              id="wiperStatusText"
-            >
-              &gt; SIAP MENERIMA PERINTAH WIPER
-            </p>
-          </section>
           <aside class="right-stack">
             <section class="data-panel stats-panel">
               <div class="panel-heading">
@@ -1163,32 +1102,6 @@
                   >
                     UJI FAKTOR (otomatis)<br /><small
                       >(tulis 2x lalu dikembalikan, ~25 dtk)</small
-                    >
-                  </button>
-                </div>
-
-                <div style="margin-top: 14px; border-top: 1px solid #d4d9de; padding-top: 10px">
-                  <div style="font-size: 12px; font-weight: 700">
-                    CARI REGISTER WIPER (tulis 1 nilai, lihat/dengar wiper)
-                  </div>
-                  <div style="display: flex; gap: 8px; margin-top: 6px">
-                    <label style="flex: 1; font-size: 12px"
-                      >Alamat (8-31)
-                      <input type="number" id="inputWiperAlamat" min="8" max="31" step="1" value="18" style="width: 100%"
-                    /></label>
-                    <label style="flex: 1; font-size: 12px"
-                      >Nilai
-                      <input type="number" id="inputWiperNilai" min="0" max="65535" step="1" value="66" style="width: 100%"
-                    /></label>
-                  </div>
-                  <button
-                    type="button"
-                    id="btnUjiWiper"
-                    class="calibrate-button"
-                    style="width: 100%; margin-top: 8px"
-                  >
-                    TULIS & UJI WIPER<br /><small
-                      >(alat mode manual; coba 18/66, 10/1, 9/1, 8/1)</small
                     >
                   </button>
                 </div>
@@ -2344,13 +2257,11 @@
           pumpOn = false,
           level = 100,
           simTimer = null,
-          sending = false,
-          wiperRunning = false;
+          sending = false;
 
         const byId = (id) => document.getElementById(id);
         const panel = byId("page-control-valve");
-        const wiperBtn = byId("wiperTriggerBtn");
-        if (!panel && !wiperBtn) return;
+        if (!panel) return;
 
         function setControlStatus(text, isError) {
           const el = byId("controlStatusText");
@@ -2434,11 +2345,8 @@
 
         // Kirim perintah manual ke Supabase. ESP32 membaca baris TERBARU dari
         // tabel system_control (order by id desc) lalu mengeksekusi ke pin
-        // valve/pompa/wiper fisik saat mode = "manual". wiperCmd hanya diisi
-        // "bersihkan" sesaat (satu baris) saat tombol wiper ditekan -- setiap
-        // insert baris baru otomatis jadi trigger tersendiri di sisi ESP32
-        // (dideteksi lewat id baris, bukan lewat isi teks command).
-        async function sendControlCommand(wiperCmd) {
+        // valve/pompa fisik saat mode = "manual".
+        async function sendControlCommand() {
           sending = true;
           setControlStatus("MENGIRIM PERINTAH...", false);
           try {
@@ -2447,7 +2355,6 @@
               mode: "manual",
               valve_cmd: valveOpen ? "buka" : "tutup",
               pump_cmd: pumpOn ? "jalan" : "berhenti",
-              wiper_cmd: wiperCmd || "diam",
             };
             const { error } = await supabase
               .from(CONTROL_TABLE)
@@ -2587,55 +2494,6 @@
             sendControlCommand();
           });
         }
-
-        // ---------------- Kontrol Wiper TSS (menu TSS) ----------------
-        const WIPER_DURATION_MS = 15000; // sinkron dengan durasi startScraping() di firmware
-
-        function setWiperStatus(text, isError) {
-          const el = byId("wiperStatusText");
-          if (!el) return;
-          el.textContent = "> " + text;
-          el.style.color = isError ? "var(--orange)" : "";
-        }
-
-        function renderWiper() {
-          const img = byId("wiperTriggerImg");
-          const label = byId("wiperStateLabel");
-          const btn = byId("wiperTriggerBtn");
-          if (img) img.src = wiperRunning ? TOGGLE_ON : TOGGLE_OFF;
-          if (btn) btn.setAttribute("aria-checked", String(wiperRunning));
-          if (btn) btn.disabled = wiperRunning || sending;
-          if (label) {
-            label.textContent = wiperRunning ? "BERJALAN" : "SIAP";
-            label.className = "state-label " + (wiperRunning ? "on" : "off");
-          }
-        }
-
-        if (wiperBtn) {
-          wiperBtn.addEventListener("click", async () => {
-            if (sending || wiperRunning) return;
-            wiperRunning = true;
-            renderWiper();
-            setWiperStatus("MENYAPU SENSOR TSS...", false);
-            try {
-              await sendControlCommand("bersihkan");
-              setTimeout(() => {
-                wiperRunning = false;
-                renderWiper();
-                setWiperStatus("WIPER SELESAI", false);
-              }, WIPER_DURATION_MS);
-            } catch (error) {
-              wiperRunning = false;
-              renderWiper();
-              setWiperStatus(
-                "GAGAL KIRIM PERINTAH WIPER: " + error.message,
-                true,
-              );
-            }
-          });
-        }
-
-        renderWiper();
 
         if (panel) {
           renderControls();
@@ -2947,7 +2805,7 @@
         if (!el("btnBacaFaktor")) return;
         const DEVICE_ID = "hydrosense-inlet-01";
         const CMD_TABLE = "tss_hw_calibration_cmd";
-        const TOMBOL = ["btnBacaFaktor", "btnTulisFaktor", "btnHitungFaktor", "btnUjiFaktor", "btnUjiWiper"];
+        const TOMBOL = ["btnBacaFaktor", "btnTulisFaktor", "btnHitungFaktor", "btnUjiFaktor"];
         let faktorSekarang = null;
 
         function setLog(text, isError) {
@@ -3034,16 +2892,6 @@
           )
             return;
           await kirim("tulis_faktor", v, 130);
-        });
-
-        el("btnUjiWiper").addEventListener("click", async () => {
-          const alamat = Math.round(Number(el("inputWiperAlamat").value));
-          const nilai = Math.round(Number(el("inputWiperNilai").value));
-          if (!(alamat >= 8 && alamat <= 31) || !(nilai >= 0 && nilai <= 65535)) {
-            setLog("Alamat harus 8-31 dan nilai 0-65535.", true);
-            return;
-          }
-          await kirim("uji_wiper", alamat, 100, nilai);
         });
 
         el("btnUjiFaktor").addEventListener("click", async () => {
@@ -3269,7 +3117,8 @@
               .single();
             if (error) throw error;
             setPhCalLog("Menunggu alat (stabilisasi pembacaan, bisa beberapa menit)...", false);
-            const MAKS_TUNGGU_MS = 180000;
+            // Warm-up 3 mnt + maks 30 sampel (~1 mnt) + waktu kirim; beri ruang lega.
+            const MAKS_TUNGGU_MS = 600000;
             const mulai = Date.now();
             while (Date.now() - mulai < MAKS_TUNGGU_MS) {
               await new Promise((r) => setTimeout(r, 2000));
@@ -3282,6 +3131,10 @@
                 setPhCalLog("Gagal cek hasil: " + errCek.message, true);
                 return;
               }
+              if (hasil && hasil.status === "pending" && hasil.pesan) {
+                // Progres langsung dari alat (warm-up / sampel / sd / drift).
+                setPhCalLog("ALAT: " + hasil.pesan, false);
+              }
               if (hasil && hasil.status !== "pending") {
                 setPhCalLog(
                   (hasil.status === "sukses" ? "OK: " : "GAGAL: ") + (hasil.pesan || ""),
@@ -3290,7 +3143,7 @@
                 return;
               }
             }
-            setPhCalLog("Timeout: alat tidak merespons 3 menit (offline?).", true);
+            setPhCalLog("Timeout: tidak ada hasil dalam 10 menit (alat offline?). Cek Serial Monitor.", true);
           } catch (err) {
             setPhCalLog("Gagal kirim perintah: " + err.message, true);
           } finally {
@@ -3354,7 +3207,6 @@
               mode: modeBaru,
               valve_cmd: terakhir?.valve_cmd || "tutup",
               pump_cmd: "berhenti",
-              wiper_cmd: "diam",
             });
             if (error) throw error;
             tampilkanMode(modeBaru);
