@@ -1091,7 +1091,7 @@
                     style="width: 100%; margin-top: 8px"
                   >
                     HITUNG DARI SAMPEL<br /><small
-                      >(tss_calibration_samples, isi kolom di atas)</small
+                      >(calibration_samples, isi kolom di atas)</small
                     >
                   </button>
                   <button
@@ -1392,9 +1392,9 @@
     <script type="module">
       import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-      const SUPABASE_URL = "https://hgtwrcjjjycdlhuwsgcx.supabase.co";
+      const SUPABASE_URL = "https://vupbropaxsqireeullbm.supabase.co";
       const SUPABASE_PUBLISHABLE_KEY =
-        "sb_publishable_S2nOQnap6hUtYWusISR5Ig_WpOrdrGB";
+        "sb_publishable_mvifCe-YeWbL4Wyp3jf1fA_Xwz2P26Z";
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
@@ -1473,6 +1473,7 @@
           .select(
             "id, timestamp, ph, tss, water_temperature, water_level",
           )
+          .not("tss", "is", null) // tabel ini juga berisi baris level & hujan
           .order("timestamp", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -1488,6 +1489,7 @@
         const { data, error } = await supabase
           .from("Hydrosense table")
           .select("id, timestamp, ph, tss, water_temperature, water_level")
+          .not("tss", "is", null)
           .order("timestamp", { ascending: false })
           .limit(120);
         if (error) throw new Error(`Supabase history error: ${error.message}`);
@@ -1498,8 +1500,9 @@
       // tetap real-time walau sensor pH/TSS mati. 60 baris terbaru = ~5 menit.
       async function getLevelHistory() {
         const { data, error } = await supabase
-          .from("water_level_readings")
+          .from("Hydrosense table")
           .select("timestamp, water_level, distance_cm")
+          .not("distance_cm", "is", null) // baris level-only
           .order("timestamp", { ascending: false })
           .limit(60);
         if (error) throw new Error(`Supabase level error: ${error.message}`);
@@ -2170,11 +2173,11 @@
       }
       hmiInitDashboard();
 
-      // ---------------- Rain gauge (tabel opsional rain_gauge_readings) ----------------
+      // ---------------- Rain gauge (kolom rain_* di "Hydrosense table") ----------------
       // Kategori BMKG per jam: <0.5 tidak hujan, 0.5-5 ringan, 5-10 sedang,
       // 10-20 lebat, >20 sangat lebat. Kalau tabel belum ada / kosong, kartu
       // menampilkan "Belum terpasang" tanpa mengganggu bagian lain.
-      const RAIN_TABLE = "rain_gauge_readings";
+      const RAIN_TABLE = "Hydrosense table";
       function rainKategori(mm) {
         if (mm < 0.5) return ["ok", "TIDAK HUJAN"];
         if (mm < 5) return ["info", "RINGAN"];
@@ -2191,6 +2194,7 @@
           const { data, error } = await supabase
             .from(RAIN_TABLE)
             .select("timestamp, rain_mm_per_hour, rain_mm_today")
+            .not("rain_mm_per_hour", "is", null)
             .order("timestamp", { ascending: false })
             .limit(1);
           if (error) throw error;
@@ -2235,7 +2239,7 @@
       // { sisa, fase, mode, diterimaMs, hbMs, tssRaw }
       let hb = null;
 
-      // Control Valve & Pompa — kirim perintah manual ke Supabase (dibaca ESP32 dari tabel system_control)
+      // Control Valve & Pompa — kirim perintah manual ke Supabase (dibaca ESP32 dari device_commands, type=control)
       (function () {
         const TOGGLE_ON = "gambarpixel/controls/toggle_switch_on_green.png";
         const TOGGLE_OFF = "gambarpixel/controls/toggle_switch_off_red.png";
@@ -2250,7 +2254,7 @@
           DRAIN_DETIK = 60,
           FILL_STEP = 100 / (FILL_DETIK * 1000 / TICK_MS),
           DRAIN_STEP = 100 / (DRAIN_DETIK * 1000 / TICK_MS);
-        const CONTROL_TABLE = "system_control";
+        const CONTROL_TABLE = "device_commands"; // type = "control"
         const DEVICE_ID = "hydrosense-inlet-01";
 
         let valveOpen = false,
@@ -2344,7 +2348,7 @@
         }
 
         // Kirim perintah manual ke Supabase. ESP32 membaca baris TERBARU dari
-        // tabel system_control (order by id desc) lalu mengeksekusi ke pin
+        // tabel device_commands type=control (order by id desc) lalu mengeksekusi ke pin
         // valve/pompa fisik saat mode = "manual".
         async function sendControlCommand() {
           sending = true;
@@ -2352,9 +2356,13 @@
           try {
             const payload = {
               device_id: DEVICE_ID,
-              mode: "manual",
-              valve_cmd: valveOpen ? "buka" : "tutup",
-              pump_cmd: pumpOn ? "jalan" : "berhenti",
+              type: "control",
+              status: "aktif",
+              params: {
+                mode: "manual",
+                valve_cmd: valveOpen ? "buka" : "tutup",
+                pump_cmd: pumpOn ? "jalan" : "berhenti",
+              },
             };
             const { error } = await supabase
               .from(CONTROL_TABLE)
@@ -2394,9 +2402,10 @@
           if (!byId("pumpToggle")) return;
           try {
             const { data, error } = await supabase
-              .from("device_status")
+              .from("devices")
               .select("mode,fase,heartbeat_at,pompa_nyala,valve_buka,float_high")
-              .eq("device_id", DEVICE_ID)
+              .eq("project", "hydrosense")
+              .eq("name", DEVICE_ID)
               .maybeSingle();
             if (error || !data) return;
             const segar = Date.now() - Date.parse(data.heartbeat_at) < 20000;
@@ -2432,9 +2441,10 @@
           if (sending || !byId("pumpToggle")) return;
           try {
             const { data, error } = await supabase
-              .from("device_status")
-              .select("pump_on,pump_note,updated_at,ip_address,mac_address")
-              .eq("device_id", DEVICE_ID)
+              .from("devices")
+              .select("pump_on,pump_note,pump_updated_at,ip_address,mac_address")
+              .eq("project", "hydrosense")
+              .eq("name", DEVICE_ID)
               .maybeSingle();
             if (error || !data) return;
             const netEl = byId("dashDeviceNet");
@@ -2447,7 +2457,7 @@
             if (autoAktif) return;
             // Heartbeat alat (mode manual tidak mengirim data pH/TSS): kalau
             // status pompa segar (<60 dtk), tandai alat online.
-            const hbMs = Date.parse(data.updated_at);
+            const hbMs = Date.parse(data.pump_updated_at);
             const statusEl = document.querySelector("#connectionStatus");
             if (
               statusEl &&
@@ -2503,9 +2513,9 @@
       })();
 
       // ---------------- Kalibrasi TSS (slope & offset) ----------------
-      // Faktor Y = slope*X + offset dihitung dari tss_calibration_samples
+      // Faktor Y = slope*X + offset dihitung dari calibration_samples (sensor=tss)
       // (regresi linear least squares, sama seperti calibrateLinearRegression()
-      // di firmware) atau diisi manual, lalu disimpan ke tss_calibration_config.
+      // di firmware) atau diisi manual, lalu disimpan ke calibration (aksi=faktor).
       // ESP32 membaca baris terbaru tabel itu secara berkala dan menerapkannya.
       (function () {
         const el = (id) => document.getElementById(id);
@@ -2520,8 +2530,10 @@
 
         async function muatKalibrasiTssAktif() {
           const { data, error } = await supabase
-            .from("tss_calibration_config")
+            .from("calibration")
             .select("slope, cal_offset, source, created_at")
+            .eq("sensor", "tss")
+            .eq("aksi", "faktor")
             .order("id", { ascending: false })
             .limit(1);
 
@@ -2582,8 +2594,9 @@
           setTssCalLog("Mengambil sample kalibrasi...", false);
           try {
             const { data, error } = await supabase
-              .from("tss_calibration_samples")
-              .select("standard, tss, raw_value")
+              .from("calibration")
+              .select("standard:titik, tss:nilai, raw_value")
+              .eq("sensor", "tss")
               .eq("aksi", "kalibrasi");
             if (error) throw error;
 
@@ -2624,9 +2637,11 @@
             }
 
             const { error: insertError } = await supabase
-              .from("tss_calibration_config")
+              .from("calibration")
               .insert({
                 device_id: DEVICE_ID,
+                sensor: "tss",
+                aksi: "faktor",
                 slope: hasil.slope,
                 cal_offset: hasil.offset,
                 source: "regression",
@@ -2657,9 +2672,11 @@
           if (btn) btn.disabled = true;
           try {
             const { error } = await supabase
-              .from("tss_calibration_config")
+              .from("calibration")
               .insert({
                 device_id: DEVICE_ID,
+                sensor: "tss",
+                aksi: "faktor",
                 slope,
                 cal_offset: offset,
                 source: "manual",
@@ -2746,9 +2763,10 @@
             // sample_index harus 1-20 (constraint tabel) -- pakai jumlah
             // sample "kalibrasi" yang sudah ada untuk standard ini + 1.
             const { count, error: countError } = await supabase
-              .from("tss_calibration_samples")
+              .from("calibration")
               .select("id", { count: "exact", head: true })
-              .eq("standard", standard)
+              .eq("sensor", "tss")
+              .eq("titik", standard)
               .eq("aksi", "kalibrasi");
             if (countError) throw countError;
 
@@ -2762,13 +2780,14 @@
             }
 
             const { error } = await supabase
-              .from("tss_calibration_samples")
+              .from("calibration")
               .insert({
                 device_id: DEVICE_ID,
-                standard,
+                sensor: "tss",
+                titik: standard,
                 aksi: "kalibrasi",
                 sample_index: sampleIndex,
-                tss: gravimetri,
+                nilai: gravimetri,
                 suhu: latestSensorSnapshot?.temp ?? 0,
                 raw_value: raw,
               });
@@ -2804,7 +2823,7 @@
         const el = (id) => document.getElementById(id);
         if (!el("btnBacaFaktor")) return;
         const DEVICE_ID = "hydrosense-inlet-01";
-        const CMD_TABLE = "tss_hw_calibration_cmd";
+        const CMD_TABLE = "device_commands";
         const TOMBOL = ["btnBacaFaktor", "btnTulisFaktor", "btnHitungFaktor", "btnUjiFaktor"];
         let faktorSekarang = null;
 
@@ -2835,9 +2854,10 @@
           setLog(`Perintah ${perintah} terkirim. Alat membalas dalam ~30-60 detik, JANGAN kirim perintah lain dulu...`, false);
           kunci(true);
           try {
-            const payload = { device_id: DEVICE_ID, perintah };
-            if (nilai !== undefined) payload.nilai_target = nilai;
-            if (aktual !== undefined) payload.nilai_aktual = aktual;
+            const params = {};
+            if (nilai !== undefined) params.nilai_target = nilai;
+            if (aktual !== undefined) params.nilai_aktual = aktual;
+            const payload = { device_id: DEVICE_ID, type: "tss_hw", perintah, params };
             const { data, error } = await supabase
               .from(CMD_TABLE)
               .insert(payload)
@@ -2865,7 +2885,7 @@
                 return r;
               }
             }
-            setLog("Timeout: alat belum membalas (offline, mode otomatis, atau sedang sibuk). Cek lagi nanti di tabel tss_hw_calibration_cmd.", true);
+            setLog("Timeout: alat belum membalas (offline, mode otomatis, atau sedang sibuk). Cek lagi nanti di tabel device_commands.", true);
             return null;
           } catch (err) {
             setLog("Gagal kirim perintah: " + err.message, true);
@@ -2914,8 +2934,9 @@
           kunci(true);
           try {
             const { data, error } = await supabase
-              .from("tss_calibration_samples")
-              .select("tss, raw_value")
+              .from("calibration")
+              .select("tss:nilai, raw_value")
+              .eq("sensor", "tss")
               .eq("aksi", "kalibrasi");
             if (error) throw error;
             let sxy = 0,
@@ -2958,7 +2979,7 @@
       (function () {
         const el = (id) => document.getElementById(id);
         const DEVICE_ID = "hydrosense-inlet-01";
-        const CMD_TABLE = "tss_hw_calibration_cmd";
+        const CMD_TABLE = "device_commands";
 
         const semuaTombolHw = () =>
           [
@@ -2991,7 +3012,7 @@
             await new Promise((r) => setTimeout(r, 1500));
             const { data, error } = await supabase
               .from(CMD_TABLE)
-              .select("status, pesan, reg13, reg14")
+              .select("status, pesan, hasil")
               .eq("id", id)
               .maybeSingle();
             if (error) {
@@ -3004,10 +3025,12 @@
                   (data.pesan || ""),
                 data.status !== "sukses",
               );
-              if (data.reg13 !== null && el("hwCalReg13"))
-                el("hwCalReg13").textContent = data.reg13;
-              if (data.reg14 !== null && el("hwCalReg14"))
-                el("hwCalReg14").textContent = data.reg14;
+              const reg13 = data.hasil?.reg13;
+              const reg14 = data.hasil?.reg14;
+              if (reg13 != null && el("hwCalReg13"))
+                el("hwCalReg13").textContent = reg13;
+              if (reg14 != null && el("hwCalReg14"))
+                el("hwCalReg14").textContent = reg14;
               return;
             }
           }
@@ -3021,11 +3044,12 @@
           setHwCalLog(`Mengirim perintah: ${perintah}...`, false);
           setHwButtonsDisabled(true);
           try {
-            const payload = { device_id: DEVICE_ID, perintah };
+            const params = {};
             if (nilaiTarget !== undefined && nilaiTarget !== null)
-              payload.nilai_target = nilaiTarget;
+              params.nilai_target = nilaiTarget;
             if (nilaiAktual !== undefined && nilaiAktual !== null)
-              payload.nilai_aktual = nilaiAktual;
+              params.nilai_aktual = nilaiAktual;
+            const payload = { device_id: DEVICE_ID, type: "tss_hw", perintah, params };
 
             const { data, error } = await supabase
               .from(CMD_TABLE)
@@ -3096,7 +3120,7 @@
         // ESP32 membaca baris baru, menjalankan proses yang sama seperti
         // perintah Serial (blocking sampai pembacaan stabil), lalu mengisi
         // status + pesan. Karena bisa lama, polling hasil dibatasi 3 menit.
-        const PH_CMD_TABLE = "ph_calibration_cmd";
+        const PH_CMD_TABLE = "device_commands";
         const phButtons = () => [...document.querySelectorAll(".ph-cal-btn")];
 
         function setPhCalLog(text, isError) {
@@ -3112,7 +3136,7 @@
           try {
             const { data, error } = await supabase
               .from(PH_CMD_TABLE)
-              .insert({ device_id: DEVICE_ID, perintah })
+              .insert({ device_id: DEVICE_ID, type: "ph_cal", perintah })
               .select("id")
               .single();
             if (error) throw error;
@@ -3151,12 +3175,12 @@
           }
         }
 
-        // ---------- Pilih mode operasi (kolom "mode" di system_control) ----------
-        // Alat membaca baris TERBARU system_control. Pindah mode = insert baris
+        // ---------- Pilih mode operasi (params.mode di device_commands type=control) ----------
+        // Alat membaca baris control TERBARU. Pindah mode = insert baris
         // baru dengan mode yang dipilih. valve_cmd dibawa dari baris terakhir
         // (supaya valve tidak bergerak karena pindah mode) dan pump_cmd
         // "berhenti" (aman).
-        const CONTROL_TABLE = "system_control";
+        const CONTROL_TABLE = "device_commands"; // type = "control"
         function tampilkanMode(mode) {
           const teks = mode === "otomatis" ? "OTOMATIS" : mode === "manual" ? "MANUAL" : "--";
           if (el("modeNowText")) el("modeNowText").textContent = teks;
@@ -3172,7 +3196,8 @@
         async function bacaModeTerakhir() {
           const { data, error } = await supabase
             .from(CONTROL_TABLE)
-            .select("id,mode,valve_cmd")
+            .select("id,params")
+            .eq("type", "control")
             .eq("device_id", DEVICE_ID)
             .order("id", { ascending: false })
             .limit(1)
@@ -3185,7 +3210,7 @@
           if (!el("modeNowText")) return;
           try {
             const d = await bacaModeTerakhir();
-            tampilkanMode(d ? d.mode : null);
+            tampilkanMode(d ? d.params?.mode : null);
           } catch (e) {
             console.error("Gagal baca mode:", e);
           }
@@ -3204,9 +3229,13 @@
             const terakhir = await bacaModeTerakhir();
             const { error } = await supabase.from(CONTROL_TABLE).insert({
               device_id: DEVICE_ID,
-              mode: modeBaru,
-              valve_cmd: terakhir?.valve_cmd || "tutup",
-              pump_cmd: "berhenti",
+              type: "control",
+              status: "aktif",
+              params: {
+                mode: modeBaru,
+                valve_cmd: terakhir?.params?.valve_cmd || "tutup",
+                pump_cmd: "berhenti",
+              },
             });
             if (error) throw error;
             tampilkanMode(modeBaru);
@@ -3250,9 +3279,10 @@
         async function pollDenyut() {
           try {
             const { data } = await supabase
-              .from("device_status")
+              .from("devices")
               .select("mode,fase,next_cycle_s,heartbeat_at,tss_raw")
-              .eq("device_id", DEVICE_ID)
+              .eq("project", "hydrosense")
+              .eq("name", DEVICE_ID)
               .maybeSingle();
             if (data)
               hb = {
@@ -3281,8 +3311,8 @@
           setInterval(refreshMode, 5000);
         }
 
-        // ---------- Jadwal siklus mode otomatis (tabel auto_schedule) ----------
-        const SCHED_TABLE = "auto_schedule";
+        // ---------- Jadwal siklus mode otomatis (kolom jadwal di device_status) ----------
+        const SCHED_TABLE = "devices"; // kolom jadwal di baris alat
         function setSchedLog(text, isError) {
           const box = el("schedLog");
           if (!box) return;
@@ -3308,13 +3338,16 @@
           const { data, error } = await supabase
             .from(SCHED_TABLE)
             .select("interval_detik,pompa_detik,valve_detik,baca_sensor_detik,stabil_detik,sampel_ms,trim_persen")
-            .eq("device_id", DEVICE_ID)
+            .eq("project", "hydrosense")
+            .eq("name", DEVICE_ID)
             .maybeSingle();
           if (error) {
             setSchedLog("Gagal memuat jadwal: " + error.message, true);
             return;
           }
-          if (data) {
+          if (data && data.interval_detik != null) {
+            data.baca_sensor_detik ??= 15;
+            data.stabil_detik ??= 10;
             isiDur("schedIntervalM", "schedIntervalS", data.interval_detik);
             isiDur("schedPompaM", "schedPompaS", data.pompa_detik);
             isiDur("schedValveM", "schedValveS", data.valve_detik);
@@ -3357,9 +3390,10 @@
           const btn = el("btnSimpanJadwal");
           btn.disabled = true;
           try {
-            const { error } = await supabase.from(SCHED_TABLE).upsert(
-              {
-                device_id: DEVICE_ID,
+            // UPDATE baris alat (disemai di migrasi 0005), bukan upsert.
+            const { data: baris, error } = await supabase
+              .from(SCHED_TABLE)
+              .update({
                 interval_detik: interval,
                 pompa_detik: pompa,
                 valve_detik: valve,
@@ -3367,11 +3401,13 @@
                 stabil_detik: stabil,
                 sampel_ms: sampelMs,
                 trim_persen: trim,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "device_id" },
-            );
+              })
+              .eq("project", "hydrosense")
+              .eq("name", DEVICE_ID)
+              .select("name");
             if (error) throw error;
+            if (!baris || baris.length === 0)
+              throw new Error("baris alat tidak ditemukan di tabel devices");
             setSchedLog(
               `Tersimpan: siklus tiap ${fmtDur(interval)}, pompa maks ${fmtDur(pompa)}, valve maks ${fmtDur(valve)}, baca sensor ${fmtDur(baca)}, stabil ${stabil} dtk, sampel tiap ${sampelMs / 1000} dtk, buang ${trim}%. Alat membaca perubahan dalam sekitar 30 detik.`,
               false,
