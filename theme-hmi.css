@@ -637,6 +637,18 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+/* Harus SETELAH aturan 5/3 kolom di atas, kalau tidak aturan responsif di bagian
+   atas file kalah urutan dan kartu terpotong di layar sempit. */
+@media (max-width: 1100px) {
+  .hmi-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 690px) {
+  .hmi-kpis {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ---------- Status LoRa di header ---------- */
 .lora-status {

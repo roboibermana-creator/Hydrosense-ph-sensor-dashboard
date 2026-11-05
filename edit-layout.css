@@ -1,0 +1,198 @@
+/* Editor tata letak (js/layout-editor.js).
+   Halaman yang diedit menjadi grid 60 kolom x baris 8px dengan posisi eksplisit per kartu.
+   Hanya berlaku di layar >= 1101px; di bawah itu tata letak bawaan yang responsif dipakai.
+   Nilai 8px / 16px di sini harus sama dengan ROW / GAP_X / MARGIN_B di layout-editor.js. */
+
+@media (min-width: 1101px) {
+  /* :is(#id...) menaikkan spesifisitas supaya menang atas aturan per-halaman berID
+     (mis. #page-dashboard-utama.hmi-page.active { display: flex !important }) */
+  :is(
+      #page-dashboard-utama,
+      #page-ph-sensor,
+      #page-tss-sensor,
+      #page-water-level,
+      #page-kalibrasi,
+      #page-control-valve
+    ).active[data-lc-free] {
+    display: grid !important;
+    grid-template-columns: repeat(60, minmax(0, 1fr)) !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: 8px !important;
+    column-gap: 16px !important;
+    row-gap: 0 !important;
+    align-content: start !important;
+    align-items: stretch !important;
+    justify-items: stretch !important;
+  }
+  /* pembungkus kartu (kolom, baris, tumpukan) tidak ikut membuat kotak sendiri */
+  [data-lc-free] [data-lc-wrap] {
+    display: contents !important;
+  }
+  [data-lc-free] [data-lcard],
+  [data-lc-free] [data-lc-fixed] {
+    grid-column: var(--lc-x) / span var(--lc-w) !important;
+    grid-row: var(--lc-y) / span var(--lc-h) !important;
+    margin: 0 0 16px 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    box-sizing: border-box;
+  }
+  [data-lc-free] [data-lcard] {
+    overflow: auto !important;
+  }
+}
+
+/* ---------- tombol di header ---------- */
+.lc-btn {
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #c7d1db;
+  background: #263342;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.lc-btn:hover,
+.lc-btn[aria-pressed="true"] {
+  color: #fff;
+  border-color: var(--info, #3b82f6);
+  background: #2f4259;
+}
+@media (max-width: 1100px) {
+  .lc-btn {
+    display: none;
+  }
+}
+
+/* ---------- gagang & zona tarik (lapisan terpisah, hanya tampil di mode edit) ---------- */
+#lcLayer {
+  display: none;
+}
+body.lc-editing #lcLayer {
+  display: block;
+}
+body.lc-editing [data-lcard] {
+  outline: 2px dashed var(--info, #3b82f6);
+  outline-offset: 2px;
+  user-select: none;
+}
+body.lc-editing [data-lcard] > * {
+  pointer-events: none;
+}
+[data-lcard].lc-active {
+  opacity: 0.8;
+  outline-style: solid;
+}
+body.lc-editing .lc-handle {
+  position: fixed;
+  display: block;
+  height: 22px;
+  z-index: 900;
+  padding: 3px 10px;
+  box-sizing: border-box;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(37, 99, 235, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: grab;
+  touch-action: none;
+}
+body.lc-editing .lc-edge {
+  position: fixed;
+  display: block;
+  z-index: 910;
+  touch-action: none;
+}
+/* sisi: bening, hanya kursor yang berubah; sudut: kotak kecil terlihat */
+.lc-n,
+.lc-s {
+  cursor: ns-resize;
+}
+.lc-e,
+.lc-w {
+  cursor: ew-resize;
+}
+.lc-nw,
+.lc-se {
+  cursor: nwse-resize;
+}
+.lc-ne,
+.lc-sw {
+  cursor: nesw-resize;
+}
+body.lc-editing .lc-edge:hover {
+  background: rgba(37, 99, 235, 0.55);
+}
+body.lc-editing .lc-nw,
+body.lc-editing .lc-ne,
+body.lc-editing .lc-sw,
+body.lc-editing .lc-se {
+  background: #fff;
+  border: 2px solid var(--info, #2563eb);
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+body.lc-dragging-now #lcLayer * {
+  pointer-events: none;
+}
+body.lc-dragging-now,
+body.lc-dragging-now * {
+  user-select: none !important;
+}
+
+/* ---------- bilah alat ---------- */
+body.lc-editing .console-frame {
+  padding-bottom: 96px; /* supaya kartu paling bawah tidak tertutup bilah alat */
+}
+#lcToolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(960px, calc(100vw - 32px));
+  padding: 10px 14px;
+  color: #e8eef5;
+  background: #1f292a;
+  border: 1px solid var(--info, #3b82f6);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+}
+#lcToolbar[hidden] {
+  display: none;
+}
+#lcToolbar .lc-hint {
+  flex: 1;
+  line-height: 1.4;
+}
+#lcToolbar button {
+  font: inherit;
+  color: #e8eef5;
+  background: #2f4259;
+  border: 1px solid #44607f;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#lcToolbar button:hover {
+  border-color: #fff;
+}
+#lcToolbar .lc-done {
+  background: var(--info, #2563eb);
+  border-color: var(--info, #2563eb);
+  font-weight: 700;
+}

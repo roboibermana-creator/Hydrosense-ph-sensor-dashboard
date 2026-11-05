@@ -1,0 +1,124 @@
+/* Tata letak per halaman (dipindah dari <style> inline index.html). */
+.page-content {
+  display: none !important;
+}
+.page-content.active {
+  display: grid !important;
+}
+#page-dashboard-utama {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 1100px) {
+  #page-dashboard-utama {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #calibration-summary {
+    grid-column: 1 / -1;
+  }
+  #calibration-summary > div {
+    grid-template-columns: 1fr;
+  }
+  #calibration-summary > div > div {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-bottom: 2px solid var(--border-dark);
+    padding-bottom: 10px;
+  }
+  #calibration-summary > div > div:last-child {
+    border-bottom: none;
+  }
+}
+@media (max-width: 690px) {
+  #page-dashboard-utama {
+    grid-template-columns: 1fr;
+  }
+}
+#page-ph-sensor {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(270px, 0.9fr);
+}
+#page-ph-sensor .telemetry-panel {
+  grid-column: 1 / 4;
+}
+#page-ph-sensor .right-stack {
+  grid-column: 4;
+}
+@media (max-width: 1100px) {
+  #page-ph-sensor {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(270px, 0.9fr);
+    grid-template-rows: auto auto 1fr;
+  }
+  #page-ph-sensor .temp-panel {
+    grid-column: 1 / 3;
+    min-height: 0;
+  }
+  #page-ph-sensor .temp-panel .reading {
+    min-height: 110px;
+  }
+  #page-ph-sensor .telemetry-panel {
+    grid-column: 1 / 3;
+  }
+  #page-ph-sensor .right-stack {
+    grid-column: 3;
+    grid-row: 1 / 4;
+  }
+}
+@media (max-width: 690px) {
+  #page-ph-sensor {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  #page-ph-sensor .temp-panel,
+  #page-ph-sensor .telemetry-panel,
+  #page-ph-sensor .right-stack {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+#page-control-valve .control-panel {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+#page-control-valve #mode-panel {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+}
+#page-control-valve #auto-schedule-panel {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  align-self: start;
+}
+/* isi panel jadwal dibatasi lebarnya supaya label dan isian tidak
+   terpisah jauh di layar lebar */
+#page-control-valve #auto-schedule-panel > :not(.panel-heading) {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+#page-control-valve .right-stack {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+@media (max-width: 690px) {
+  #page-control-valve .control-panel,
+  #page-control-valve #mode-panel,
+  #page-control-valve #auto-schedule-panel,
+  #page-control-valve .right-stack {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+#page-kalibrasi {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+#page-kalibrasi .cal-col {
+  display: grid;
+  gap: 17px;
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  #page-kalibrasi {
+    grid-template-columns: 1fr;
+  }
+}
