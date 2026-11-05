@@ -48,6 +48,21 @@ async function getLevelHistory() {
   }));
 }
 
+// Riwayat curah hujan (baris rain_* di tabel yang sama) untuk tab "Hujan".
+async function getRainHistory() {
+  const { data, error } = await supabase
+    .from("Hydrosense table")
+    .select("timestamp, rain_mm_per_hour")
+    .not("rain_mm_per_hour", "is", null)
+    .order("timestamp", { ascending: false })
+    .limit(120);
+  if (error) throw new Error(`Supabase rain error: ${error.message}`);
+  return (data || []).reverse().map((row) => ({
+    timestamp: row.timestamp,
+    rain: numeric(row.rain_mm_per_hour),
+  }));
+}
+
 // Timpa kartu level (+ jarak) dengan data tabel level, dengan status
 // online sendiri -- tidak ikut "-" saat pH/TSS tidak ada data baru.
 function updateLevel(levelEntries) {
@@ -354,14 +369,19 @@ function updateLatest(latest, isConnected) {
 
 async function refreshDashboard() {
   try {
-    const [latestRow, historyRows, levelEntries] = await Promise.all([
+    const [latestRow, historyRows, levelEntries, rainEntries] = await Promise.all([
       getLatestSensorData(),
       getSensorHistory(),
       getLevelHistory().catch((err) => {
         console.error(err);
         return [];
       }),
+      getRainHistory().catch((err) => {
+        console.error(err);
+        return [];
+      }),
     ]);
+    hmiState.rainEntries = rainEntries;
     const latest = normalizeSensorRow(latestRow);
     state.latestSensorSnapshot = latest;
     const entries = historyRows
@@ -489,8 +509,10 @@ const HMI_LIMIT = {
   ph: { min: 6, max: 9, label: "pH terukur", unit: "", dec: 2 },
   tss: { max: 200, label: "TSS (mg/L)", unit: " mg/L", dec: 1 },
   wl: { min: 20, max: 90, label: "Level (%)", unit: " %", dec: 0 },
+  // Tidak ada baku mutu hujan; garis batas = awal kategori "lebat" BMKG (10 mm/jam).
+  rain: { max: 10, label: "Curah hujan (mm/jam)", unit: " mm/jam", dec: 1 },
 };
-const hmiState = { metric: "ph", entries: [], levelEntries: [], pts: [] };
+const hmiState = { metric: "ph", entries: [], levelEntries: [], rainEntries: [], pts: [] };
 
 export function hmiSetKpi(cardId, pillId, status, text) {
   const card = document.getElementById(cardId);
@@ -601,7 +623,8 @@ function hmiPaintChart() {
   if (!canvas || !canvas.offsetParent) return;
   const m = hmiState.metric;
   const lim = HMI_LIMIT[m];
-  const src = m === "wl" && hmiState.levelEntries.length ? hmiState.levelEntries : hmiState.entries;
+  const src =
+    m === "rain" ? hmiState.rainEntries : m === "wl" && hmiState.levelEntries.length ? hmiState.levelEntries : hmiState.entries;
   const pts = src
     .map((e) => ({ t: parseTimestamp(e.timestamp), v: e[m] }))
     .filter((p) => p.t !== null && p.v !== null && p.v !== undefined);
@@ -641,7 +664,7 @@ function hmiPaintChart() {
   for (let i = 0; i <= 4; i++) {
     const v = lo + ((hi - lo) * i) / 4, y = Y(v);
     ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
-    ctx.fillText(v.toFixed(m === "ph" ? 1 : 0), L - 6, y + 4);
+    ctx.fillText(v.toFixed(m === "ph" || m === "rain" ? 1 : 0), L - 6, y + 4);
   }
   ctx.textAlign = "center";
   for (let i = 0; i <= 4; i++) {
