@@ -923,26 +923,28 @@
                     ><b id="tssCalRawNow" style="color: var(--neon)">--</b>
                   </div>
                   <div>
-                    <span>Rata-rata <small id="tssMeanN">(0 bacaan)</small></span
-                    ><b id="tssCalMean" style="color: var(--neon)">--</b>
+                    <span>Nilai terkunci (trimmed mean)</span
+                    ><b id="tssCalLocked" style="color: var(--neon)">--</b>
                   </div>
                   <div>
-                    <span>Simpangan baku (SD)</span
+                    <span>Simpangan baku (SD) / bacaan dipakai</span
                     ><b id="tssCalSd">--</b>
                   </div>
                 </div>
-                <div style="display: flex; gap: 6px; margin-top: 8px">
-                  <label style="flex: 1; font-size: 12px; display: flex; align-items: center; gap: 6px">
-                    <input type="checkbox" id="tssAutoFill" checked />
-                    Isi otomatis dengan rata-rata
-                  </label>
-                  <button type="button" id="btnUlangRataTss" class="calibrate-button">ULANG RATA-RATA</button>
+                <div style="display: flex; gap: 6px; margin-top: 8px; align-items: center">
+                  <label style="font-size: 12px; white-space: nowrap"
+                    >Jumlah bacaan
+                    <input type="number" id="tssTrimN" value="10" min="5" max="30" style="width: 56px" /></label>
+                  <button type="button" id="btnAmbilTss" class="calibrate-button" style="flex: 1">
+                    AMBIL PEMBACAAN (TRIMMED MEAN)
+                  </button>
                 </div>
                 <div style="margin-top: 10px">
                   <label style="display: block; font-size: 12px"
-                    >Raw TSS Manual (terisi otomatis dari rata-rata bacaan live;
-                    ketik sendiri untuk menimpa, atau isi dari Serial Monitor
-                    command 'T' kalau alat tidak online)
+                    >Raw TSS Manual (terisi dari nilai terkunci dan TIDAK
+                    berubah sampai tombol Ambil ditekan lagi; boleh diketik
+                    sendiri, atau isi dari Serial Monitor command 'T' kalau
+                    alat tidak online)
                     <input
                       type="number"
                       step="any"

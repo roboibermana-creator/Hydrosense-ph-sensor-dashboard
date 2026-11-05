@@ -214,38 +214,55 @@ export function initCalibrationTss() {
   setInterval(tampilkanRawTssTerkini, 2000);
   tampilkanRawTssTerkini();
 
-  // Rata-rata bergulir dari bacaan raw live (satu sampel per denyut baru alat),
-  // maksimal 30 bacaan terakhir. Hasilnya otomatis mengisi kolom Raw TSS Manual.
-  const MAKS_BACAAN = 30;
-  let bacaan = [];
-  let hbTerakhir = null;
+  // Ambil pembacaan: kumpulkan N bacaan raw baru (satu per denyut alat), buang
+  // 20% terendah dan 20% tertinggi (trimmed mean), lalu KUNCI hasilnya ke kolom
+  // Raw TSS Manual. Nilai tidak berubah lagi sampai tombol ditekan ulang.
+  let pengambil = null;
 
-  function perbaruiRataRata() {
-    const hb = state.hb;
-    if (hb && hb.tssRaw !== null && hb.tssRaw !== undefined && hb.hbMs !== hbTerakhir) {
-      hbTerakhir = hb.hbMs;
-      bacaan.push(hb.tssRaw);
-      if (bacaan.length > MAKS_BACAAN) bacaan.shift();
-    }
-    const n = bacaan.length;
-    const mean = n ? bacaan.reduce((a, b) => a + b, 0) / n : null;
-    const sd = n > 1 ? Math.sqrt(bacaan.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1)) : null;
-    if (el("tssMeanN")) el("tssMeanN").textContent = `(${n} bacaan)`;
-    if (el("tssCalMean")) el("tssCalMean").textContent = mean === null ? "--" : mean.toFixed(2) + " mg/L";
-    if (el("tssCalSd")) el("tssCalSd").textContent = sd === null ? "--" : sd.toFixed(2);
-    const input = el("inputRawManualTss");
-    if (mean !== null && input && el("tssAutoFill")?.checked) input.value = mean.toFixed(2);
+  function trimmedMean(nilai) {
+    const urut = [...nilai].sort((x, y) => x - y);
+    const buang = Math.floor(urut.length * 0.2);
+    const dipakai = urut.slice(buang, urut.length - buang);
+    const mean = dipakai.reduce((a, b) => a + b, 0) / dipakai.length;
+    const sd = dipakai.length > 1 ? Math.sqrt(dipakai.reduce((a, b) => a + (b - mean) ** 2, 0) / (dipakai.length - 1)) : 0;
+    return { mean, sd, n: dipakai.length };
   }
-  setInterval(perbaruiRataRata, 1000);
-  el("inputRawManualTss")?.addEventListener("input", () => {
-    // Mengetik sendiri = menimpa; matikan isi otomatis supaya tidak tertimpa balik.
-    if (el("tssAutoFill")) el("tssAutoFill").checked = false;
-  });
-  el("btnUlangRataTss")?.addEventListener("click", () => {
-    bacaan = [];
-    if (el("inputRawManualTss") && el("tssAutoFill")?.checked) el("inputRawManualTss").value = "";
-    perbaruiRataRata();
-  });
+
+  function selesaiAmbil() {
+    clearInterval(pengambil.timer);
+    pengambil = null;
+    const btn = el("btnAmbilTss");
+    if (btn) btn.textContent = "AMBIL PEMBACAAN (TRIMMED MEAN)";
+  }
+
+  function ambilPembacaanTss() {
+    if (pengambil) return; // sedang berjalan
+    const target = Math.min(30, Math.max(5, Math.round(Number(el("tssTrimN")?.value) || 10)));
+    const btn = el("btnAmbilTss");
+    pengambil = { nilai: [], hbTerakhir: state.hb?.hbMs ?? null, mulai: Date.now() };
+    if (btn) btn.textContent = `MENGUMPULKAN 0/${target}...`;
+    setTssSampleLog(`Mengumpulkan ${target} bacaan baru dari alat (satu per denyut)...`, false);
+    pengambil.timer = setInterval(() => {
+      const hb = state.hb;
+      if (hb && hb.tssRaw !== null && hb.tssRaw !== undefined && hb.hbMs !== pengambil.hbTerakhir) {
+        pengambil.hbTerakhir = hb.hbMs;
+        pengambil.nilai.push(hb.tssRaw);
+        if (btn) btn.textContent = `MENGUMPULKAN ${pengambil.nilai.length}/${target}...`;
+      }
+      if (pengambil.nilai.length >= target) {
+        const { mean, sd, n } = trimmedMean(pengambil.nilai);
+        el("tssCalLocked").textContent = mean.toFixed(2) + " mg/L";
+        el("tssCalSd").textContent = `${sd.toFixed(2)} / ${n} dari ${target}`;
+        el("inputRawManualTss").value = mean.toFixed(2);
+        setTssSampleLog(`Terkunci: ${mean.toFixed(2)} mg/L (trimmed mean ${n} dari ${target} bacaan, SD ${sd.toFixed(2)}). Tekan tombol lagi untuk mengambil ulang.`, false);
+        selesaiAmbil();
+      } else if (Date.now() - pengambil.mulai > 300000) {
+        setTssSampleLog("Gagal: tidak ada bacaan baru dari alat dalam 5 menit (alat offline?).", true);
+        selesaiAmbil();
+      }
+    }, 1000);
+  }
+  el("btnAmbilTss")?.addEventListener("click", ambilPembacaanTss);
 
   async function simpanSampleKalibrasiTss() {
     const btn = el("btnSimpanSampleTss");
@@ -318,9 +335,9 @@ export function initCalibrationTss() {
       );
       if (el("inputGravimetriTss")) el("inputGravimetriTss").value = "";
       if (el("inputRawManualTss")) el("inputRawManualTss").value = "";
-      // Titik standard berikutnya mulai dari rata-rata baru.
-      bacaan = [];
-      if (el("tssAutoFill")) el("tssAutoFill").checked = true;
+      // Titik standard berikutnya perlu pembacaan baru.
+      if (el("tssCalLocked")) el("tssCalLocked").textContent = "--";
+      if (el("tssCalSd")) el("tssCalSd").textContent = "--";
     } catch (err) {
       setTssSampleLog("Gagal simpan sample: " + err.message, true);
     } finally {
