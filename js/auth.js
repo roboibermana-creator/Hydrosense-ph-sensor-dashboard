@@ -26,13 +26,21 @@ export async function getAccess() {
   }
 }
 
-/** Coba masuk; kembalikan { role } kalau berhasil atau { error } kalau gagal. */
-export async function login(password) {
+/**
+ * Coba masuk sebagai `expectedRole` ('tamu' | 'operator'). Kata sandi harus cocok dengan
+ * peran yang dipilih. Kembalikan { role } kalau berhasil atau { error } kalau gagal.
+ */
+export async function login(password, expectedRole) {
   localStorage.setItem(ACCESS_KEY_STORE, password);
   try {
     const role = await roleForStoredKey();
-    if (role === "operator" || role === "tamu") return { role };
+    if ((role === "operator" || role === "tamu") && (!expectedRole || role === expectedRole)) {
+      return { role };
+    }
     localStorage.removeItem(ACCESS_KEY_STORE);
+    if (role === "operator" || role === "tamu") {
+      return { error: `Kata sandi itu bukan untuk ${NAME[expectedRole]}. Pilih peran yang sesuai.` };
+    }
     return { error: "Kata sandi salah." };
   } catch (e) {
     localStorage.removeItem(ACCESS_KEY_STORE);

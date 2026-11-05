@@ -137,3 +137,52 @@ body[data-role="visitor"] .screen-layout {
   opacity: 0.6;
   cursor: wait;
 }
+
+/* pilihan peran di dialog login */
+.login-dialog .login-role {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.login-dialog .login-role legend {
+  grid-column: 1 / -1;
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.login-dialog .seg {
+  display: block;
+  gap: 0;
+  position: relative;
+  cursor: pointer;
+}
+.login-dialog .seg input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.login-dialog .seg span {
+  display: block;
+  padding: 9px 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #b8c0c7;
+  border-radius: 6px;
+  background: #f2f4f6;
+  color: #3b4650;
+}
+.login-dialog .seg input:checked + span {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.login-dialog .seg input:focus-visible + span {
+  outline: 2px solid var(--info, #2563eb);
+  outline-offset: 2px;
+}

@@ -348,12 +348,9 @@
               <a href="#" class="hmi-link" data-min-role="operator" data-goto="page-kalibrasi">Buka kalibrasi →</a>
             </div>
             <div class="calstrip-grid">
-              <div><span>pH 7.01</span><b id="cal7Sum">COMPLETE</b></div>
-              <div><span>pH 9.01</span><b id="cal10Sum">PENDING</b></div>
-              <div><span>TSS Std B</span><b id="calTssBSum">PENDING</b></div>
-              <div><span>TSS Std C</span><b id="calTssCSum">PENDING</b></div>
-              <div><span>Level High SP</span><b id="calWlHSum">PENDING</b></div>
-              <div><span>Level Low SP</span><b id="calWlLSum">PENDING</b></div>
+              <div><span>pH 4</span><b id="calStripPh4" data-st="pending">--</b><small id="calStripPh4When"></small></div>
+              <div><span>pH 7</span><b id="calStripPh7" data-st="pending">--</b><small id="calStripPh7When"></small></div>
+              <div><span>pH 9</span><b id="calStripPh10" data-st="pending">--</b><small id="calStripPh10When"></small></div>
             </div>
           </section>
         </main>
@@ -1328,9 +1325,14 @@
       <form id="loginForm" autocomplete="on">
         <h2 id="loginTitle">Masuk</h2>
         <p class="login-note">
-          Kata sandi operator: kontrol penuh. Kata sandi tamu: melihat semua menu detail
-          tanpa kontrol. Tanpa masuk, hanya Dashboard Utama yang tampil.
+          Tamu: melihat semua menu detail tanpa kontrol. Operator: kontrol penuh.
+          Tanpa masuk, hanya Dashboard Utama yang tampil.
         </p>
+        <fieldset class="login-role">
+          <legend>Masuk sebagai</legend>
+          <label class="seg"><input type="radio" name="role" value="tamu" checked /><span>Tamu</span></label>
+          <label class="seg"><input type="radio" name="role" value="operator" /><span>Operator</span></label>
+        </fieldset>
         <label>Kata sandi
           <input id="loginPass" name="password" type="password" autocomplete="off" required />
         </label>

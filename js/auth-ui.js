@@ -54,7 +54,7 @@ export function initAuthUi(access) {
     showError("");
     submit.disabled = true;
     submit.textContent = "Memeriksa...";
-    const res = await login(el("loginPass").value);
+    const res = await login(el("loginPass").value, form.elements.role.value);
     submit.disabled = false;
     submit.textContent = "Masuk";
     if (res.error) {

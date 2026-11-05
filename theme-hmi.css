@@ -549,7 +549,7 @@
 /* Ringkasan kalibrasi */
 .calstrip-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 10px 18px 14px;
 }
 .calstrip-grid div {
@@ -567,6 +567,17 @@
 .calstrip-grid b {
   color: var(--text);
   font-size: 12px;
+}
+.calstrip-grid b[data-st="complete"] {
+  color: #1e7d32;
+}
+.calstrip-grid b[data-st="pending"] {
+  color: #b26a00;
+}
+.calstrip-grid small {
+  min-height: 14px;
+  font-size: 11px;
+  color: #7a8794;
 }
 
 @media (max-width: 1200px) {

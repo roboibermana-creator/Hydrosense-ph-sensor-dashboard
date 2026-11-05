@@ -30,6 +30,10 @@ await import("./nav.js");
 await import("./dashboard.js");
 await import("./rain.js");
 
+// Status kalibrasi pH di Dashboard Utama (baca saja, untuk semua peran).
+const { initCalibStatus } = await import("./calib-status.js");
+initCalibStatus();
+
 if (role !== "operator") {
   // Status valve/pompa tetap tampil di Dashboard Utama, tapi hanya dibaca.
   const { initGuestStatus } = await import("./guest-status.js");
