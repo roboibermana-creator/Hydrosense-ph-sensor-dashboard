@@ -7,12 +7,13 @@
     <title>HydroSense — IoT Monitor</title>
     <link rel="icon" href="gambarpixel/logo-hydrosense.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="style.css?v=20261101d" />
-    <link rel="stylesheet" href="layout.css?v=20261105a" />
+    <link rel="stylesheet" href="layout.css?v=20261105b" />
     <link rel="stylesheet" href="theme-industrial.css?v=20261101d" />
     <link rel="stylesheet" href="theme-hmi.css?v=20261105a" />
-    <link rel="stylesheet" href="edit-layout.css?v=20261105a" />
+    <link rel="stylesheet" href="edit-layout.css?v=20261105b" />
+    <link rel="stylesheet" href="access.css?v=20261106a" />
   </head>
-  <body>
+  <body data-role="visitor">
     <div class="console-frame">
       <header class="top-header">
         <a class="brand" href="#dashboard" aria-label="HydroSense dashboard">
@@ -48,7 +49,10 @@
               alt="Wi-Fi connection status"
             /><span id="connectionStatus">CONNECTING</span>
           </div>
-          <button type="button" class="lc-btn" id="btnEditLayout" aria-pressed="false" title="Atur posisi dan ukuran kartu">&#9998; EDIT TATA LETAK</button>
+          <span class="acct-chip" id="acctChip" hidden></span>
+          <button type="button" class="lc-btn hdr-keep" id="btnLogin" hidden>&#128100; MASUK</button>
+          <button type="button" class="lc-btn hdr-keep" id="btnLogout" hidden>KELUAR</button>
+          <button type="button" class="lc-btn" id="btnEditLayout" data-min-role="operator" aria-pressed="false" title="Atur posisi dan ukuran kartu">&#9998; EDIT TATA LETAK</button>
           <div class="lora-status" id="loraStatus" data-st="offline" title="Modul LoRa belum terpasang di firmware">
             <span class="lora-dot"></span>LoRa <b id="loraStatusText">BELUM TERPASANG</b>
           </div>
@@ -72,9 +76,9 @@
               alt="User avatar"
               style="object-fit: contain"
             />
-            <div><strong>OPERATOR_01</strong><span>ONLINE</span></div>
+            <div><strong id="profName">TAMU</strong><span id="profRole">HANYA LIHAT</span></div>
           </div>
-          <a class="calibrate-button" href="#calibration"
+          <a class="calibrate-button" href="#calibration" data-min-role="operator"
             ><img
               class="pixel-icon"
               src="gambarpixel/calibrate-tools.svg"
@@ -88,19 +92,22 @@
               data-target="page-dashboard-utama"
               ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>DASHBOARD UTAMA</a
             >
-            <a class="nav-link" href="#" data-target="page-ph-sensor"
+            <a class="nav-link" href="#" data-target="page-ph-sensor" data-min-role="tamu"
               ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11z" stroke-linejoin="round"/></svg>pH SENSOR</a
             >
-            <a class="nav-link" href="#" data-target="page-tss-sensor"
+            <a class="nav-link" href="#" data-target="page-tss-sensor" data-min-role="tamu"
               ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="7" cy="8" r="2.5"/><circle cx="16" cy="6" r="2"/><circle cx="15" cy="15" r="3"/><circle cx="7" cy="17" r="2"/></svg>TSS SENSOR</a
             >
-            <a class="nav-link" href="#" data-target="page-water-level"
+            <a class="nav-link" href="#" data-target="page-water-level" data-min-role="tamu"
               ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 15c3-2 6 2 9 0s6 2 9 0M3 19c3-2 6 2 9 0s6 2 9 0" stroke-linecap="round"/><path d="M12 3v8M9 8l3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>WATER LEVEL</a
             >
-            <a class="nav-link" href="#" data-target="page-kalibrasi"
+            <a class="nav-link" href="#" data-target="page-rain-gauge" data-min-role="tamu"
+              ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 15a5 5 0 0 1-.5-10A6 6 0 0 1 18 6a4 4 0 0 1-1 8" stroke-linecap="round"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3" stroke-linecap="round"/></svg>RAIN GAUGE</a
+            >
+            <a class="nav-link" href="#" data-target="page-kalibrasi" data-min-role="operator"
               ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" stroke-linejoin="round"/></svg>KALIBRASI</a
             >
-            <a class="nav-link" href="#" data-target="page-control-valve"
+            <a class="nav-link" href="#" data-target="page-control-valve" data-min-role="operator"
               ><svg class="nav-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8l9 4-9 4V8zM21 8l-9 4 9 4V8z" stroke-linejoin="round"/><path d="M12 12V4M9 4h6" stroke-linecap="round"/></svg>CONTROL VALVE &amp; POMPA</a
             >
           </nav>
@@ -224,7 +231,7 @@
             </section>
 
             <!-- CURAH HUJAN (rain gauge DFRobot SEN0575) -->
-            <section class="hmi-card hmi-kpi" id="kpiRain" data-st="offline">
+            <section class="hmi-card hmi-kpi is-link" id="kpiRain" data-st="offline" data-goto="page-rain-gauge" tabindex="0" role="link">
               <div class="kpi-head">
                 <div class="kpi-title">
                   <span class="kpi-ic"
@@ -304,7 +311,7 @@
               <section class="hmi-card">
                 <div class="panel-h">
                   <h2>AKTUATOR</h2>
-                  <a href="#" class="hmi-link" data-goto="page-control-valve">Buka kontrol →</a>
+                  <a href="#" class="hmi-link" data-min-role="operator" data-goto="page-control-valve">Buka kontrol →</a>
                 </div>
                 <div class="hmi-act">
                   <div class="act-row">
@@ -317,7 +324,7 @@
                     <div class="name">Pompa Peristaltik<small>Relay GPIO6</small></div>
                     <b class="hmi-state" id="dashPumpState">--</b>
                   </div>
-                  <div class="act-row">
+                  <div class="act-row" data-min-role="operator">
                     <div class="name">Jaringan Alat<small id="dashDeviceNet">IP -- / MAC --</small></div>
                   </div>
                 </div>
@@ -338,7 +345,7 @@
           <section class="hmi-card hmi-calstrip" id="calibration-summary">
             <div class="panel-h">
               <h2>STATUS KALIBRASI</h2>
-              <a href="#" class="hmi-link" data-goto="page-kalibrasi">Buka kalibrasi →</a>
+              <a href="#" class="hmi-link" data-min-role="operator" data-goto="page-kalibrasi">Buka kalibrasi →</a>
             </div>
             <div class="calstrip-grid">
               <div><span>pH 7.01</span><b id="cal7Sum">COMPLETE</b></div>
@@ -352,7 +359,7 @@
         </main>
 
         <!-- PAGE 2: pH SENSOR -->
-        <main class="dashboard-grid page-content" id="page-ph-sensor">
+        <main class="dashboard-grid page-content" id="page-ph-sensor" data-min-role="tamu">
           <section class="data-panel ph-panel" id="current-ph">
             <div class="panel-heading"><span>CURRENT PH</span><i>LIVE</i></div>
             <div class="reading">
@@ -456,7 +463,7 @@
         </main>
 
         <!-- PAGE 3: TSS SENSOR -->
-        <main class="dashboard-grid page-content" id="page-tss-sensor">
+        <main class="dashboard-grid page-content" id="page-tss-sensor" data-min-role="tamu">
           <section class="data-panel ph-panel">
             <div class="panel-heading"><span>CURRENT TSS</span><i>LIVE</i></div>
             <div class="reading">
@@ -530,7 +537,7 @@
         </main>
 
         <!-- PAGE 4: WATER LEVEL -->
-        <main class="dashboard-grid page-content" id="page-water-level">
+        <main class="dashboard-grid page-content" id="page-water-level" data-min-role="tamu">
           <section class="data-panel ph-panel">
             <div class="panel-heading">
               <span>CURRENT TANK LEVEL</span><i>LIVE</i>
@@ -605,8 +612,57 @@
           </aside>
         </main>
 
+        <!-- PAGE: RAIN GAUGE -->
+        <main class="dashboard-grid page-content" id="page-rain-gauge" data-min-role="tamu">
+          <section class="data-panel ph-panel">
+            <div class="panel-heading"><span>HUJAN SAAT INI</span><i id="rainLiveP">--</i></div>
+            <div class="reading">
+              <svg class="reading-icon" viewBox="0 0 24 24" fill="none" stroke="#0b5cad" stroke-width="1.6" aria-hidden="true"><path d="M7 15a5 5 0 0 1-.5-10A6 6 0 0 1 18 6a4 4 0 0 1-1 8" stroke-linecap="round"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3" stroke-linecap="round"/></svg>
+              <div><strong id="rainNowP">-</strong><span>mm/jam</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>KATEGORI:</span><b id="rainCatP">-</b
+              ><span class="signal">&#9679; &#9679; &#9679;</span>
+            </div>
+          </section>
+          <section class="data-panel voltage-panel">
+            <div class="panel-heading"><span>HUJAN HARI INI</span><i>AKUMULASI</i></div>
+            <div class="reading">
+              <svg class="reading-icon" viewBox="0 0 24 24" fill="none" stroke="#0b5cad" stroke-width="1.6" aria-hidden="true"><path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11z" stroke-linejoin="round"/></svg>
+              <div><strong id="rainTodayP">-</strong><span>mm</span></div>
+            </div>
+            <div class="panel-footer">
+              <span>UPDATE:</span><b id="rainUpdP">--:--:--</b
+              ><span class="signal amber">&#9679; &#9679; &#9679;</span>
+            </div>
+          </section>
+          <section class="data-panel telemetry-panel">
+            <div class="panel-heading">
+              <span>RIWAYAT HUJAN</span><small id="rainRangeP">120 PEMBACAAN TERAKHIR</small>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="rainChart" aria-label="Grafik riwayat intensitas hujan"></canvas>
+            </div>
+          </section>
+          <aside class="right-stack">
+            <section class="data-panel stats-panel">
+              <div class="panel-heading">
+                <span>RINGKASAN</span
+                ><img class="pixel-icon mini-icon" src="gambarpixel/ikon-statistik-sesi.svg" alt="" />
+              </div>
+              <dl class="stats-list">
+                <div><dt>STATUS SENSOR</dt><dd id="rainOnlineP">--</dd></div>
+                <div><dt>MAKS. INTENSITAS</dt><dd id="rainMaxP">--</dd></div>
+                <div><dt>RATA-RATA</dt><dd id="rainAvgP">--</dd></div>
+                <div><dt>JUMLAH DATA</dt><dd id="rainCountP">--</dd></div>
+              </dl>
+              <p class="terminal-note">&gt; SENSOR SEN0575 · DATA DARI SUPABASE</p>
+            </section>
+          </aside>
+        </main>
+
         <!-- PAGE: KALIBRASI (semua panel kalibrasi pH, TSS, level) -->
-        <main class="dashboard-grid page-content" id="page-kalibrasi">
+        <main class="dashboard-grid page-content" id="page-kalibrasi" data-min-role="operator">
           <div class="cal-col">
               <section class="data-panel calibration-panel" id="calibration">
                 <div class="panel-heading">
@@ -991,7 +1047,7 @@
         </main>
 
         <!-- PAGE 5: CONTROL VALVE & POMPA -->
-        <main class="dashboard-grid page-content" id="page-control-valve">
+        <main class="dashboard-grid page-content" id="page-control-valve" data-min-role="operator">
           <section
             class="data-panel control-panel"
             id="valve-pompa-panel"
@@ -1268,6 +1324,23 @@
         ><span>◉ LOCAL NODE CONNECTED</span>
       </footer>
     </div>
-    <script type="module" src="js/main.js?v=20261105a"></script>
+    <dialog class="login-dialog" id="loginDialog" aria-labelledby="loginTitle">
+      <form id="loginForm" autocomplete="on">
+        <h2 id="loginTitle">Masuk</h2>
+        <p class="login-note">
+          Kata sandi operator: kontrol penuh. Kata sandi tamu: melihat semua menu detail
+          tanpa kontrol. Tanpa masuk, hanya Dashboard Utama yang tampil.
+        </p>
+        <label>Kata sandi
+          <input id="loginPass" name="password" type="password" autocomplete="off" required />
+        </label>
+        <p class="login-error" id="loginError" role="alert" hidden></p>
+        <div class="login-actions">
+          <button type="button" id="loginCancel">Batal</button>
+          <button type="submit" id="loginSubmit" class="primary">Masuk</button>
+        </div>
+      </form>
+    </dialog>
+    <script type="module" src="js/main.js?v=20261106a"></script>
   </body>
 </html>

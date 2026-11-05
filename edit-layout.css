@@ -11,6 +11,7 @@
       #page-ph-sensor,
       #page-tss-sensor,
       #page-water-level,
+      #page-rain-gauge,
       #page-kalibrasi,
       #page-control-valve
     ).active[data-lc-free] {

@@ -4,7 +4,21 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = "https://vupbropaxsqireeullbm.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_mvifCe-YeWbL4Wyp3jf1fA_Xwz2P26Z";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Kata sandi akses (kalau sudah masuk) dikirim sebagai header x-access-key pada SETIAP
+// permintaan; database yang memeriksanya (lihat supabase/migrations/0009_auth_roles.sql).
+export const ACCESS_KEY_STORE = "hydrosense.accessKey";
+const fetchWithKey = (input, init = {}) => {
+  const key = localStorage.getItem(ACCESS_KEY_STORE);
+  if (!key) return fetch(input, init);
+  const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+  headers.set("x-access-key", key);
+  return fetch(input, { ...init, headers });
+};
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  global: { fetch: fetchWithKey },
+});
 export const DEVICE_ID = "hydrosense-inlet-01";
 export const el = (id) => document.getElementById(id);
 

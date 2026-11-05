@@ -1,5 +1,6 @@
 // Dashboard Utama: ambil data sensor, kartu KPI, grafik, alarm, polling.
 import { supabase, numeric, parseTimestamp, formatTime, state } from "./core.js";
+import { registerHover } from "./chart.js";
 
 async function getLatestSensorData() {
   const { data, error } = await supabase
@@ -109,6 +110,18 @@ function updateClock() {
     `${now.toLocaleTimeString("id-ID", { timeZone: "Asia/Makassar", hour12: false })} WITA`;
 }
 
+// Data terakhir untuk menggambar ulang grafik halaman pH/TSS/Level. Kanvas yang tersembunyi
+// berukuran 0, jadi grafik harus digambar ulang saat halamannya dibuka atau jendela diubah
+// (kalau tidak, garisnya baru muncul di refresh 5 detik berikutnya).
+let lastChartData = null;
+function repaintPageCharts() {
+  if (!lastChartData) return;
+  const { entries, levelEntries } = lastChartData;
+  paintChart(entries, "#teleChart");
+  paintChart(entries, "#tssChart");
+  paintChart(levelEntries.length ? levelEntries : entries, "#wlChart");
+}
+
 function paintChart(entries, canvasId) {
   const canvas = document.querySelector(canvasId);
   if (!canvas) return;
@@ -132,6 +145,7 @@ function paintChart(entries, canvasId) {
     ctx.font = "13px 'Segoe UI', Arial, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("Belum ada data", rect.width / 2, rect.height / 2);
+    registerHover(canvas, []);
     return;
   }
 
@@ -181,6 +195,7 @@ function paintChart(entries, canvasId) {
   ctx.strokeStyle = "#0b5cad";
   ctx.lineWidth = 2;
   ctx.shadowBlur = 0;
+  const hoverPts = [];
   entries.forEach((entry, index) => {
     const value = mapFn(entry);
     if (value === null || value === undefined) return;
@@ -190,8 +205,14 @@ function paintChart(entries, canvasId) {
     const y =
       top + ((max - value) / (max - min)) * (height - top - bottom);
     index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    hoverPts.push({ x, y, v: value, t: parseTimestamp(entry.timestamp) });
   });
   ctx.stroke();
+  // Tooltip nilai saat kursor di atas grafik (sama seperti grafik Dashboard Utama).
+  registerHover(canvas, hoverPts, {
+    decimals: desimal,
+    unit: canvasId === "#tssChart" ? " mg/L" : canvasId === "#wlChart" ? " %" : "",
+  });
 
   // Titik data terakhir ditandai supaya nilai terkini mudah dilihat
   const lastIdx = entries.findLastIndex(
@@ -359,6 +380,7 @@ async function refreshDashboard() {
     // tetap ditandai terpisah di indikator atas).
     updateLatest(latest || {}, !!latest);
 
+    lastChartData = { entries, levelEntries };
     paintChart(entries, "#teleChart");
     paintChart(entries, "#tssChart");
     paintChart(entries, "#wlChart");
@@ -704,6 +726,10 @@ function hmiInitDashboard() {
     l.addEventListener("click", () => requestAnimationFrame(hmiPaintChart)),
   );
   window.addEventListener("resize", hmiPaintChart);
+  document.querySelectorAll(".nav-link").forEach((l) =>
+    l.addEventListener("click", () => requestAnimationFrame(repaintPageCharts)),
+  );
+  window.addEventListener("resize", repaintPageCharts);
 }
 hmiInitDashboard();
 refreshDashboard();

@@ -8,7 +8,7 @@ import { hmiSetKpi } from "./dashboard.js";
 // 10-20 lebat, >20 sangat lebat. Kalau tabel belum ada / kosong, kartu
 // menampilkan "Belum terpasang" tanpa mengganggu bagian lain.
 const RAIN_TABLE = "Hydrosense table";
-function rainKategori(mm) {
+export function rainKategori(mm) {
   if (mm < 0.5) return ["ok", "TIDAK HUJAN"];
   if (mm < 5) return ["info", "RINGAN"];
   if (mm < 10) return ["warn", "SEDANG"];
