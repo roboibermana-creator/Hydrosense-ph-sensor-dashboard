@@ -221,7 +221,7 @@ export function initCalibrationTss() {
 
   function trimmedMean(nilai) {
     const urut = [...nilai].sort((x, y) => x - y);
-    const buang = Math.floor(urut.length * 0.2);
+    const buang = Math.floor(urut.length * 0.15);
     const dipakai = urut.slice(buang, urut.length - buang);
     const mean = dipakai.reduce((a, b) => a + b, 0) / dipakai.length;
     const sd = dipakai.length > 1 ? Math.sqrt(dipakai.reduce((a, b) => a + (b - mean) ** 2, 0) / (dipakai.length - 1)) : 0;
