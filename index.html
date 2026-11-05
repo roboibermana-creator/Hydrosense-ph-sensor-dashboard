@@ -922,12 +922,27 @@
                     <span>Raw TSS Saat Ini</span
                     ><b id="tssCalRawNow" style="color: var(--neon)">--</b>
                   </div>
+                  <div>
+                    <span>Rata-rata <small id="tssMeanN">(0 bacaan)</small></span
+                    ><b id="tssCalMean" style="color: var(--neon)">--</b>
+                  </div>
+                  <div>
+                    <span>Simpangan baku (SD)</span
+                    ><b id="tssCalSd">--</b>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px; margin-top: 8px">
+                  <label style="flex: 1; font-size: 12px; display: flex; align-items: center; gap: 6px">
+                    <input type="checkbox" id="tssAutoFill" checked />
+                    Isi otomatis dengan rata-rata
+                  </label>
+                  <button type="button" id="btnUlangRataTss" class="calibrate-button">ULANG RATA-RATA</button>
                 </div>
                 <div style="margin-top: 10px">
                   <label style="display: block; font-size: 12px"
-                    >Raw TSS Manual (isi ini kalau "Raw TSS Saat Ini" di atas
-                    masih "--" -- baca angkanya dari Serial Monitor pakai
-                    command 'T', tidak perlu nunggu WiFi/dashboard online)
+                    >Raw TSS Manual (terisi otomatis dari rata-rata bacaan live;
+                    ketik sendiri untuk menimpa, atau isi dari Serial Monitor
+                    command 'T' kalau alat tidak online)
                     <input
                       type="number"
                       step="any"

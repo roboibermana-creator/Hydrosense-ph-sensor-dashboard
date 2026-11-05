@@ -214,6 +214,39 @@ export function initCalibrationTss() {
   setInterval(tampilkanRawTssTerkini, 2000);
   tampilkanRawTssTerkini();
 
+  // Rata-rata bergulir dari bacaan raw live (satu sampel per denyut baru alat),
+  // maksimal 30 bacaan terakhir. Hasilnya otomatis mengisi kolom Raw TSS Manual.
+  const MAKS_BACAAN = 30;
+  let bacaan = [];
+  let hbTerakhir = null;
+
+  function perbaruiRataRata() {
+    const hb = state.hb;
+    if (hb && hb.tssRaw !== null && hb.tssRaw !== undefined && hb.hbMs !== hbTerakhir) {
+      hbTerakhir = hb.hbMs;
+      bacaan.push(hb.tssRaw);
+      if (bacaan.length > MAKS_BACAAN) bacaan.shift();
+    }
+    const n = bacaan.length;
+    const mean = n ? bacaan.reduce((a, b) => a + b, 0) / n : null;
+    const sd = n > 1 ? Math.sqrt(bacaan.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1)) : null;
+    if (el("tssMeanN")) el("tssMeanN").textContent = `(${n} bacaan)`;
+    if (el("tssCalMean")) el("tssCalMean").textContent = mean === null ? "--" : mean.toFixed(2) + " mg/L";
+    if (el("tssCalSd")) el("tssCalSd").textContent = sd === null ? "--" : sd.toFixed(2);
+    const input = el("inputRawManualTss");
+    if (mean !== null && input && el("tssAutoFill")?.checked) input.value = mean.toFixed(2);
+  }
+  setInterval(perbaruiRataRata, 1000);
+  el("inputRawManualTss")?.addEventListener("input", () => {
+    // Mengetik sendiri = menimpa; matikan isi otomatis supaya tidak tertimpa balik.
+    if (el("tssAutoFill")) el("tssAutoFill").checked = false;
+  });
+  el("btnUlangRataTss")?.addEventListener("click", () => {
+    bacaan = [];
+    if (el("inputRawManualTss") && el("tssAutoFill")?.checked) el("inputRawManualTss").value = "";
+    perbaruiRataRata();
+  });
+
   async function simpanSampleKalibrasiTss() {
     const btn = el("btnSimpanSampleTss");
     const standard = el("selectStandardTss")?.value;
@@ -285,6 +318,9 @@ export function initCalibrationTss() {
       );
       if (el("inputGravimetriTss")) el("inputGravimetriTss").value = "";
       if (el("inputRawManualTss")) el("inputRawManualTss").value = "";
+      // Titik standard berikutnya mulai dari rata-rata baru.
+      bacaan = [];
+      if (el("tssAutoFill")) el("tssAutoFill").checked = true;
     } catch (err) {
       setTssSampleLog("Gagal simpan sample: " + err.message, true);
     } finally {
