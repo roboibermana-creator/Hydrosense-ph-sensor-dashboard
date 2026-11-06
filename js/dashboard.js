@@ -6,7 +6,7 @@ async function getLatestSensorData() {
   const { data, error } = await supabase
     .from("Hydrosense table")
     .select(
-      "id, timestamp, ph, probe_mv, tss, water_temperature, water_level",
+      "id, timestamp, ph, probe_mv, ntu, tss, water_temperature, water_level",
     )
     .not("tss", "is", null) // tabel ini juga berisi baris level & hujan
     .order("timestamp", { ascending: false })
@@ -112,7 +112,7 @@ function normalizeSensorRow(row) {
     tssRaw: null, // raw TSS tidak di tabel utama; wizard kalibrasi memakai state.hb.tssRaw (tabel devices)
     wl: numeric(row?.water_level),
     voltage: numeric(row?.probe_mv),
-    ntu: null,
+    ntu: numeric(row?.ntu),
     dist: null,
   };
 }
@@ -351,14 +351,17 @@ function updateLatest(latest, isConnected) {
     document.querySelector("#wlStatusSummaryText").innerHTML = "-";
   }
 
-  // NTU & jarak belum tersedia di database
+  // Jarak belum tersedia di database
   const mv = numeric(latest?.voltage);
   document.querySelector("#voltNow").textContent =
     mv !== null ? mv.toFixed(1) : "-";
   document.querySelector("#voltNowSummary").textContent =
     mv !== null ? mv.toFixed(1) + " mV" : "-";
-  document.querySelector("#ntuNow").textContent = "-";
-  document.querySelector("#ntuNowSummary").textContent = "-";
+  const ntu = numeric(latest?.ntu);
+  document.querySelector("#ntuNow").textContent =
+    ntu !== null ? ntu.toFixed(1) : "-";
+  document.querySelector("#ntuNowSummary").textContent =
+    ntu !== null ? ntu.toFixed(1) + " NTU" : "-";
   document.querySelector("#distNow").textContent = "-";
   document.querySelector("#distNowSummary").textContent = "-";
 

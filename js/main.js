@@ -27,11 +27,11 @@ if (role === "visitor") {
 }
 
 await import("./nav.js");
-await import("./dashboard.js?v=20261106d");
-await import("./rain.js?v=20261106d");
+await import("./dashboard.js?v=20261106e");
+await import("./rain.js?v=20261106e");
 
 // Status kalibrasi pH di Dashboard Utama (baca saja, untuk semua peran).
-const { initCalibStatus } = await import("./calib-status.js?v=20261106d");
+const { initCalibStatus } = await import("./calib-status.js?v=20261106e");
 initCalibStatus();
 
 if (role !== "operator") {
@@ -61,7 +61,7 @@ if (role === "operator") {
     import("./calibration-tss.js"),
     import("./tss-factor.js"),
     import("./tss-hw-wizard.js"),
-    import("./ph-calibration.js?v=20261106d"),
+    import("./ph-calibration.js?v=20261106e"),
     import("./mode.js"),
     import("./countdown.js"),
     import("./schedule.js"),
