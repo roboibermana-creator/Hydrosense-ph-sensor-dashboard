@@ -291,6 +291,7 @@
                 <h2>TREN KUALITAS AIR</h2>
                 <div class="hmi-tabs" id="dashChartTabs" role="tablist">
                   <button type="button" class="on" data-metric="ph">pH</button
+                  ><button type="button" data-metric="all">Semua</button
                   ><button type="button" data-metric="tss">TSS</button
                   ><button type="button" data-metric="wl">Level</button
                   ><button type="button" data-metric="rain">Hujan</button>
@@ -300,7 +301,8 @@
                 <canvas id="dashChart" aria-label="Grafik tren kualitas air"></canvas>
                 <div class="hmi-tooltip" id="dashChartTip" hidden></div>
               </div>
-              <div class="hmi-legend">
+              <div class="hmi-legend" id="dashLegendAll" style="display: none"></div>
+              <div class="hmi-legend" id="dashLegend">
                 <span><i class="lg-line"></i><span id="dashLegendName">pH terukur</span></span>
                 <span><i class="lg-limit"></i>Batas baku mutu</span>
                 <span><i class="lg-band"></i>Rentang aman</span>
@@ -1370,6 +1372,6 @@
         </div>
       </form>
     </dialog>
-    <script type="module" src="js/main.js?v=20261106f"></script>
+    <script type="module" src="js/main.js?v=20261106g"></script>
   </body>
 </html>

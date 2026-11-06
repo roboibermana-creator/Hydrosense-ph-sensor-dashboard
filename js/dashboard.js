@@ -517,8 +517,20 @@ const HMI_LIMIT = {
   wl: { min: 20, max: 90, label: "Level (%)", unit: " %", dec: 0 },
   // Tidak ada baku mutu hujan; garis batas = awal kategori "lebat" BMKG (10 mm/jam).
   rain: { max: 10, label: "Curah hujan (mm/jam)", unit: " mm/jam", dec: 1 },
+  all: { label: "Semua parameter", unit: "", dec: 1 },
 };
-const hmiState = { metric: "ph", entries: [], levelEntries: [], rainEntries: [], pts: [] };
+const hmiState = { metric: "ph", entries: [], levelEntries: [], rainEntries: [], pts: [], hidden: new Set() };
+
+// Tab "Semua": semua parameter dalam satu grafik. Skalanya berbeda-beda (pH 0-14, TSS
+// ribuan, dst), jadi tiap garis digambar relatif terhadap min-maks-nya sendiri; nilai asli
+// ada di legenda dan tooltip.
+const ALL_SERIES = [
+  { k: "ph", name: "pH", color: "#0b5cad", dec: 2, unit: "" },
+  { k: "tss", name: "TSS", color: "#e65100", dec: 0, unit: " mg/L" },
+  { k: "ntu", name: "NTU", color: "#7b1fa2", dec: 1, unit: " NTU" },
+  { k: "wl", name: "Level", color: "#00897b", dec: 0, unit: " %" },
+  { k: "temp", name: "Suhu", color: "#8d6e63", dec: 1, unit: " \u00B0C" },
+];
 
 export function hmiSetKpi(cardId, pillId, status, text) {
   const card = document.getElementById(cardId);
@@ -628,6 +640,7 @@ function hmiPaintChart() {
   const canvas = document.getElementById("dashChart");
   if (!canvas || !canvas.offsetParent) return;
   const m = hmiState.metric;
+  if (m === "all") return hmiPaintAll(canvas);
   const lim = HMI_LIMIT[m];
   const src =
     m === "rain" ? hmiState.rainEntries : m === "wl" && hmiState.levelEntries.length ? hmiState.levelEntries : hmiState.entries;
@@ -710,7 +723,92 @@ function hmiPaintChart() {
   hmiState.chartBox = { L, R, T, B, W, H };
 }
 
+function hmiRenderAllLegend(last) {
+  const box = document.getElementById("dashLegendAll");
+  if (!box) return;
+  box.innerHTML =
+    ALL_SERIES.map((s) => {
+      const v = last?.[s.k];
+      const off = hmiState.hidden.has(s.k);
+      return `<button type="button" class="lg-all${off ? " off" : ""}" data-k="${s.k}" style="border:0;background:none;cursor:pointer;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:6px;opacity:${off ? 0.4 : 1}"><i style="display:inline-block;width:18px;height:3px;background:${s.color}"></i>${s.name} <b>${v === null || v === undefined ? "-" : v.toFixed(s.dec) + s.unit}</b></button>`;
+    }).join("") +
+    '<span class="hint">Tiap garis berskala relatif (min-maks sendiri); klik nama untuk sembunyikan</span>';
+}
+
+function hmiPaintAll(canvas) {
+  const rows = hmiState.entries
+    .map((e) => ({ t: parseTimestamp(e.timestamp), vals: e }))
+    .filter((r) => r.t !== null);
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+  canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  const W = rect.width, H = rect.height;
+  const L = 46, R = 16, T = 14, B = 28;
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = "11px Consolas, 'Roboto Mono', monospace";
+  hmiRenderAllLegend(rows.length ? rows[rows.length - 1].vals : null);
+  if (!rows.length) {
+    ctx.fillStyle = "#5b6670";
+    ctx.font = "13px 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Belum ada data untuk ditampilkan", W / 2, H / 2);
+    hmiState.pts = [];
+    return;
+  }
+  const t0 = rows[0].t, t1 = rows[rows.length - 1].t || t0 + 1;
+  const X = (t) => L + ((t - t0) / Math.max(t1 - t0, 1)) * (W - L - R);
+  const Y = (f) => T + (1 - f) * (H - T - B);
+
+  ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1; ctx.fillStyle = "#5b6670"; ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) {
+    const y = Y(i / 4);
+    ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
+    ctx.fillText(i * 25 + "%", L - 6, y + 4);
+  }
+  ctx.textAlign = "center";
+  for (let i = 0; i <= 4; i++) {
+    const t = t0 + ((t1 - t0) * i) / 4, x = X(t);
+    ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, H - B); ctx.stroke();
+    ctx.fillText(formatTime(t).slice(0, 5), x, H - 8);
+  }
+
+  rows.forEach((r) => (r.x = X(r.t)));
+  for (const s of ALL_SERIES) {
+    if (hmiState.hidden.has(s.k)) continue;
+    const vals = rows.map((r) => r.vals[s.k]).filter((v) => v !== null && v !== undefined);
+    if (!vals.length) continue;
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const F = (v) => (hi - lo < 1e-9 ? 0.5 : (v - lo) / (hi - lo));
+    ctx.beginPath();
+    let started = false;
+    rows.forEach((r) => {
+      const v = r.vals[s.k];
+      if (v === null || v === undefined) return;
+      started ? ctx.lineTo(r.x, Y(F(v))) : ctx.moveTo(r.x, Y(F(v)));
+      started = true;
+    });
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+    const lr = [...rows].reverse().find((r) => r.vals[s.k] !== null && r.vals[s.k] !== undefined);
+    if (lr) {
+      ctx.beginPath(); ctx.arc(lr.x, Y(F(lr.vals[s.k])), 4, 0, Math.PI * 2);
+      ctx.fillStyle = s.color; ctx.fill();
+    }
+  }
+  hmiState.pts = rows.map((r) => ({ x: r.x, y: H / 2, t: r.t, all: r.vals }));
+  hmiState.chartBox = { L, R, T, B, W, H };
+}
+
 function hmiInitDashboard() {
+  document.getElementById("dashLegendAll")?.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]");
+    if (!b) return;
+    const k = b.dataset.k;
+    hmiState.hidden.has(k) ? hmiState.hidden.delete(k) : hmiState.hidden.add(k);
+    hmiPaintChart();
+  });
   const tabs = document.getElementById("dashChartTabs");
   tabs?.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-metric]");
@@ -718,6 +816,9 @@ function hmiInitDashboard() {
     tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === btn));
     hmiState.metric = btn.dataset.metric;
     document.getElementById("dashLegendName").textContent = HMI_LIMIT[hmiState.metric].label;
+    const semua = hmiState.metric === "all";
+    document.getElementById("dashLegend").style.display = semua ? "none" : "";
+    document.getElementById("dashLegendAll").style.display = semua ? "" : "none";
     hmiPaintChart();
   });
 
@@ -731,9 +832,18 @@ function hmiInitDashboard() {
     for (const p of hmiState.pts) if (Math.abs(p.x - mx) < Math.abs(best.x - mx)) best = p;
     const lim = HMI_LIMIT[hmiState.metric];
     tip.hidden = false;
-    tip.innerHTML = `<b>${best.v.toFixed(lim.dec)}${lim.unit}</b><span>${formatTime(best.t) + " WITA"}</span>`;
-    tip.style.left = Math.min(best.x + 12, r.width - 150) + "px";
-    tip.style.top = Math.max(best.y - 44, 4) + "px";
+    if (best.all) {
+      tip.innerHTML =
+        ALL_SERIES.filter((s) => !hmiState.hidden.has(s.k) && best.all[s.k] != null)
+          .map((s) => `<b><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${s.color};margin-right:6px;border:1px solid #fff"></i>${s.name} ${best.all[s.k].toFixed(s.dec)}${s.unit}</b>`)
+          .join("") + `<span>${formatTime(best.t) + " WITA"}</span>`;
+      tip.style.left = Math.min(best.x + 12, r.width - 170) + "px";
+      tip.style.top = Math.max(e.clientY - r.top - 60, 4) + "px";
+    } else {
+      tip.innerHTML = `<b>${best.v.toFixed(lim.dec)}${lim.unit}</b><span>${formatTime(best.t) + " WITA"}</span>`;
+      tip.style.left = Math.min(best.x + 12, r.width - 150) + "px";
+      tip.style.top = Math.max(best.y - 44, 4) + "px";
+    }
     canvas.style.setProperty("--cx", best.x + "px");
     canvas.parentElement.style.setProperty("--cx", best.x + "px");
     canvas.parentElement.classList.add("hovering");
