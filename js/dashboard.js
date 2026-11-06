@@ -111,7 +111,7 @@ function normalizeSensorRow(row) {
     tss: numeric(row?.tss),
     tssRaw: null, // raw TSS tidak di tabel utama; wizard kalibrasi memakai state.hb.tssRaw (tabel devices)
     wl: numeric(row?.water_level),
-    voltage: null,
+    voltage: numeric(row?.probe_mv),
     ntu: null,
     dist: null,
   };
@@ -352,7 +352,7 @@ function updateLatest(latest, isConnected) {
   }
 
   // NTU & jarak belum tersedia di database
-  const mv = numeric(latest?.probe_mv);
+  const mv = numeric(latest?.voltage);
   document.querySelector("#voltNow").textContent =
     mv !== null ? mv.toFixed(1) : "-";
   document.querySelector("#voltNowSummary").textContent =
