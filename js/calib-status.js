@@ -1,5 +1,5 @@
 // Status Kalibrasi pH (titik 4, 7, 9) di Dashboard Utama, dibaca dari tabel calibration.
-// Nama titik di database mengikuti firmware: ph4, ph7, ph10 (ph10 = buffer 9.01, tampil "pH 9").
+// Nama titik di database mengikuti firmware: ph4, ph7, ph10 (ph10 = buffer 9.18, tampil "pH 9").
 // COMPLETE = ada sampel kalibrasi atau verifikasi untuk titik itu.
 import { supabase, el, parseTimestamp, formatDate } from "./core.js";
 

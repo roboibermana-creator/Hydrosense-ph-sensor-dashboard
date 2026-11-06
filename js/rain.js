@@ -1,6 +1,6 @@
 // Kartu curah hujan (kolom rain_* di tabel 'Hydrosense table').
 import { supabase, numeric, parseTimestamp, formatTime } from "./core.js";
-import { hmiSetKpi } from "./dashboard.js?v=20261106e";
+import { hmiSetKpi } from "./dashboard.js?v=20261106f";
 
 
 // ---------------- Rain gauge (kolom rain_* di "Hydrosense table") ----------------
