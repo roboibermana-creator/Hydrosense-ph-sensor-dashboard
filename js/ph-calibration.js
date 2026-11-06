@@ -56,6 +56,7 @@ export function initPhCalibration() {
     } catch (err) {
       setPhCalLog("Gagal kirim perintah: " + err.message, true);
     } finally {
+      window.dispatchEvent(new Event("ph-cal-done"));
       phButtons().forEach((b) => (b.disabled = false));
     }
   }
