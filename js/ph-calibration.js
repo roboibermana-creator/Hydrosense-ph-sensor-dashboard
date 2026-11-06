@@ -62,7 +62,15 @@ export function initPhCalibration() {
 
   phButtons().forEach((btn) =>
     btn.addEventListener("click", () => {
-      const cmd = btn.dataset.phCmd;
+      let cmd = btn.dataset.phCmd;
+      if (cmd === "offset_ph") {
+        const v = parseFloat(el("phOffsetInput")?.value);
+        if (!Number.isFinite(v) || v < -2 || v > 2) {
+          setPhCalLog("Offset harus angka antara -2.00 dan +2.00 pH.", true);
+          return;
+        }
+        cmd = "offset_ph:" + v.toFixed(2);
+      }
       if (
         cmd === "reset" &&
         !confirm("Hapus data kalibrasi pH yang tersimpan di alat?")

@@ -691,26 +691,32 @@
                 </div>
                 <div style="margin-top: 8px">
                   <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="kalibrasi_ph4" style="width: 100%">
-                    KALIBRASI TITIK 1 (BUFFER pH 4.01)
+                    KALIBRASI BUFFER pH 4.01
                   </button>
                   <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="kalibrasi_ph7" style="width: 100%; margin-top: 6px">
-                    CATAT TITIK TENGAH (BUFFER pH 7.01)
+                    KALIBRASI BUFFER pH 7.01
                   </button>
                   <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="kalibrasi_ph10" style="width: 100%; margin-top: 6px">
-                    KALIBRASI TITIK 2 (BUFFER pH 9.01)
+                    KALIBRASI BUFFER pH 9.01
                   </button>
                   <div style="display: flex; gap: 6px; margin-top: 6px">
                     <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph4" style="flex: 1">VERIF 4.01</button>
-                    <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph7" style="flex: 1">VERIF 6.86</button>
+                    <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph7" style="flex: 1">VERIF 7.01</button>
                     <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="verifikasi_ph10" style="flex: 1">VERIF 9.01</button>
+                  </div>
+                  <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center">
+                    <input id="phOffsetInput" type="number" step="0.01" min="-2" max="2" value="0.00" aria-label="Offset pH" style="width: 90px" />
+                    <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="offset_ph" style="flex: 1">ATUR OFFSET pH</button>
                   </div>
                   <button type="button" class="calibrate-button ph-cal-btn" data-ph-cmd="reset" style="width: 100%; margin-top: 6px">
                     RESET DATA KALIBRASI
                   </button>
                 </div>
                 <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
-                  Bilas probe, celupkan ke buffer yang sesuai, aduk pelan, lalu
-                  tekan tombolnya. Alat menunggu pembacaan stabil (bisa
+                  Pilih titik bebas: 4.01 + 7.01, 4.01 + 9.01, atau ketiganya
+                  (1 titik = hanya offset). Bilas probe, celupkan ke buffer yang
+                  sesuai, aduk pelan, lalu tekan tombolnya. Offset pH
+                  (-2..+2) menggeser pembacaan di atas hasil kalibrasi. Alat menunggu pembacaan stabil (bisa
                   beberapa menit) sebelum menulis ke sensor.
                 </div>
                 <div class="warning" id="phCalLog">> SIAP</div>

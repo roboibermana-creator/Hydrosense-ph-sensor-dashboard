@@ -6,7 +6,7 @@ async function getLatestSensorData() {
   const { data, error } = await supabase
     .from("Hydrosense table")
     .select(
-      "id, timestamp, ph, tss, water_temperature, water_level",
+      "id, timestamp, ph, probe_mv, tss, water_temperature, water_level",
     )
     .not("tss", "is", null) // tabel ini juga berisi baris level & hujan
     .order("timestamp", { ascending: false })
@@ -351,9 +351,12 @@ function updateLatest(latest, isConnected) {
     document.querySelector("#wlStatusSummaryText").innerHTML = "-";
   }
 
-  // Belum tersedia di database
-  document.querySelector("#voltNow").textContent = "-";
-  document.querySelector("#voltNowSummary").textContent = "-";
+  // NTU & jarak belum tersedia di database
+  const mv = numeric(latest?.probe_mv);
+  document.querySelector("#voltNow").textContent =
+    mv !== null ? mv.toFixed(1) : "-";
+  document.querySelector("#voltNowSummary").textContent =
+    mv !== null ? mv.toFixed(1) + " mV" : "-";
   document.querySelector("#ntuNow").textContent = "-";
   document.querySelector("#ntuNowSummary").textContent = "-";
   document.querySelector("#distNow").textContent = "-";
