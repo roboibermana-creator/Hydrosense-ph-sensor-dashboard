@@ -59,6 +59,51 @@ function attachHover(canvas, s) {
 }
 
 /**
+ * Kurva halus lewat interpolasi kubik monoton (Fritsch-Carlson): melewati semua titik data dan
+ * TIDAK melampaui nilai titik tetangganya (tanpa gelombang palsu). pts = [{ x, y }] terurut x.
+ */
+export function smoothPath(ctx, pts, moveFirst = true) {
+  const n = pts.length;
+  if (!n) return;
+  if (moveFirst) ctx.moveTo(pts[0].x, pts[0].y);
+  else ctx.lineTo(pts[0].x, pts[0].y);
+  if (n === 1) return;
+  if (n === 2) {
+    ctx.lineTo(pts[1].x, pts[1].y);
+    return;
+  }
+  const dx = [];
+  const m = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1].x - pts[i].x);
+    m.push(dx[i] ? (pts[i + 1].y - pts[i].y) / dx[i] : 0);
+  }
+  const tg = new Array(n);
+  tg[0] = m[0];
+  tg[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) tg[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) {
+      tg[i] = 0;
+      tg[i + 1] = 0;
+      continue;
+    }
+    const a = tg[i] / m[i];
+    const b = tg[i + 1] / m[i];
+    const q = a * a + b * b;
+    if (q > 9) {
+      const k = 3 / Math.sqrt(q);
+      tg[i] = k * a * m[i];
+      tg[i + 1] = k * b * m[i];
+    }
+  }
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i];
+    ctx.bezierCurveTo(pts[i].x + h / 3, pts[i].y + (tg[i] * h) / 3, pts[i + 1].x - h / 3, pts[i + 1].y - (tg[i + 1] * h) / 3, pts[i + 1].x, pts[i + 1].y);
+  }
+}
+
+/**
  * Gambar grafik garis dengan sumbu bernilai pada canvas, lalu kembalikan titiknya.
  * rows = [{ t (ms), v }] urut waktu naik.
  */
@@ -124,7 +169,7 @@ export function drawSeries(canvas, rows, { decimals = 1, unit = "", minZero = tr
 
   const path = () => {
     ctx.beginPath();
-    rows.forEach((r, i) => (i ? ctx.lineTo(X(r.t), Y(r.v)) : ctx.moveTo(X(r.t), Y(r.v))));
+    smoothPath(ctx, rows.map((r) => ({ x: X(r.t), y: Y(r.v) })));
   };
   path();
   ctx.lineTo(X(t1), H - B);

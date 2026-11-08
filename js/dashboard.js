@@ -1,6 +1,6 @@
 // Dashboard Utama: ambil data sensor, kartu KPI, grafik, alarm, polling.
 import { supabase, numeric, parseTimestamp, formatTime, state } from "./core.js";
-import { registerHover } from "./chart.js";
+import { registerHover, smoothPath } from "./chart.js?v=20261108a";
 
 async function getLatestSensorData() {
   const { data, error } = await supabase
@@ -206,7 +206,6 @@ function paintChart(entries, canvasId) {
     ).slice(0, 5);
   }
 
-  ctx.beginPath();
   ctx.strokeStyle = "#0b5cad";
   ctx.lineWidth = 2;
   ctx.shadowBlur = 0;
@@ -219,9 +218,11 @@ function paintChart(entries, canvasId) {
       (index / Math.max(entries.length - 1, 1)) * (width - left - right);
     const y =
       top + ((max - value) / (max - min)) * (height - top - bottom);
-    index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     hoverPts.push({ x, y, v: value, t: parseTimestamp(entry.timestamp) });
   });
+  ctx.beginPath();
+  smoothPath(ctx, hoverPts);
+  ctx.lineJoin = "round";
   ctx.stroke();
   // Tooltip nilai saat kursor di atas grafik (sama seperti grafik Dashboard Utama).
   registerHover(canvas, hoverPts, {
@@ -635,6 +636,23 @@ function hmiRenderAlarms(s) {
     .join("");
 }
 
+// Kurva halus (interpolasi kubik monoton) dipakai bersama dari chart.js.
+const hmiSmoothPath = smoothPath;
+
+// Rata-rata bergerak terpusat untuk meredam data yang sangat bergerigi di grafik "Semua".
+// Hanya mengubah GAMBAR garis; angka di legenda dan tooltip tetap data asli.
+// 1 = tanpa perataan; makin besar makin halus (disarankan 3-9, ganjil).
+const HMI_SMOOTH_WINDOW = 5;
+function hmiMovingAvg(vals, w) {
+  if (w <= 1) return vals.slice();
+  const half = Math.floor(w / 2);
+  return vals.map((_, i) => {
+    let sum = 0, c = 0;
+    for (let j = Math.max(0, i - half); j <= Math.min(vals.length - 1, i + half); j++) { sum += vals[j]; c++; }
+    return sum / c;
+  });
+}
+
 // Grafik tren dengan batas baku mutu, rentang aman, dan tooltip hover.
 function hmiPaintChart() {
   const canvas = document.getElementById("dashChart");
@@ -708,12 +726,13 @@ function hmiPaintChart() {
   ctx.setLineDash([]);
 
   // area + garis data
+  const curve = pts.map((p) => ({ x: X(p.t), y: Y(p.v) }));
   ctx.beginPath();
-  pts.forEach((p, i) => (i ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
+  hmiSmoothPath(ctx, curve);
   ctx.lineTo(X(pts[pts.length - 1].t), H - B); ctx.lineTo(X(pts[0].t), H - B); ctx.closePath();
   ctx.fillStyle = "rgba(11,92,173,0.08)"; ctx.fill();
   ctx.beginPath();
-  pts.forEach((p, i) => (i ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
+  hmiSmoothPath(ctx, curve);
   ctx.strokeStyle = "#0b5cad"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
   const last = pts[pts.length - 1];
   ctx.beginPath(); ctx.arc(X(last.t), Y(last.v), 5, 0, Math.PI * 2);
@@ -778,24 +797,19 @@ function hmiPaintAll(canvas) {
   rows.forEach((r) => (r.x = X(r.t)));
   for (const s of ALL_SERIES) {
     if (hmiState.hidden.has(s.k)) continue;
-    const vals = rows.map((r) => r.vals[s.k]).filter((v) => v !== null && v !== undefined);
-    if (!vals.length) continue;
-    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const have = rows.filter((r) => r.vals[s.k] !== null && r.vals[s.k] !== undefined);
+    if (!have.length) continue;
+    // Diratakan dulu (HMI_SMOOTH_WINDOW), baru dinormalkan ke 0-100% dan digambar sebagai kurva halus.
+    const smooth = hmiMovingAvg(have.map((r) => r.vals[s.k]), HMI_SMOOTH_WINDOW);
+    const lo = Math.min(...smooth), hi = Math.max(...smooth);
     const F = (v) => (hi - lo < 1e-9 ? 0.5 : (v - lo) / (hi - lo));
+    const curve = have.map((r, i) => ({ x: r.x, y: Y(F(smooth[i])) }));
     ctx.beginPath();
-    let started = false;
-    rows.forEach((r) => {
-      const v = r.vals[s.k];
-      if (v === null || v === undefined) return;
-      started ? ctx.lineTo(r.x, Y(F(v))) : ctx.moveTo(r.x, Y(F(v)));
-      started = true;
-    });
+    hmiSmoothPath(ctx, curve);
     ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
-    const lr = [...rows].reverse().find((r) => r.vals[s.k] !== null && r.vals[s.k] !== undefined);
-    if (lr) {
-      ctx.beginPath(); ctx.arc(lr.x, Y(F(lr.vals[s.k])), 4, 0, Math.PI * 2);
-      ctx.fillStyle = s.color; ctx.fill();
-    }
+    const lp = curve[curve.length - 1];
+    ctx.beginPath(); ctx.arc(lp.x, lp.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = s.color; ctx.fill();
   }
   hmiState.pts = rows.map((r) => ({ x: r.x, y: H / 2, t: r.t, all: r.vals }));
   hmiState.chartBox = { L, R, T, B, W, H };

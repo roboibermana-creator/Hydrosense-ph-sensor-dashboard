@@ -27,7 +27,7 @@ if (role === "visitor") {
 }
 
 await import("./nav.js");
-await import("./dashboard.js?v=20261106g");
+await import("./dashboard.js?v=20261108a");
 await import("./rain.js?v=20261106g");
 
 // Status kalibrasi pH di Dashboard Utama (baca saja, untuk semua peran).
