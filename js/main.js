@@ -63,8 +63,8 @@ if (role === "operator") {
   ] = await Promise.all([
     import("./control.js"),
     import("./calibration-tss.js"),
-    import("./tss-factor.js"),
-    import("./tss-hw-wizard.js"),
+    import("./tss-factor.js?v=20261108c"),
+    import("./tss-hw-wizard.js?v=20261108c"),
     import("./ph-calibration.js?v=20261106g"),
     import("./mode.js"),
     import("./countdown.js"),

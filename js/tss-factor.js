@@ -46,7 +46,7 @@ export function initTssFactor() {
         .select("id")
         .single();
       if (error) throw error;
-      const tries = Math.ceil((maksDetik || 30) / 1.5);
+      const tries = Math.ceil(Math.max(maksDetik || 30, 120) / 1.5); // min. 2 menit: lewat LoRa lebih lambat
       for (let i = 0; i < tries; i++) {
         await new Promise((r) => setTimeout(r, 1500));
         const { data: r, error: e2 } = await supabase

@@ -34,7 +34,9 @@ export function initTssHwWizard() {
   }
 
   async function pollHasilPerintahHw(id) {
-    const MAX_TRIES = 20; // device poll tiap 2s -- 20x1.5s cukup untuk timeout 30s
+    // 80 x 1.5 dtk = 2 menit. Lewat WiFi hasilnya datang < 10 dtk; lewat LoRa (node tanpa WiFi)
+    // gateway memberi tahu node, node mengambil & melapor lewat jembatan LoRa: bisa 20-60 dtk.
+    const MAX_TRIES = 80;
     for (let i = 0; i < MAX_TRIES; i++) {
       await new Promise((r) => setTimeout(r, 1500));
       const { data, error } = await supabase
