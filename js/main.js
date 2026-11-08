@@ -30,6 +30,10 @@ await import("./nav.js");
 await import("./dashboard.js?v=20261108a");
 await import("./rain.js?v=20261106g");
 
+// Indikator LoRa di header (baca saja, untuk semua peran).
+const { initLoraStatus } = await import("./lora-status.js?v=20261108b");
+initLoraStatus();
+
 // Status kalibrasi pH di Dashboard Utama (baca saja, untuk semua peran).
 const { initCalibStatus } = await import("./calib-status.js?v=20261106g");
 initCalibStatus();

@@ -685,6 +685,12 @@
 .lora-status[data-st="ok"] .lora-dot {
   background: #43a047;
 }
+.lora-status[data-st="warn"] .lora-dot {
+  background: #f9a825;
+}
+.lora-status[data-st="alarm"] .lora-dot {
+  background: #e53935;
+}
 
 /* =====================================================================
  * Panel kalibrasi (halaman Kalibrasi + ringkasan di halaman lain)
