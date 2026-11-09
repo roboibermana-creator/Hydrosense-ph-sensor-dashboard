@@ -661,37 +661,6 @@
   }
 }
 
-/* ---------- Status LoRa di header ---------- */
-.lora-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  color: #c7d1db;
-  font-size: 12px;
-  background: #263342;
-  border-radius: 14px;
-}
-.lora-status b {
-  color: #e9edf1;
-  font-size: 11px;
-}
-.lora-dot {
-  width: 9px;
-  height: 9px;
-  background: #8a949e;
-  border-radius: 50%;
-}
-.lora-status[data-st="ok"] .lora-dot {
-  background: #43a047;
-}
-.lora-status[data-st="warn"] .lora-dot {
-  background: #f9a825;
-}
-.lora-status[data-st="alarm"] .lora-dot {
-  background: #e53935;
-}
-
 /* =====================================================================
  * Panel kalibrasi (halaman Kalibrasi + ringkasan di halaman lain)
  * ===================================================================== */
