@@ -10,6 +10,8 @@ const SUMBU_TETAP = {
   ph: { lo: 0, hi: 10, bagi: 5 }, // 0, 2, 4, 6, 8, 10
   tss: { lo: 0, hi: 5000, bagi: 5 }, // 0, 1000, ... 5000 (garis baku mutu 200 ada di dekat dasar)
   wl: { lo: 0, hi: 100, bagi: 4 },
+  ntu: { lo: 0, hi: 1000, bagi: 5 }, // hanya dipakai tab "Semua"
+  temp: { lo: 0, hi: 50, bagi: 5 }, // hanya dipakai tab "Semua"
 };
 const SUMBU_PER_KANVAS = { "#teleChart": "ph", "#tssChart": "tss", "#wlChart": "wl" };
 
@@ -653,6 +655,32 @@ function hmiRenderAlarms(s) {
     .join("");
 }
 
+// Memecah deret titik (urut waktu, tiap item punya .t dalam ms) menjadi segmen terpisah di setiap
+// jeda data yang panjang, supaya kurva TIDAK ditarik melintasi jeda berjam-jam/berhari-hari
+// (itu yang membuat garis tampak melengkung aneh). Jeda = lebih dari 10x selang tipikal
+// (median), minimal 20 menit.
+function hmiPecahJeda(items) {
+  if (items.length < 3) return [items];
+  const dt = [];
+  for (let i = 1; i < items.length; i++) dt.push(items[i].t - items[i - 1].t);
+  dt.sort((a, b) => a - b);
+  const batas = Math.max(dt[Math.floor(dt.length / 2)] * 10, 20 * 60 * 1000);
+  const hasil = [[items[0]]];
+  for (let i = 1; i < items.length; i++) {
+    if (items[i].t - items[i - 1].t > batas) hasil.push([]);
+    hasil[hasil.length - 1].push(items[i]);
+  }
+  return hasil;
+}
+
+// Bila ada jeda panjang, tampilkan hanya rangkaian data TERBARU (asal cukup titik): sumbu waktu
+// yang membentang berhari-hari membuat tiap kelompok data menciut jadi garis tipis.
+function hmiRangkaianTerbaru(items) {
+  const segmen = hmiPecahJeda(items);
+  const akhir = segmen[segmen.length - 1];
+  return segmen.length > 1 && akhir.length >= 10 ? akhir : items;
+}
+
 // Kurva halus (interpolasi kubik monoton) dipakai bersama dari chart.js.
 const hmiSmoothPath = smoothPath;
 
@@ -679,9 +707,10 @@ function hmiPaintChart() {
   const lim = HMI_LIMIT[m];
   const src =
     m === "rain" ? hmiState.rainEntries : m === "wl" && hmiState.levelEntries.length ? hmiState.levelEntries : hmiState.entries;
-  const pts = src
+  let pts = src
     .map((e) => ({ t: parseTimestamp(e.timestamp), v: e[m] }))
     .filter((p) => p.t !== null && p.v !== null && p.v !== undefined);
+  pts = hmiRangkaianTerbaru(pts);
 
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
@@ -751,14 +780,21 @@ function hmiPaintChart() {
   ctx.setLineDash([]);
 
   // area + garis data
-  const curve = pts.map((p) => ({ x: X(p.t), y: Y(p.v) }));
-  ctx.beginPath();
-  hmiSmoothPath(ctx, curve);
-  ctx.lineTo(X(pts[pts.length - 1].t), H - B); ctx.lineTo(X(pts[0].t), H - B); ctx.closePath();
-  ctx.fillStyle = "rgba(11,92,173,0.08)"; ctx.fill();
-  ctx.beginPath();
-  hmiSmoothPath(ctx, curve);
-  ctx.strokeStyle = "#0b5cad"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
+  const segmen = hmiPecahJeda(pts.map((p) => ({ t: p.t, x: X(p.t), y: Y(p.v) })));
+  for (const seg of segmen) {
+    if (seg.length < 2) {
+      ctx.beginPath(); ctx.arc(seg[0].x, seg[0].y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#0b5cad"; ctx.fill();
+      continue;
+    }
+    ctx.beginPath();
+    hmiSmoothPath(ctx, seg);
+    ctx.lineTo(seg[seg.length - 1].x, H - B); ctx.lineTo(seg[0].x, H - B); ctx.closePath();
+    ctx.fillStyle = "rgba(11,92,173,0.08)"; ctx.fill();
+    ctx.beginPath();
+    hmiSmoothPath(ctx, seg);
+    ctx.strokeStyle = "#0b5cad"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
+  }
   const last = pts[pts.length - 1];
   ctx.beginPath(); ctx.arc(X(last.t), Y(last.v), 5, 0, Math.PI * 2);
   ctx.fillStyle = "#0b5cad"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke();
@@ -776,13 +812,14 @@ function hmiRenderAllLegend(last) {
       const off = hmiState.hidden.has(s.k);
       return `<button type="button" class="lg-all${off ? " off" : ""}" data-k="${s.k}" style="border:0;background:none;cursor:pointer;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:6px;opacity:${off ? 0.4 : 1}"><i style="display:inline-block;width:18px;height:3px;background:${s.color}"></i>${s.name} <b>${v === null || v === undefined ? "-" : v.toFixed(s.dec) + s.unit}</b></button>`;
     }).join("") +
-    '<span class="hint">Tiap garis berskala relatif (min-maks sendiri); klik nama untuk sembunyikan</span>';
+    '<span class="hint">Skala tetap: pH 0-10, TSS 0-5000, NTU 0-1000, Level 0-100, Suhu 0-50; klik nama untuk sembunyikan</span>';
 }
 
 function hmiPaintAll(canvas) {
-  const rows = hmiState.entries
+  let rows = hmiState.entries
     .map((e) => ({ t: parseTimestamp(e.timestamp), vals: e }))
     .filter((r) => r.t !== null);
+  rows = hmiRangkaianTerbaru(rows);
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
   canvas.width = Math.max(1, Math.floor(rect.width * ratio));
@@ -826,12 +863,22 @@ function hmiPaintAll(canvas) {
     if (!have.length) continue;
     // Diratakan dulu (HMI_SMOOTH_WINDOW), baru dinormalkan ke 0-100% dan digambar sebagai kurva halus.
     const smooth = hmiMovingAvg(have.map((r) => r.vals[s.k]), HMI_SMOOTH_WINDOW);
-    const lo = Math.min(...smooth), hi = Math.max(...smooth);
+    // Rentang TETAP per garis (SUMBU_TETAP), melebar hanya bila data keluar darinya.
+    const ax = SUMBU_TETAP[s.k];
+    const lo = ax ? Math.min(ax.lo, ...smooth) : Math.min(...smooth);
+    const hi = ax ? Math.max(ax.hi, ...smooth) : Math.max(...smooth);
     const F = (v) => (hi - lo < 1e-9 ? 0.5 : (v - lo) / (hi - lo));
-    const curve = have.map((r, i) => ({ x: r.x, y: Y(F(smooth[i])) }));
-    ctx.beginPath();
-    hmiSmoothPath(ctx, curve);
-    ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+    const curve = have.map((r, i) => ({ t: r.t, x: r.x, y: Y(F(smooth[i])) }));
+    for (const seg of hmiPecahJeda(curve)) {
+      if (seg.length < 2) {
+        ctx.beginPath(); ctx.arc(seg[0].x, seg[0].y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = s.color; ctx.fill();
+        continue;
+      }
+      ctx.beginPath();
+      hmiSmoothPath(ctx, seg);
+      ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+    }
     const lp = curve[curve.length - 1];
     ctx.beginPath(); ctx.arc(lp.x, lp.y, 4, 0, Math.PI * 2);
     ctx.fillStyle = s.color; ctx.fill();

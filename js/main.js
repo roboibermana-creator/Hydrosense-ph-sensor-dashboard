@@ -27,7 +27,7 @@ if (role === "visitor") {
 }
 
 await import("./nav.js");
-await import("./dashboard.js?v=20261109b");
+await import("./dashboard.js?v=20261109d");
 await import("./rain.js?v=20261106g");
 
 // Indikator LoRa di header (baca saja, untuk semua peran).
