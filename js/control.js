@@ -201,7 +201,7 @@ export function initControl() {
     try {
       const { data, error } = await supabase
         .from("devices")
-        .select("pump_on,pump_note,pump_updated_at,ip_address,mac_address")
+        .select("pump_on,pump_note,pump_updated_at,pompa_nyala,heartbeat_at,ip_address,mac_address")
         .eq("project", "hydrosense")
         .eq("name", DEVICE_ID)
         .maybeSingle();
@@ -232,20 +232,37 @@ export function initControl() {
       // lapor status) sebelum devices.pump_updated_at ikut berubah. Selama masa
       // tunggu itu, status lama dari alat TIDAK boleh menimpa pilihan
       // user -- kalau tidak, toggle balik sendiri.
+      // Ada DUA sumber status: jalur WiFi menulis pump_on + pump_updated_at; jalur LoRa
+      // (gateway) hanya menulis pompa_nyala + heartbeat_at. Pakai yang lebih baru, dan
+      // jangan timpa pilihan user dengan status basi (mis. tautan LoRa putus: pump_on
+      // lama = true akan membuat toggle "berhenti" balik JALAN sendiri).
+      const hbLora = Date.parse(data.heartbeat_at);
+      const pakaiLora =
+        Number.isFinite(hbLora) && (!Number.isFinite(hbMs) || hbLora >= hbMs);
+      const stampStatus = pakaiLora ? hbLora : hbMs;
+      const nilaiPompa = pakaiLora ? data.pompa_nyala : data.pump_on;
+      const segarStatus =
+        Number.isFinite(stampStatus) && Date.now() - stampStatus < 60000;
       const sejakKlik = Date.now() - pumpClickAt;
       const statusBasi =
-        Number.isFinite(hbMs) && hbMs < pumpClickAt - 1000;
+        Number.isFinite(stampStatus) && stampStatus < pumpClickAt - 1000;
       if (sejakKlik < PUMP_SYNC_HOLD_MS && statusBasi) return;
-      if (data.pump_note === "ditolak_chamber_penuh") {
+      if (!segarStatus) return; // alat tidak melapor: tampilan tetap pilihan user
+      if (!pakaiLora && data.pump_note === "ditolak_chamber_penuh") {
         pumpOn = false;
         setControlStatus(
           "POMPA DITOLAK ALAT - CHAMBER PENUH (INTERLOCK)",
           true,
         );
-      } else if (data.pump_on !== null && pumpOn !== data.pump_on) {
-        // pump_on null = alat belum pernah melapor status pompa; jangan timpa tampilan.
-        pumpOn = data.pump_on;
-        setControlStatus("STATUS POMPA DARI ALAT: " + data.pump_note, false);
+      } else if (nilaiPompa !== null && nilaiPompa !== undefined && pumpOn !== nilaiPompa) {
+        // null = alat belum pernah melapor status pompa; jangan timpa tampilan.
+        pumpOn = nilaiPompa;
+        setControlStatus(
+          pakaiLora
+            ? "STATUS POMPA DARI ALAT (LoRa)"
+            : "STATUS POMPA DARI ALAT: " + data.pump_note,
+          false,
+        );
       }
       renderControls();
       renderLevel();
