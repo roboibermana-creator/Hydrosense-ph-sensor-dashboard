@@ -27,7 +27,7 @@ if (role === "visitor") {
 }
 
 await import("./nav.js");
-await import("./dashboard.js?v=20261108a");
+await import("./dashboard.js?v=20261109b");
 await import("./rain.js?v=20261106g");
 
 // Indikator LoRa di header (baca saja, untuk semua peran).
@@ -47,6 +47,10 @@ if (role !== "operator") {
 if (role === "tamu" || role === "operator") {
   const { initRainPage } = await import("./rain-page.js");
   initRainPage();
+  const { initLokasi } = await import("./lokasi.js?v=20261109a");
+  initLokasi();
+  const { initEkspor } = await import("./ekspor.js?v=20261109a");
+  initEkspor();
 }
 
 if (role === "operator") {

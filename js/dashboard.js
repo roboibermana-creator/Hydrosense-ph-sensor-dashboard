@@ -2,6 +2,17 @@
 import { supabase, numeric, parseTimestamp, formatTime, state } from "./core.js";
 import { registerHover, smoothPath } from "./chart.js?v=20261108a";
 
+// Rentang sumbu Y TETAP per metrik supaya kurva tidak "bergerigi" karena skala otomatis
+// memperbesar fluktuasi kecil. Hanya melebar bila data benar-benar keluar dari rentang.
+// bagi = jumlah garis bantu di grafik tren. Ubah angkanya di sini bila perlu. Hujan sengaja
+// tetap otomatis (tidak ada batas atas yang wajar).
+const SUMBU_TETAP = {
+  ph: { lo: 0, hi: 10, bagi: 5 }, // 0, 2, 4, 6, 8, 10
+  tss: { lo: 0, hi: 5000, bagi: 5 }, // 0, 1000, ... 5000 (garis baku mutu 200 ada di dekat dasar)
+  wl: { lo: 0, hi: 100, bagi: 4 },
+};
+const SUMBU_PER_KANVAS = { "#teleChart": "ph", "#tssChart": "tss", "#wlChart": "wl" };
+
 async function getLatestSensorData() {
   const { data, error } = await supabase
     .from("Hydrosense table")
@@ -174,6 +185,12 @@ function paintChart(entries, canvasId) {
       max += 10;
       min = Math.max(0, min - 10);
     }
+  }
+  const sumbu = SUMBU_TETAP[SUMBU_PER_KANVAS[canvasId]];
+  if (sumbu) {
+    // Rentang tetap; melebar hanya bila data keluar darinya.
+    min = low < sumbu.lo ? low - padding : sumbu.lo;
+    max = high > sumbu.hi ? high + padding : sumbu.hi;
   }
 
   const width = rect.width,
@@ -692,14 +709,22 @@ function hmiPaintChart() {
   if (lim.max !== undefined) hi = Math.max(hi, lim.max);
   const pad = Math.max((hi - lo) * 0.12, m === "ph" ? 0.2 : 2);
   lo = Math.max(0, lo - pad); hi = hi + pad;
+  const sumbu = SUMBU_TETAP[m];
+  const bagi = sumbu ? sumbu.bagi : 4;
+  if (sumbu) {
+    // Rentang tetap (mis. pH 0-10); melebar hanya bila data keluar darinya.
+    const dMin = Math.min(...vals), dMax = Math.max(...vals);
+    lo = dMin < sumbu.lo ? Math.max(0, dMin - pad) : sumbu.lo;
+    hi = dMax > sumbu.hi ? dMax + pad : sumbu.hi;
+  }
   const t0 = pts[0].t, t1 = pts[pts.length - 1].t || t0 + 1;
   const X = (t) => L + ((t - t0) / Math.max(t1 - t0, 1)) * (W - L - R);
   const Y = (v) => T + ((hi - v) / (hi - lo)) * (H - T - B);
 
   // grid + label sumbu
   ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1; ctx.fillStyle = "#5b6670"; ctx.textAlign = "right";
-  for (let i = 0; i <= 4; i++) {
-    const v = lo + ((hi - lo) * i) / 4, y = Y(v);
+  for (let i = 0; i <= bagi; i++) {
+    const v = lo + ((hi - lo) * i) / bagi, y = Y(v);
     ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
     ctx.fillText(v.toFixed(m === "ph" || m === "rain" ? 1 : 0), L - 6, y + 4);
   }

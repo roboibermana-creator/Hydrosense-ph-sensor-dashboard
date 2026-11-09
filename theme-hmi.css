@@ -914,3 +914,54 @@
 .kpi-foot {
   gap: 8px;
 }
+
+/* Kartu Lokasi Alat (GPS) */
+.hmi-lokasi-card .lokasi-body {
+  padding: 0 18px 16px;
+}
+.hmi-lokasi-card iframe {
+  width: 100%;
+  height: 180px;
+  border: 1px solid var(--line, #d5dce6);
+  border-radius: 6px;
+  display: block;
+}
+.hmi-lokasi-card .lokasi-teks {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted, #5b6676);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* Ekspor Excel (pH & TSS) */
+.hmi-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 1px solid var(--line, #c9d2de);
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+.hmi-btn:hover { background: #f2f5f9; }
+.hmi-btn:disabled { opacity: 0.6; cursor: wait; }
+.hmi-btn-utama { background: #1f7a3d; border-color: #1f7a3d; color: #fff; }
+.hmi-btn-utama:hover { background: #196632; }
+.ekspor-dialog {
+  border: 1px solid var(--line, #c9d2de);
+  border-radius: 10px;
+  padding: 20px 22px;
+  width: min(92vw, 380px);
+}
+.ekspor-dialog::backdrop { background: rgba(10, 20, 35, 0.45); }
+.ekspor-dialog h3 { margin: 0 0 14px; font-size: 15px; }
+.ekspor-baris { display: flex; gap: 12px; }
+.ekspor-baris label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.ekspor-baris input { font: inherit; padding: 6px; border: 1px solid var(--line, #c9d2de); border-radius: 6px; }
+.ekspor-cepat { display: flex; gap: 8px; margin: 12px 0 4px; }
+.ekspor-info { font-size: 11px; color: var(--muted, #5b6676); margin: 8px 0; }
+.ekspor-status { font-size: 12px; min-height: 16px; margin: 4px 0 12px; }
+.ekspor-aksi { display: flex; justify-content: flex-end; gap: 8px; }
+.hmi-lokasi-card iframe[hidden] { display: none; }

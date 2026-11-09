@@ -296,11 +296,30 @@
                   ><button type="button" data-metric="wl">Level</button
                   ><button type="button" data-metric="rain">Hujan</button>
                 </div>
+                <button type="button" class="hmi-btn" id="eksporBuka" data-min-role="tamu" title="Unduh data pH dan TSS ke Excel">Ekspor Excel</button>
               </div>
               <div class="hmi-chart">
                 <canvas id="dashChart" aria-label="Grafik tren kualitas air"></canvas>
                 <div class="hmi-tooltip" id="dashChartTip" hidden></div>
               </div>
+              <dialog id="eksporDialog" class="ekspor-dialog">
+                <h3>Ekspor data pH &amp; TSS ke Excel</h3>
+                <div class="ekspor-baris">
+                  <label>Dari tanggal<input type="date" id="eksporMulai" /></label>
+                  <label>Sampai tanggal<input type="date" id="eksporAkhir" /></label>
+                </div>
+                <div class="ekspor-cepat">
+                  <button type="button" class="hmi-btn" data-hari="1">Hari ini</button>
+                  <button type="button" class="hmi-btn" data-hari="7">7 hari</button>
+                  <button type="button" class="hmi-btn" data-hari="30">30 hari</button>
+                </div>
+                <p class="ekspor-info">Jam dalam WITA. Tanggal akhir ikut diunduh. Maksimal 366 hari.</p>
+                <p class="ekspor-status" id="eksporStatus" role="status"></p>
+                <div class="ekspor-aksi">
+                  <button type="button" class="hmi-btn" id="eksporBatal">Tutup</button>
+                  <button type="button" class="hmi-btn hmi-btn-utama" id="eksporUnduh">Unduh Excel</button>
+                </div>
+              </dialog>
               <div class="hmi-legend" id="dashLegendAll" style="display: none"></div>
               <div class="hmi-legend" id="dashLegend">
                 <span><i class="lg-line"></i><span id="dashLegendName">pH terukur</span></span>
@@ -330,6 +349,16 @@
                   <div class="act-row" data-min-role="operator">
                     <div class="name">Jaringan Alat<small id="dashDeviceNet">IP -- / MAC --</small></div>
                   </div>
+                </div>
+              </section>
+              <section class="hmi-card hmi-lokasi-card" id="lokasiCard" data-min-role="tamu">
+                <div class="panel-h">
+                  <h2>LOKASI ALAT</h2>
+                  <a href="#" class="hmi-link" id="lokasiLink" target="_blank" rel="noopener" hidden>Buka peta →</a>
+                </div>
+                <div class="lokasi-body">
+                  <iframe id="lokasiPeta" title="Peta lokasi alat" loading="lazy" hidden></iframe>
+                  <p class="lokasi-teks" id="lokasiTeks">Belum ada data lokasi dari GPS alat.</p>
                 </div>
               </section>
               <section class="hmi-card hmi-alarm-card">
