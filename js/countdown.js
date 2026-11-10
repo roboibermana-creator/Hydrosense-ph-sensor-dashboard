@@ -19,7 +19,9 @@ export function initCountdown() {
     if (!state.hb) c.textContent = "--";
     else if (!segar) c.textContent = "alat offline";
     else if (state.hb.mode !== "otomatis") c.textContent = "mode manual";
-    else if (state.hb.fase && state.hb.fase.startsWith("siklus")) {
+    else if (state.hb.fase && /^(air kolam kering|sensor level kolam)/.test(state.hb.fase)) {
+      c.textContent = "ditolak: " + state.hb.fase.replace(" - siklus ditolak", "");
+    } else if (state.hb.fase && state.hb.fase.startsWith("siklus")) {
       c.textContent = state.hb.fase + " (hitung mundur mulai setelah valve menutup)";
     } else {
       const s = Math.max(0, state.hb.sisa - Math.floor((Date.now() - state.hb.diterimaMs) / 1000));

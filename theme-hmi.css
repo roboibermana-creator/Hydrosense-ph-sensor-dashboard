@@ -934,3 +934,30 @@
 .ekspor-status { font-size: 12px; min-height: 16px; margin: 4px 0 12px; }
 .ekspor-aksi { display: flex; justify-content: flex-end; gap: 8px; }
 .hmi-lokasi-card iframe[hidden] { display: none; }
+
+/* Kolom teks status kolam (Dashboard Utama) */
+.hmi-kolam {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px 16px;
+  border: 1px solid var(--line, #c9d2de);
+  border-left-width: 5px;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+}
+.hmi-kolam .kolam-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted, #5b6676);
+  white-space: nowrap;
+}
+.hmi-kolam .kolam-teks { font-weight: 600; }
+.hmi-kolam[data-st="netral"] { border-left-color: #8a949e; }
+.hmi-kolam[data-st="ok"] { border-left-color: #2e7d32; }
+.hmi-kolam[data-st="ok"] .kolam-teks { color: #2e7d32; }
+.hmi-kolam[data-st="alarm"] { border-left-color: #c62828; background: #fdecea; }
+.hmi-kolam[data-st="alarm"] .kolam-teks { color: #c62828; }
