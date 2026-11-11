@@ -757,40 +757,8 @@
                   ! CHECKING CALIBRATION STATUS
                 </div>
               </section>
-              <section class="data-panel calibration-panel">
-                <div class="panel-heading">
-                  <span>TSS CALIBRATION STATUS</span
-                  ><img
-                    class="pixel-icon mini-icon"
-                    src="gambarpixel/ikon-pengaturan-kecil.svg"
-                    alt=""
-                  />
-                </div>
-                <div class="cal-status">
-                  <img
-                    class="pixel-icon"
-                    src="gambarpixel/tss-cluster-small.svg"
-                    alt=""
-                  />
-                  <div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div>
-                </div>
-                <div class="calibration-rows">
-                  <div>
-                    <span>Std A: 0 mg/L</span
-                    ><b style="color: var(--neon)">COMPLETE</b>
-                  </div>
-                  <div>
-                    <span>Std B: 100 mg/L</span
-                    ><em style="color: var(--orange)">PENDING</em>
-                  </div>
-                  <div>
-                    <span>Std C: 500 mg/L</span
-                    ><em style="color: var(--orange)">PENDING</em>
-                  </div>
-                </div>
-                <div class="warning">! CALIBRATION DATA LOADED</div>
-              </section>
-              <section class="data-panel calibration-panel">
+              <!-- WATER LEVEL CALIBRATION: tinggi maksimum & batas minimal air (angka diisi operator) -->
+              <section class="data-panel calibration-panel" id="minAirPanel">
                 <div class="panel-heading">
                   <span>WATER LEVEL CALIBRATION</span
                   ><img
@@ -799,29 +767,53 @@
                     alt=""
                   />
                 </div>
-                <div class="cal-status">
-                  <img
-                    class="pixel-icon"
-                    src="gambarpixel/level-calibration.svg"
-                    alt=""
-                  />
-                  <div><b>SENSOR CALIBRATED</b><span>WAITING FOR DATA</span></div>
-                </div>
                 <div class="calibration-rows">
                   <div>
-                    <span>High Setpoint: 80%</span
-                    ><em style="color: var(--orange)">PENDING</em>
+                    <span>Tinggi maksimum di alat</span
+                    ><b id="maxAirNow" style="color: var(--neon)">--</b>
                   </div>
                   <div>
-                    <span>Low Setpoint: 20%</span
-                    ><em style="color: var(--orange)">PENDING</em>
-                  </div>
-                  <div>
-                    <span>Tank Height: 200cm</span
-                    ><b style="color: var(--neon)">COMPLETE</b>
+                    <span>Batas minimal di alat</span
+                    ><b id="minAirNow" style="color: var(--neon)">--</b>
                   </div>
                 </div>
-                <div class="warning">! CALIBRATION DATA LOADED</div>
+                <div class="warning">
+                  MAKSIMUM = JARAK SENSOR KE DASAR KOLAM (DASAR HITUNG TINGGI AIR).
+                  SIKLUS OTOMATIS DITOLAK BILA TINGGI AIR DI BAWAH BATAS MINIMAL
+                  (ALAT MENUNGGU AIR NAIK). ALAT MEMBACA PERUBAHAN DALAM SEKITAR 30
+                  DETIK, TANPA UPLOAD ULANG.
+                </div>
+                <div style="margin-top: 12px">
+                  <label style="display: block; font-size: 12px"
+                    >Tinggi maksimum (cm)
+                    <input
+                      type="number"
+                      step="any"
+                      min="10"
+                      max="500"
+                      id="inputMaxAir"
+                      style="width: 100%"
+                  /></label>
+                  <label style="display: block; font-size: 12px; margin-top: 8px"
+                    >Batas minimal (cm)
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      max="500"
+                      id="inputMinAir"
+                      style="width: 100%"
+                  /></label>
+                  <button
+                    type="button"
+                    id="btnSimpanMinAir"
+                    class="calibrate-button"
+                    style="width: 100%; margin-top: 8px"
+                  >
+                    SIMPAN
+                  </button>
+                </div>
+                <div class="warning" id="minAirLog" style="margin-top: 8px">&gt; Memuat…</div>
               </section>
           </div>
           <div class="cal-col">
