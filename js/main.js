@@ -58,7 +58,6 @@ if (role === "operator") {
     { initControl },
     { initCalibrationTss },
     { initTssFactor },
-    { initTssHwWizard },
     { initPhCalibration },
     { initMode },
     { initCountdown },
@@ -69,7 +68,6 @@ if (role === "operator") {
     import("./control.js"),
     import("./calibration-tss.js"),
     import("./tss-factor.js?v=20261108c"),
-    import("./tss-hw-wizard.js?v=20261108c"),
     import("./ph-calibration.js?v=20261106g"),
     import("./mode.js"),
     import("./countdown.js"),
@@ -81,7 +79,6 @@ if (role === "operator") {
   initControl();
   initCalibrationTss();
   initTssFactor();
-  initTssHwWizard();
   initPhCalibration();
   initMode();
   initCountdown();
