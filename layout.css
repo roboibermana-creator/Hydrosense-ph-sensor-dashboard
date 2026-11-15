@@ -7,55 +7,56 @@
   view-transition-name: page;
 }
 
-/* ===== Morph transisi antar-menu (View Transitions API) ===== */
+/* ===== Morph antar-menu (View Transitions API, dipicu js/nav.js) =====
+   nav-active : sorotan menu sidebar meluncur ke menu baru
+   hero       : kartu KPI <-> kartu utama halaman detail (nama dipasang JS saat transisi)
+   page       : sisa halaman, slide + fade searah urutan menu */
 .nav-link.active {
-  view-transition-name: nav-active; /* sorotan menu meluncur ke item baru */
+  view-transition-name: nav-active;
 }
-::view-transition-group(nav-active) {
+::view-transition-group(*) {
   animation-duration: 420ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
-::view-transition-group(page) {
-  animation-duration: 480ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+::view-transition-group(hero) {
+  z-index: 2; /* kartu yang berubah wujud tampil di atas halaman */
+}
+::view-transition-old(hero),
+::view-transition-new(hero) {
+  height: 100%; /* isi kartu ikut tinggi kartu saat ukurannya berubah */
+  object-fit: cover;
+  object-position: top left;
 }
 ::view-transition-old(page) {
-  animation: vt-page-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: vt-out-left 300ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 ::view-transition-new(page) {
-  animation: none; /* yang masuk dianimasikan per kartu (lihat .page-enter) */
+  animation: vt-in-right 420ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
 }
-
-/* Kartu muncul dari bawah satu per satu (stagger) */
-.page-content.page-enter :is(.data-panel, .hmi-card) {
-  animation: card-rise 700ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+/* Pindah ke menu di atasnya: arah dibalik */
+html[data-nav-dir="back"]::view-transition-old(page) {
+  animation-name: vt-out-right;
 }
-@keyframes card-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(60px) scale(0.94);
-    filter: blur(4px);
-  }
-  60% {
-    opacity: 1;
-    filter: blur(0);
-  }
+html[data-nav-dir="back"]::view-transition-new(page) {
+  animation-name: vt-in-left;
 }
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none; /* sidebar/header tetap diam */
 }
-@keyframes vt-page-out {
-  to {
-    opacity: 0;
-    transform: translateY(-30px) scale(0.97);
-  }
+@keyframes vt-out-left {
+  to { opacity: 0; transform: translateX(-48px); }
+}
+@keyframes vt-out-right {
+  to { opacity: 0; transform: translateX(48px); }
+}
+@keyframes vt-in-right {
+  from { opacity: 0; transform: translateX(48px); }
+}
+@keyframes vt-in-left {
+  from { opacity: 0; transform: translateX(-48px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .page-content.page-enter :is(.data-panel, .hmi-card) {
-    animation: none !important;
-  }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
