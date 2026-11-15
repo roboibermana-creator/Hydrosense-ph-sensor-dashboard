@@ -4,6 +4,51 @@
 }
 .page-content.active {
   display: grid !important;
+  view-transition-name: page;
+}
+
+/* ===== Morph transisi antar-menu (View Transitions API) ===== */
+.nav-link.active {
+  view-transition-name: nav-active; /* sorotan menu meluncur ke item baru */
+}
+::view-transition-group(nav-active) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-group(page) {
+  animation-duration: 480ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(page) {
+  animation: vt-page-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+::view-transition-new(page) {
+  animation: vt-page-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none; /* sidebar/header tetap diam */
+}
+@keyframes vt-page-out {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: blur(6px);
+  }
+}
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+    filter: blur(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 #page-dashboard-utama {
   grid-template-columns: repeat(4, minmax(0, 1fr));
