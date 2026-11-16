@@ -27,11 +27,11 @@ if (role === "visitor") {
 }
 
 await import("./nav.js");
-await import("./dashboard.js?v=20261116b");
+await import("./dashboard.js?v=20261109d");
 await import("./rain.js?v=20261106g");
 
 // Kolom teks status kolam (air kering = jadwal otomatis ditolak), untuk semua peran.
-const { initKolam } = await import("./kolam.js?v=20261116b");
+const { initKolam } = await import("./kolam.js?v=20261110a");
 initKolam();
 
 // Status kalibrasi pH di Dashboard Utama (baca saja, untuk semua peran).
@@ -45,7 +45,7 @@ if (role !== "operator") {
 }
 
 // Ekspor Excel pH & TSS: boleh untuk semua peran (data hanya dibaca).
-const { initEkspor } = await import("./ekspor.js?v=20261116b");
+const { initEkspor } = await import("./ekspor.js?v=20261116a");
 initEkspor();
 
 if (role === "tamu" || role === "operator") {

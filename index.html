@@ -203,35 +203,6 @@
               </div>
             </section>
 
-            <!-- INDEKS PENCEMARAN (IP) -->
-            <section class="hmi-card hmi-kpi" id="kpiIp" data-st="offline">
-              <div class="kpi-head">
-                <div class="kpi-title">
-                  <span class="kpi-ic"
-                    ><svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M4 19V9m6 10V5m6 14v-7m4 7H2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg></span
-                  >INDEKS PENCEMARAN
-                </div>
-                <span class="hmi-pill" id="ipPill">--</span>
-              </div>
-              <div class="kpi-val">
-                <b id="ipNowSummary">-</b><span>IP</span>
-              </div>
-              <div class="kpi-sub">
-                Rasio pH <b id="ipRasioPh">-</b> · Rasio TSS <b id="ipRasioTss">-</b>
-              </div>
-              <div class="kpi-bar">
-                <div class="fill" id="ipFill" style="width: 0%"></div>
-                <div class="mark" style="left: 10%"></div>
-                <div class="mark" style="left: 50%"></div>
-              </div>
-              <div class="kpi-scale"><span>0</span><span>batas 1 · 5 · 10</span><span>10+</span></div>
-              <div class="kpi-foot">
-                Status <b id="ipStatusSummaryText">-</b>
-                <span>KepMenLH 115/2003</span>
-              </div>
-            </section>
-
             <!-- LEVEL -->
             <section class="hmi-card hmi-kpi is-link" id="kpiWl" data-st="offline" data-goto="page-water-level" tabindex="0" role="link">
               <div class="kpi-head">
@@ -324,7 +295,6 @@
                   <button type="button" data-metric="all">Semua</button
                   ><button type="button" class="on" data-metric="ph">pH</button
                   ><button type="button" data-metric="tss">TSS</button
-                  ><button type="button" data-metric="ip">IP</button
                   ><button type="button" data-metric="wl">Level</button
                   ><button type="button" data-metric="rain">Hujan</button>
                 </div>
@@ -1306,6 +1276,6 @@
         </div>
       </form>
     </dialog>
-    <script type="module" src="js/main.js?v=20261116b"></script>
+    <script type="module" src="js/main.js?v=20261116a"></script>
   </body>
 </html>

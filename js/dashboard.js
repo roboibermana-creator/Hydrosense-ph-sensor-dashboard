@@ -1,7 +1,6 @@
 // Dashboard Utama: ambil data sensor, kartu KPI, grafik, alarm, polling.
 import { supabase, numeric, parseTimestamp, formatTime, state } from "./core.js";
 import { registerHover, smoothPath } from "./chart.js?v=20261108a";
-import { hitungIP, GARIS_IP } from "./ip.js";
 
 // Rentang sumbu Y TETAP per metrik supaya kurva tidak "bergerigi" karena skala otomatis
 // memperbesar fluktuasi kecil. Hanya melebar bila data benar-benar keluar dari rentang.
@@ -13,7 +12,6 @@ const SUMBU_TETAP = {
   wl: { lo: 0, hi: 100, bagi: 4 },
   ntu: { lo: 0, hi: 1000, bagi: 5 }, // hanya dipakai tab "Semua"
   temp: { lo: 0, hi: 50, bagi: 5 }, // hanya dipakai tab "Semua"
-  ip: { lo: 0, hi: 12, bagi: 6 }, // garis batas IP di 1, 5, 10
 };
 const SUMBU_PER_KANVAS = { "#teleChart": "ph", "#tssChart": "tss", "#wlChart": "wl" };
 
@@ -539,7 +537,6 @@ const HMI_LIMIT = {
   wl: { min: 20, max: 90, label: "Level (%)", unit: " %", dec: 0 },
   // Tidak ada baku mutu hujan; garis batas = awal kategori "lebat" BMKG (10 mm/jam).
   rain: { max: 10, label: "Curah hujan (mm/jam)", unit: " mm/jam", dec: 1 },
-  ip: { label: "Indeks Pencemaran (IP)", unit: "", dec: 2 },
   all: { label: "Semua parameter", unit: "", dec: 1 },
 };
 const hmiState = { metric: "ph", entries: [], levelEntries: [], rainEntries: [], pts: [], hidden: new Set() };
@@ -563,23 +560,6 @@ export function hmiSetKpi(cardId, pillId, status, text) {
     pill.textContent = text;
     pill.className = "hmi-pill " + status;
   }
-}
-
-// Kartu Indeks Pencemaran: dihitung dari pH + TSS terbaru (null = "-", tidak dihitung).
-const IP_CARD_ST = { baik: "ok", ringan: "warn", sedang: "alarm", berat: "alarm" };
-function hmiUpdateIp(ph, tss) {
-  const h = hitungIP(ph, tss);
-  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set("ipNowSummary", h ? h.ip.toFixed(2) : "-");
-  set("ipRasioPh", h ? h.rPh.toFixed(2) : "-");
-  set("ipRasioTss", h ? h.rTss.toFixed(2) : "-");
-  set("ipStatusSummaryText", h ? h.status : "-");
-  hmiSetKpi("kpiIp", "ipPill", h ? IP_CARD_ST[h.kode] : "offline", h ? h.status.toUpperCase() : "NO DATA");
-  const fill = document.getElementById("ipFill");
-  if (fill) fill.style.width = (h ? Math.min(100, (h.ip / 10) * 100) : 0) + "%";
-  const card = document.getElementById("kpiIp");
-  if (card) card.dataset.ip = h ? h.kode : "";
-  document.dispatchEvent(new CustomEvent("ip-update", { detail: h }));
 }
 
 function hmiStatusPh(v) {
@@ -624,7 +604,6 @@ function updateDashboardHmi(latest, entries, levelEntries, isConnected) {
   hmiSetKpi("kpiPh", "phPill", phSt, phTxt);
   hmiSetKpi("kpiTss", "tssPill", tssSt, tssTxt);
   hmiSetKpi("kpiWl", "wlPill", wlSt, wlTxt);
-  hmiUpdateIp(ph, tss);
 
   const phMark = document.getElementById("phMark");
   if (phMark) {
@@ -729,7 +708,7 @@ function hmiPaintChart() {
   const src =
     m === "rain" ? hmiState.rainEntries : m === "wl" && hmiState.levelEntries.length ? hmiState.levelEntries : hmiState.entries;
   let pts = src
-    .map((e) => ({ t: parseTimestamp(e.timestamp), v: m === "ip" ? hitungIP(e.ph, e.tss)?.ip : e[m] }))
+    .map((e) => ({ t: parseTimestamp(e.timestamp), v: e[m] }))
     .filter((p) => p.t !== null && p.v !== null && p.v !== undefined);
   pts = hmiRangkaianTerbaru(pts);
 
@@ -798,16 +777,6 @@ function hmiPaintChart() {
     ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
     ctx.fillText(`${name} ${lim[k]}`, W - R - 4, k === "max" ? y - 5 : y + 13);
   });
-  if (m === "ip") {
-    ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
-    for (const g of GARIS_IP) {
-      if (g < lo || g > hi) continue;
-      const y = Y(g);
-      ctx.strokeStyle = ctx.fillStyle = g === 1 ? "#2e7d32" : g === 5 ? "#e65100" : "#c62828";
-      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
-      ctx.fillText("IP " + g, W - R - 4, y - 5);
-    }
-  }
   ctx.setLineDash([]);
 
   // area + garis data
