@@ -2,6 +2,7 @@
 // Tanggal dibaca dalam WITA (UTC+8, sama dengan jam di dashboard). Pustaka SheetJS dimuat
 // hanya saat tombol Unduh ditekan, jadi tidak memperlambat halaman.
 import { supabase, el, numeric } from "./core.js";
+import { hitungIP } from "./ip.js";
 
 const TABEL = "Hydrosense table";
 const ZONA = "Asia/Makassar"; // WITA
@@ -76,13 +77,15 @@ async function unduh() {
 
     setStatus("Membuat file Excel…");
     const XLSX = await import(SHEETJS);
-    const lembar = [["Tanggal", "Jam (WITA)", "pH", "TSS (mg/L)"]];
+    const lembar = [["Tanggal", "Jam (WITA)", "pH", "TSS (mg/L)", "IP", "Status IP"]];
     for (const r of data) {
       const [tgl, jam] = fmtWaktu.format(new Date(r.timestamp)).split(" ");
-      lembar.push([tgl, jam, numeric(r.ph), numeric(r.tss)]);
+      const ph = numeric(r.ph), tss = numeric(r.tss);
+      const h = hitungIP(ph, tss); // null bila pH/TSS kosong -> kolom IP dikosongkan
+      lembar.push([tgl, jam, ph, tss, h ? Math.round(h.ip * 1000) / 1000 : null, h ? h.status : null]);
     }
     const ws = XLSX.utils.aoa_to_sheet(lembar);
-    ws["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 22 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "pH & TSS");
     XLSX.writeFile(wb, "hydrosense_ph-tss_" + mulai + "_sd_" + akhir + ".xlsx");

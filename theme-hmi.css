@@ -614,8 +614,17 @@
 
 /* ---------- Kartu KPI: 5 kolom, bisa diklik ---------- */
 .hmi-kpis {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+@media (min-width: 1900px) {
+  .hmi-kpis {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+/* Kartu IP: warna garis aksen mengikuti 4 status (data-ip diisi js/dashboard.js) */
+#kpiIp[data-ip="ringan"] .kpi-bar .fill { background: #9ccc3a; }
+#kpiIp[data-ip="sedang"] .kpi-bar .fill { background: #e08a45; }
+#kpiIp[data-ip="berat"] .kpi-bar .fill { background: #b71c1c; }
 .hmi-kpi .kpi-val b {
   font-size: 36px;
 }
@@ -959,5 +968,9 @@
 .hmi-kolam[data-st="netral"] { border-left-color: #8a949e; }
 .hmi-kolam[data-st="ok"] { border-left-color: #2e7d32; }
 .hmi-kolam[data-st="ok"] .kolam-teks { color: #2e7d32; }
+.hmi-kolam[data-st="warn"] { border-left-color: #9ccc3a; }
+.hmi-kolam[data-st="warn"] .kolam-teks { color: #5c7f12; }
+.hmi-kolam[data-st="sedang"] { border-left-color: #e08a45; background: #fdf1e6; }
+.hmi-kolam[data-st="sedang"] .kolam-teks { color: #b55f1c; }
 .hmi-kolam[data-st="alarm"] { border-left-color: #c62828; background: #fdecea; }
 .hmi-kolam[data-st="alarm"] .kolam-teks { color: #c62828; }
