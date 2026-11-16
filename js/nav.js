@@ -72,7 +72,7 @@ function navigateTo(id, { push = true } = {}) {
         { opacity: 0, transform: `translateX(${dx}px)` },
         { opacity: 1, transform: "none" },
       ],
-      { duration: 380, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+      { duration: 750, easing: "cubic-bezier(0.65, 0, 0.35, 1)" },
     );
     focusHeading(id);
     return;

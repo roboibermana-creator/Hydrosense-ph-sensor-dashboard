@@ -15,8 +15,8 @@
   view-transition-name: nav-active;
 }
 ::view-transition-group(*) {
-  animation-duration: 420ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-duration: 750ms;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
 }
 ::view-transition-group(hero) {
   z-index: 2; /* kartu yang berubah wujud tampil di atas halaman */
@@ -28,10 +28,10 @@
   object-position: top left;
 }
 ::view-transition-old(page) {
-  animation: vt-out-left 300ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: vt-out-left 550ms cubic-bezier(0.65, 0, 0.35, 1) both;
 }
 ::view-transition-new(page) {
-  animation: vt-in-right 420ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+  animation: vt-in-right 750ms cubic-bezier(0.65, 0, 0.35, 1) 120ms both;
 }
 /* Pindah ke menu di atasnya: arah dibalik */
 html[data-nav-dir="back"]::view-transition-old(page) {
@@ -45,16 +45,16 @@ html[data-nav-dir="back"]::view-transition-new(page) {
   animation: none; /* sidebar/header tetap diam */
 }
 @keyframes vt-out-left {
-  to { opacity: 0; transform: translateX(-48px); }
+  to { opacity: 0; transform: translateX(-24px); }
 }
 @keyframes vt-out-right {
-  to { opacity: 0; transform: translateX(48px); }
+  to { opacity: 0; transform: translateX(24px); }
 }
 @keyframes vt-in-right {
-  from { opacity: 0; transform: translateX(48px); }
+  from { opacity: 0; transform: translateX(24px); }
 }
 @keyframes vt-in-left {
-  from { opacity: 0; transform: translateX(-48px); }
+  from { opacity: 0; transform: translateX(-24px); }
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
