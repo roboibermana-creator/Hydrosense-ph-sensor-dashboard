@@ -44,13 +44,15 @@ if (role !== "operator") {
   initGuestStatus();
 }
 
+// Ekspor Excel pH & TSS: boleh untuk semua peran (data hanya dibaca).
+const { initEkspor } = await import("./ekspor.js?v=20261116a");
+initEkspor();
+
 if (role === "tamu" || role === "operator") {
   const { initRainPage } = await import("./rain-page.js");
   initRainPage();
   const { initLokasi } = await import("./lokasi.js?v=20261109a");
   initLokasi();
-  const { initEkspor } = await import("./ekspor.js?v=20261109a");
-  initEkspor();
 }
 
 if (role === "operator") {
