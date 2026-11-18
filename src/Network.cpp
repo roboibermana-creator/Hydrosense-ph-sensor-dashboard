@@ -1,4 +1,4 @@
-#include "Network.h"
+﻿#include "Network.h"
 #include "HttpKlien.h"
 #include "Level_Sensor.h"
 #include "SdQueue.h"
@@ -10,8 +10,8 @@ extern float suhuTssTerakhir;
 extern float ntuTerakhir;
 
 // ========================= KONFIGURASI SUPABASE =========================
-const char *SUPABASE_URL = "https://vupbropaxsqireeullbm.supabase.co";
-const char *SUPABASE_API_KEY = "sb_publishable_mvifCe-YeWbL4Wyp3jf1fA_Xwz2P26Z";
+const char *SUPABASE_URL = SUPABASE_URL_CFG;
+const char *SUPABASE_API_KEY = SUPABASE_API_KEY_CFG;
 // "Hydrosense table" menyimpan data OLAHAN (ph, tss, water_temperature,
 // water_level), bukan register mentah/diagnostik. Dashboard web membaca
 // langsung dari tabel ini.
@@ -205,7 +205,7 @@ bool kirimDataKeAPI(HasilPH hasilPh, float tss) {
   float levelPercent = 0.0, distanceCm = 0.0, currentMa = 0.0;
   readTankSensor(levelPercent, distanceCm, currentMa);
 
-  // Hanya kolom data OLAHAN yang dipakai dashboard — bukan raw
+  // Hanya kolom data OLAHAN yang dipakai dashboard â€” bukan raw
   // register/diagnostik
   String payload = "{";
   payload +=

@@ -24,9 +24,14 @@ pio run -e ota -t upload     # upload via WiFi (password = OTA_PASSWORD di inclu
 
 ## Konfigurasi
 
-- `include/Config.h`: ID perangkat, pin, kredensial jaringan/Supabase, password OTA.
+- `include/Config.h`: ID perangkat, pin, URL dan kunci publishable Supabase, APN GSM.
+- `include/Secrets.h`: password WiFi dan OTA. Tidak ikut git; salin dari `include/Secrets.example.h` dan isi sendiri.
 - `.env.example`: daftar variabel lingkungan. Salin ke `.env` dan isi sendiri. Jangan commit `.env`.
 
 ## Dokumentasi
 
 Lihat folder `docs/`: `WIRING.md`, `REGISTER_TSS.md`, `RAINGAUGE.md`, `TEST_FLOWCHART.md`, serta `state_machine.workflow.json` yang menjadi acuan lane pada `src/Mode*.cpp`.
+
+## Batasan yang diketahui
+
+- `src/Hardware.cpp`: flag "stop" dari kolom terpisah di `device_commands` belum diimplementasikan (ada TODO).

@@ -1,14 +1,15 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#define WIFI_SSID "SPRM-CORP"
-#define WIFI_PASSWORD "e$kr1mN@N@s3000" // PERTAHANKAN nilai lama secara lokal
-//#define WIFI_SSID "similiarly"
-//#define WIFI_PASSWORD "111222333"
+// WIFI_SSID, WIFI_PASSWORD, OTA_PASSWORD ada di Secrets.h (salin dari Secrets.example.h)
+#include "Secrets.h"
+
+// --- SUPABASE (kunci publishable, aman ada di klien; akses dibatasi RLS) ---
+#define SUPABASE_URL_CFG "https://vupbropaxsqireeullbm.supabase.co"
+#define SUPABASE_API_KEY_CFG "sb_publishable_mvifCe-YeWbL4Wyp3jf1fA_Xwz2P26Z"
 #define DEVICE_ID "hydrosense-inlet-01"
 
 // --- OTA (upload firmware lewat WiFi, lihat OTA.cpp) ---
 #define OTA_HOSTNAME DEVICE_ID
-#define OTA_PASSWORD "hydrosense-ota" // GANTI sebelum dipasang di lapangan
 // data seluler (PAKAI_GSM) saja. Bila WiFi putus dan PAKAI_GSM 1, data otomatis lewat GSM.
 // Bila keduanya 0, node tanpa internet: mulai di mode MANUAL dan tidak mengirim data.
 #define PAKAI_WIFI 1
