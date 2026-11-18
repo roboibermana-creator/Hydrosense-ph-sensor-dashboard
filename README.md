@@ -30,7 +30,7 @@ pio run -e ota -t upload     # upload via WiFi (password = OTA_PASSWORD di inclu
 
 ## Dokumentasi
 
-Lihat folder `docs/`: `WIRING.md`, `REGISTER_TSS.md`, `RAINGAUGE.md`, `TEST_FLOWCHART.md`, serta `state_machine.workflow.json` yang menjadi acuan lane pada `src/Mode*.cpp`.
+Lihat folder `docs/`: `WIRING.md`, `REGISTER_TSS.md`, `RAINGAUGE.md`, serta `state_machine.workflow.json` yang menjadi acuan lane pada `src/Mode*.cpp`.
 
 ## Batasan yang diketahui
 
