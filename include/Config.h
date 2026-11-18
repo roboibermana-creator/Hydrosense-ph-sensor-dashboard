@@ -1,30 +1,18 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-
-// CATATAN PENGGANTIAN:
-// File ini disusun berdasarkan Config.h yang kamu kirim.
-// BAGIAN YANG DIGANTI ditandai dengan komentar >>> [DIGANTI] ... <<<.
-// Password Wi-Fi sengaja dijadikan placeholder di file salinan ini.
-// Saat menerapkan, pertahankan nilai WIFI_PASSWORD lokal milikmu; jangan
-// menyalin placeholder ini ke firmware yang harus terkoneksi ke Wi-Fi.
-
-// --- KREDENSIAL WIFI & SUPABASE ---
-// SUPABASE_URL & SUPABASE_KEY SENGAJA TIDAK di-#define di sini -- nilainya
-// sudah didefinisikan sebagai variabel (bukan macro) di Network.cpp
-// (SUPABASE_URL, SUPABASE_API_KEY) dan dideklarasikan extern di Network.h.
-// Kalau di-#define juga di sini dengan nama yang sama, preprocessor akan
-// menyubstitusi teks "extern const char* SUPABASE_URL;" di Network.h jadi
-// "extern const char* <string literal>;" yang gagal compile.
 #define WIFI_SSID "SPRM-CORP"
 #define WIFI_PASSWORD "e$kr1mN@N@s3000" // PERTAHANKAN nilai lama secara lokal
-//#define WIFI_SSID "groundtank"
+//#define WIFI_SSID "similiarly"
 //#define WIFI_PASSWORD "111222333"
 #define DEVICE_ID "hydrosense-inlet-01"
 
-// Kunci mode operasi ke MANUAL: kolom "mode" dari Supabase diabaikan, siklus
-// otomatis tidak pernah dijalankan. Set ke 0 untuk mengembalikan perilaku
-// normal (mode ikut kolom "mode" dari web).
-#define FORCE_MODE_MANUAL 1
+// --- OTA (upload firmware lewat WiFi, lihat OTA.cpp) ---
+#define OTA_HOSTNAME DEVICE_ID
+#define OTA_PASSWORD "hydrosense-ota" // GANTI sebelum dipasang di lapangan
+// data seluler (PAKAI_GSM) saja. Bila WiFi putus dan PAKAI_GSM 1, data otomatis lewat GSM.
+// Bila keduanya 0, node tanpa internet: mulai di mode MANUAL dan tidak mengirim data.
+#define PAKAI_WIFI 1
+#define FORCE_MODE_MANUAL 0 // mode ikut kolom "mode" dari dashboard (tombol pilih mode)
 
 // --- HARDWARE PIN (sensor pH Modbus RS485 via MAX485 di Serial2) ---
 #define RS485_RX_PIN 16
@@ -34,26 +22,67 @@
 
 // --- PIN AKTUATOR & SENSOR LAIN ---
 // GPIO26-32 dipakai internal SPI flash ESP32-S3 -> JANGAN dipakai untuk apapun
-// (bisa crash / korup akses flash). Pompa dipindah ke GPIO6 (GPIO4 = ADC radar,
+// (bisa crash / korup akses flash). Pompa dipindah ke GPIO6 (GPIO4 = rain gauge,
 // GPIO5 = float switch, jadi tidak boleh dipakai pompa).
 #define PUMP_PIN 6 // relay pompa peristaltik (Pompa.cpp)
-// Kebalik dari kabel fisik motorized valve (waktu dites 'buka' malah nutup) --
-// makanya nomor pin ditukar di sini, BUKAN di kode logikanya, supaya
-// openValve1()/closeValve1() tetap berarti sama seperti namanya.
+#define VALVE_TRAVEL_MS 15000UL
+// Pemetaan fisik di board ini: relay BUKA = GPIO47, relay TUTUP = GPIO21.
+// GPIO21 = relay TUTUP.
 #define VALVE1_OPEN_PIN \
-  48 // relay motorized valve - arah buka (Valve_Controller.cpp)
+  47 // relay motorized valve - arah buka (Valve_Controller.cpp)
 #define VALVE1_CLOSE_PIN \
-  47 // relay motorized valve - arah tutup (Valve_Controller.cpp)
+  21 // relay motorized valve - arah tutup (Valve_Controller.cpp)
 #define PIN_FLOAT_SWITCH \
-  5 // GPIO4 dipakai ADC_PIN (radar 4-20mA) -> JANGAN dipakai ganda.
+  5 // GPIO4 = RAIN_PIN, GPIO9 = ADC_PIN (radar 4-20mA) -> JANGAN dipakai ganda.
     // Wiring: kabel kuning 1 -> GPIO5, kabel kuning 2 -> GND (INPUT_PULLUP).
-    // JANGAN pakai 19/20 -> itu pin native USB D-/D+ ESP32-S3,
-    // menyentuhnya bikin koneksi USB CDC (Serial Monitor) putus/crash
-// 1 = pompa manual ditolak saat float switch HIGH (chamber penuh); 0 = nonaktif
-// (mis. saat tes pompa tanpa float switch terpasang). Aktifkan lagi (1) begitu
-// float switch sudah terpasang.
-#define INTERLOCK_POMPA_MANUAL 0
+#define INTERLOCK_POMPA_MANUAL 1 // float switch HIGH = pompa dikunci OFF (mutlak)
 #define PIN_LED_ERROR 2
+
+// --- SD CARD (slot di Shield ESP32-S3 Pro, SPI) ---
+// Antrean data offline: pembacaan yang gagal terkirim disimpan di SD lalu
+// dikirim ulang saat online (lihat SdQueue.cpp). GPIO40 = CS SD.
+#define ENABLE_SD_QUEUE 0 // 1 = aktifkan antrean SD (butuh kartu FAT32 terpasang)
+#define SD_CS_PIN 40
+#define SD_MOSI_PIN 11
+#define SD_SCK_PIN 12
+#define SD_MISO_PIN 13
+
+// --- RAIN GAUGE tipping bucket (kontak reed, langsung ke pin; lihat Rain.cpp) ---
+// Satu kabel -> GPIO4, kabel lain -> GND (INPUT_PULLUP internal, 3V3 saja).
+// Modul DFRobot SEN0575 (UART GPIO17/18) rusak dan tidak dipakai lagi.
+#define RAIN_PIN 4
+#define RAIN_MM_PER_TIP 0.39f // mm per ketukan. Kalibrasi 300 mL / luas 5500 mm2 / 139 ketukan = 0,392 (spesifikasi 0,28 tidak cocok). Koreksi dengan B/E.
+// Luas TANGKAPAN = bukaan DALAM corong (mm^2), dipakai kalibrasi 'E'. Perkiraan dari foto:
+// 110 x 50 mm = 5500 mm^2 (bodi luar 118 x 59 BUKAN luas tangkapan). UKUR ULANG dengan
+// penggaris di bibir dalam corong, karena kesalahan luas langsung menggeser hasil kalibrasi.
+// Corong bulat: 3.14159 * (diameter/2)^2.
+#define RAIN_LUAS_CORONG_MM2 (110.0f * 50.0f)
+#define RAIN_DEBOUNCE_MS 50  // abaikan ketukan yang datang lebih cepat dari ini
+#define RAIN_TZ_OFFSET_S (7 * 3600) // WIB: batas "hari ini" = tengah malam lokal
+
+// --- GSM/4G: modul SIMCom SIM7600 (lihat Gsm.cpp) ---
+// Node memakai data seluler untuk bicara langsung ke Supabase (cadangan bila WiFi putus).
+// Wiring: TX ESP (GPIO18) -> RXD modem, RX ESP (GPIO1) <- TXD modem, GND bersama,
+// PWRKEY modem <- GPIO48. Catu modem 5 V TERPISAH, arus puncak ~2 A (jangan dari 3V3 ESP).
+// OTA ArduinoOTA hanya berjalan lewat WiFi; lewat GSM firmware di-flash via USB.
+#define PAKAI_GSM 0 // sementara 0: uji WiFi saja (kembalikan ke 1 bila modem terpasang)
+#define GSM_APN "internet"         // Telkomsel (simPATI/kartuHALO): "internet"; user/pass kosong
+#define GSM_APN_USER ""
+#define GSM_APN_PASS ""
+#define GSM_SERIAL Serial1
+#define GSM_BAUD 115200
+#define GSM_TX_PIN 18               // TX ESP -> RXD modem
+#define GSM_RX_PIN 1                // RX ESP <- TXD modem
+#define GSM_PWRKEY_PIN 48           // -1 = tidak dipakai (modem selalu menyala)
+#define GSM_PWRKEY_AKTIF_LOW 1      // 1 = pin ditarik LOW untuk menekan PWRKEY, 0 = HIGH
+#define GSM_PWRKEY_MS 1200
+#define GSM_SSL_ENTROPY_PIN 3       // pin ADC mengambang untuk data acak TLS (biarkan tidak tersambung)          // lama menekan PWRKEY
+// Hemat kuota: tanpa WiFi (data seluler) polling web diperlambat.
+#if PAKAI_GSM && !PAKAI_WIFI
+#define GSM_HEMAT 1
+#else
+#define GSM_HEMAT 0
+#endif
 
 // --- MODBUS SENSOR: register pembacaan pH ---
 // Alamat pH & suhu diambil dari hasil dump 'D' pada sensor Anda
@@ -65,8 +94,10 @@
 #define TEMP_REGISTER_ADDRESS 0x0001 // suhu x10, signed
 #define TEMP_SCALE 10.0
 #define MV_REGISTER_ADDRESS \
-  0x0007 // dugaan: tegangan elektroda x10 (mV); hanya untuk laporan
+  0x0007
 #define MV_SCALE 10.0
+#define PH_KOMPENSASI_SUHU 1
+#define PH_SUHU_REFERENSI_C 25.0
 
 // >>> [DIGANTI] MULAI BLOK MODBUS SENSOR TSS
 // Register berikut dicocokkan dengan tabel komunikasi BOQU ZDYG-2087-01.
@@ -74,15 +105,28 @@
 // firmware/varian perangkat berbeda dari manual acuan.
 #define TSS_SLAVE_ID 2 // Harus cocok dengan alamat sensor fisik; pH menggunakan ID 1.
 
-#define REG_TSS_VALUE             0x0002 // FC03; Float32 pada register 2-3
-#define REG_CAL_FACTOR            0x0006 // FC03/FC16; Float32 pada register 6-7
+// Terverifikasi lewat baca register slave 2 (2 Nov): TSS dan suhu adalah FLOAT32
+// dua register, word BAWAH dulu (CDAB). Alamat protokol 0-based (Modbus Poll).
+//   0x0000-0x0001 = TSS (mg/L)   contoh: 33658,17677 -> 2264.2
+//   0x0002-0x0003 = suhu (C)     contoh: 36460,16879 -> 29.9
+// (Catatan lama "register 1 = Int16 TSS" keliru: itu hanya word ATAS float TSS.)
+#define REG_TSS_VALUE             0x0000 // FC03; Float32 CDAB, 2 register
+#define REG_TSS_TEMPERATURE       0x0002 // FC03; Float32 CDAB, 2 register
+#define REG_TSS_NTU               0x0006 // FC03; Float32 CDAB, DUGAAN turbidity (NTU), belum terbukti
+// Pengali dari nilai float ke satuan asli (float sudah dalam mg/L dan C).
+#define TSS_VALUE_SCALE           1.0f
+#define TSS_TEMP_SCALE            1.0f
+// TERBUKTI (2 Nov, dari dashboard): faktor 2.0 -> TSS 472.13, faktor 3.0 -> 706.39
+// (rasio 1.496 ~ 3/2), jadi TSS sensor = faktor x nilai dasar. Peta float sensor
+// ini bergeser -2 dari manual OEM (faktor di 4-5, bukan 6-7).
+#define REG_CAL_FACTOR            0x0004 // FC03/FC16; Float32 (CDAB) pada register 4-5
 #define REG_BRUSHING_TIME         0x000B // FC03; Int16
 #define REG_RESPONSE_TIME         0x000C // FC03/FC06; response time dalam detik, 3-60
 #define REG_MEASUREMENT_PARAMETER 0x000D // FC03; 1=turbidity, 2=suspended solids
 #define REG_KELEMBABAN_PROBE      0x000E // FC03; manual merekomendasikan <10
-#define REG_MANUAL_SCRAPING       0x0014 // FC06; tulis 66 untuk perintah manual brushing
-#define REG_AUTO_SCRAPING_INTERVAL 0x0015 // FC06; interval brushing dalam menit
-#define TSS_MANUAL_SCRAPING_VALUE 66
+// Wiper: register kontrolnya tidak ditemukan di sensor ini (manual OEM 0x14/0x15
+// terbaca 0 dan tidak menggerakkan wiper), jadi fitur wiper dihapus dari firmware.
+// Peta sensor ini bergeser -2 dari manual OEM (faktor 4-5, mode TSS/turbidity 13).
 
 // Alias kompatibilitas untuk source lama. Gunakan REG_MEASUREMENT_PARAMETER
 // di kode baru karena register 13 BUKAN register status umum.
@@ -109,16 +153,32 @@
 // <<< [DIGANTI] AKHIR BLOK KALIBRASI HARDWARE TSS
 
 // --- SENSOR LEVEL RADAR 4-20mA ---
+// Dipindah dari GPIO4 ke GPIO9 (GPIO4 kini rain gauge). Keluaran converter maks 3,3 V!
 #define ADC_PIN \
-  4 // A_OUT converter -> GPIO4. ESP32-S3: gunakan ADC1 untuk pembacaan stabil saat Wi-Fi aktif.
+  9 // A_OUT converter -> GPIO9. ESP32-S3: gunakan ADC1 untuk pembacaan stabil saat Wi-Fi aktif.
 #define ADC_SAMPLES \
   32 // Ambil data 32 kali lalu dirata-rata.
 const float I_MIN_MA = 4.0;
 const float I_MAX_MA = 20.0;
-const float V_MIN_V = 0.0;          // output terendah converter
-const float V_MAX_V = 3.0;          // output tertinggi converter
-const float TANK_HEIGHT_CM = 100.0; // Tinggi tangki
+// Converter DFRobot SEN0262: resistor sense 120 ohm, jadi Vout = I x 120 ohm
+// (0-25 mA -> 0-3 V; 4 mA = 0,48 V, 20 mA = 2,40 V). Ukur resistor/arus dengan multimeter bila
+// hasil bacaan meleset, lalu sesuaikan nilai ini.
+const float SENSE_RESISTOR_OHM = 120.0;
+const float V_ADC_MAKS_V = 3.1;     // batas atas baca ADC (jangan lebih dari ~3,3 V)
+const float RADAR_RANGE_CM = 500.0; // rentang ukur radar: 4-20 mA = 0..5 m
+// Jarak sensor ke dasar kolam = tinggi air maksimum yang dihitung. Sementara = rentang radar (5 m);
+// kecilkan bila sensor dipasang lebih rendah / dasar kolam lebih dekat dari 5 m.
+const float TANK_HEIGHT_CM = RADAR_RANGE_CM;
 const bool SENSOR_INVERTED = true;
+
+// --- GERBANG "AIR KOLAM KERING" untuk jadwal otomatis (Kolam.cpp) ---
+// Sebelum siklus otomatis dimulai, tinggi air kolam diukur. Kurang dari batas ini = siklus DITOLAK
+// (pompa tidak dinyalakan), dashboard menampilkan "air kolam kering", dan dicek lagi tiap beberapa
+// detik sampai air naik. Logika siklus yang lama TIDAK diubah; ini hanya syarat tambahan di awalnya.
+// Tinggi air = level% x TANK_HEIGHT_CM (4-20 mA = 0..RADAR_RANGE_CM = 5 m; arah diatur SENSOR_INVERTED).
+// 0 = matikan gerbang ini.
+#define KOLAM_CEK_AKTIF 1
+const float KOLAM_MIN_AIR_CM = 20.0; // percobaan: >= 20 cm siklus jalan, di bawahnya ditolak
 
 // Threshold status untuk level
 const float TH_LOW_LOW = 10.0;
@@ -128,15 +188,18 @@ extern float thHigh;
 
 // --- MODBUS SENSOR: register kalibrasi (dokumen rumus_kalibrasi_ph.md) ---
 // 0x0120/0x0121 ditulis dengan function 0x10, 0x0050 dengan 0x06.
-// Belum diverifikasi pada sensor ini -> cek datasheet sebelum kalibrasi.
+// Cocok dengan wiki DFRobot SEN0708 (wiki.dfrobot.com/sen0708/docs/23388):
+// 0x0120 = nomor titik (1/2), 0x0121 = pH standar x100, keduanya FC 0x10 dalam
+// satu frame 2 register; 0x0050 = deviasi pH x100 (FC 0x06). Belum diuji tulis
+// langsung di sensor fisik ini.
 #define CAL_REGISTER_CMD 0x0120   // 1 = titik 1 (asam), 2 = titik 2 (basa)
 #define CAL_REGISTER_VALUE 0x0121 // round(pH_buffer x 100)
 #define DEVIATION_REGISTER 0x0050 // round(delta_pH x 100), signed
 
 // --- TITIK KALIBRASI & VERIFIKASI ---
 #define BUFFER_PH4_VALUE 4.01  // titik kalibrasi 1 (ditulis ke sensor)
-#define BUFFER_PH7_VALUE 7.01  // verifikasi saja
-#define BUFFER_PH10_VALUE 9.01 // titik kalibrasi 2 (ditulis ke sensor)
+#define BUFFER_PH7_VALUE 6.86  // verifikasi saja
+#define BUFFER_PH10_VALUE 9.18 // titik kalibrasi 2 (ditulis ke sensor)
 
 // --- GERBANG VALIDITAS ---
 #define PH_VALID_MIN 0.0

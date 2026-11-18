@@ -24,11 +24,26 @@ bool sensorOnline = false;
 // ---------------------------------------------------------------------
 #ifndef CAL_MAX_SAMPLES
 #define CAL_MAX_SAMPLES                                                        \
-  20 // maksimal 20 sampel berguna (~40 detik) - gaya instrumen bangku
+  30 // maksimal 30 sampel berguna (~60 detik) setelah warm-up
 #endif
 #ifndef CAL_SAMPLE_MS
 #define CAL_SAMPLE_MS 2000UL // jeda antar sampel saat kalibrasi
 #endif
+
+// Koreksi linear di sisi ESP32 dari titik buffer MANA SAJA yang sudah diukur
+// (4.01, 6.86, 9.18 -> indeks 0/1/2), minimal 1 titik:
+//   pH_benar = m * pH_sensor + b + swOff
+//   1 titik       : m = 1, b = pH_ref - r            (hanya offset)
+//   2 atau 3 titik: regresi least squares pH_ref ~ r (slope + offset)
+// r = pembacaan MENTAH sensor di buffer. swOff = trim offset manual (pH) dari
+// dashboard, ditambahkan di atasnya. Aktif untuk titik yang sensor-nya menolak
+// tulis kalibrasi (kalau sensor menerima, sensor sendiri yang mengoreksi dan
+// koreksi software dimatikan supaya tidak dobel).
+static double swRaw[3] = {NAN, NAN, NAN};
+static bool softOn = false;
+static double softM = 1.0, softB = 0.0;
+static double swOff = 0.0; // trim offset manual (pH)
+static bool phBacaMentah = false; // true saat mengumpulkan titik kalibrasi
 
 static PhStability stbLive; // jendela stabilitas operasi normal
 static PhStability stbCal;  // jendela stabilitas saat kalibrasi/verifikasi
@@ -78,6 +93,16 @@ bool readModbusSensor(double &ph, double &tempC, uint16_t *rawPh,
     return false;
   }
 
+#if PH_KOMPENSASI_SUHU
+  // Berlaku juga untuk titik kalibrasi (domain "setara 25 C"), jadi kalibrasi
+  // dan pengukuran tidak tergantung suhu buffer/air.
+  p = 7.0 + (p - 7.0) * (273.15 + PH_SUHU_REFERENSI_C) / (273.15 + t);
+#endif
+  if (!phBacaMentah) {
+    if (softOn)
+      p = softM * p + softB;
+    p += swOff;
+  }
   ph = p;
   tempC = t;
   lastTempC = t;
@@ -114,15 +139,16 @@ static const char *classifyPh(double ph) {
 
 // Tahap [4]-[6]: median N sampel, gerbang stabilitas, pembulatan.
 PhReading readSensor() {
-  PhReading r = {false, NAN, NAN, 0,       0,         0,
+  PhReading r = {false, NAN, NAN, NAN, 0,       0,         0,
                  0,     NAN, NAN, "error", "unknown", false};
-  double phs[MEDIAN_SAMPLES], temps[MEDIAN_SAMPLES];
+  double phs[MEDIAN_SAMPLES], temps[MEDIAN_SAMPLES], mvs[MEDIAN_SAMPLES];
 
   for (int i = 0; i < MEDIAN_SAMPLES; i++) {
-    double p, t;
+    double p, t, m;
     uint16_t rp;
     int16_t rt;
-    if (readModbusSensor(p, t, &rp, &rt)) {
+    if (readModbusSensor(p, t, &rp, &rt, &m)) {
+      mvs[r.sampleCount] = m;
       phs[r.sampleCount] = p;
       temps[r.sampleCount] = t;
       r.sampleCount++;
@@ -139,6 +165,7 @@ PhReading readSensor() {
 
   double ph = medianOf(phs, r.sampleCount);
   double tc = medianOf(temps, r.sampleCount);
+  r.mv = medianOf(mvs, r.sampleCount);
 
   stbLive.add(ph);
   StabilityStats s = stbLive.evaluate();
@@ -222,6 +249,26 @@ static bool collectStableReading(double &resultPh, double &resultMv,
 
     StabilityStats s = stbCal.evaluate();
 
+    // Lapor progres ke dashboard (hanya untuk perintah dari web), tiap >= 6 dtk.
+    static unsigned long progresTerakhir = 0;
+    if (phCalIdPerintahWeb >= 0 && millis() - progresTerakhir >= 6000UL) {
+      progresTerakhir = millis();
+      char buf[120];
+      if (!ok)
+        snprintf(buf, sizeof(buf), "[%lus] membaca sensor gagal...",
+                 elapsed / 1000UL);
+      else if (inWarmup)
+        snprintf(buf, sizeof(buf), "Warm-up %lu/%lu dtk | pH %.2f (dibuang)",
+                 elapsed / 1000UL, CAL_WARMUP_MS / 1000UL, ph);
+      else
+        snprintf(buf, sizeof(buf),
+                 "Sampel %d/%d | pH %.2f | sd %.3f | drift %.3f pH/mnt (butuh "
+                 "<= %.2f)",
+                 sampelBerguna, CAL_MAX_SAMPLES, ph, s.valid ? s.sd : 0.0,
+                 s.valid ? s.drift : 0.0, STB_DRIFT_OK_MV);
+      laporkanProgresKalibrasiPh(phCalIdPerintahWeb, buf);
+    }
+
     if (!ok)
       Serial.printf("[%lus] #%d  pH=GAGAL", elapsed / 1000UL, totalSamples);
     else
@@ -276,6 +323,57 @@ static bool collectStableReading(double &resultPh, double &resultMv,
 
 // Tulis titik kalibrasi ke sensor: reg 0x0120 = langkah, 0x0121 = round(pH x
 // 100).
+static void hitungKoreksiSoft() {
+  softOn = false;
+  softM = 1.0;
+  softB = 0.0;
+  if (!prefs.getBool("sw_on", false))
+    return;
+  double sx = 0, sy = 0, sxy = 0, sxx = 0;
+  int n = 0;
+  for (int i = 0; i < 3; i++) {
+    if (isnan(swRaw[i]))
+      continue;
+    const double x = swRaw[i], y = calPoints[i].phValue;
+    sx += x;
+    sy += y;
+    sxy += x * y;
+    sxx += x * x;
+    n++;
+  }
+  if (n == 0)
+    return;
+  if (n == 1) { // satu titik -> hanya geser (offset), slope dianggap 1
+    softB = sy - sx;
+    softOn = true;
+    return;
+  }
+  const double den = n * sxx - sx * sx;
+  if (fabs(den) < 0.25)
+    return; // titik terlalu berdekatan -> koreksi tidak masuk akal
+  const double m = (n * sxy - sx * sy) / den;
+  if (m < 0.7 || m > 1.3)
+    return; // kemiringan di luar wajar -> probe/buffer bermasalah
+  softM = m;
+  softB = (sy - m * sx) / n;
+  softOn = true;
+}
+
+static int jumlahTitikValid() {
+  int n = 0;
+  for (int i = 0; i < 3; i++)
+    if (calPoints[i].valid)
+      n++;
+  return n;
+}
+
+// Trim offset manual (pH), dipanggil dari dashboard/serial. 0 = hapus.
+void setOffsetPhManual(double nilai) {
+  swOff = nilai;
+  prefs.putDouble("sw_off", swOff);
+}
+double getOffsetPhManual() { return swOff; }
+
 static bool writeCalibrationToSensor(uint16_t step, double phBuffer) {
   node.clearTransmitBuffer();
   node.setTransmitBuffer(0, step);
@@ -283,6 +381,12 @@ static bool writeCalibrationToSensor(uint16_t step, double phBuffer) {
   uint8_t result = node.writeMultipleRegisters(CAL_REGISTER_CMD, 2);
   if (result != node.ku8MBSuccess) {
     Serial.printf("Tulis kalibrasi GAGAL, kode 0x%02X\n", result);
+    char buf[96];
+    snprintf(buf, sizeof(buf),
+             "Gagal menulis kalibrasi ke register sensor (kode Modbus 0x%02X, "
+             "alamat 0x%04X).",
+             result, (unsigned)CAL_REGISTER_CMD);
+    phCalLastMsg = buf;
     return false;
   }
   return true;
@@ -315,6 +419,12 @@ static void clearVerification() {
   computeVerification();
 }
 
+// Hasil proses kalibrasi/verifikasi pH terakhir -- dibaca WebSync.cpp untuk
+// dilaporkan ke dashboard (perintah dari web), selain dicetak ke Serial.
+bool phCalLastOk = false;
+long phCalIdPerintahWeb = -1;
+String phCalLastMsg;
+
 static void calibratePoint(int idx, uint16_t step, const char *label,
                            const char *prefsKey) {
   Serial.printf("\n=== KALIBRASI TITIK %u: %s ===\n", step, label);
@@ -322,19 +432,64 @@ static void calibratePoint(int idx, uint16_t step, const char *label,
   Serial.printf("2. Celupkan ke buffer %s, aduk pelan.\n", label);
   delay(3000);
 
+  // step == 0 -> titik tengah (6.86): tidak ada langkah tulis ke sensor yang
+  // dikenal, selalu lewat koreksi software.
   const char *titikDb = (idx == 0) ? "ph4" : (idx == 1) ? "ph7" : "ph10";
   double ph = 0, mv = NAN;
   bool wasStable = false;
-  if (!collectStableReading(ph, mv, wasStable, label, titikDb, "kalibrasi"))
+  phCalLastOk = false;
+  phCalLastMsg = "Gagal membaca sensor pH (Modbus tidak menjawab).";
+  phBacaMentah = true; // titik kalibrasi harus pembacaan mentah sensor
+  const bool bacaOk =
+      collectStableReading(ph, mv, wasStable, label, titikDb, "kalibrasi");
+  phBacaMentah = false;
+  if (!bacaOk)
     return;
   if (!wasStable) {
+    phCalLastMsg = String("Pembacaan ") + label +
+                   " belum stabil -> kalibrasi TIDAK ditulis ke sensor.";
     Serial.println(
         F("Pembacaan belum stabil -> kalibrasi TIDAK ditulis ke sensor."));
     return;
   }
 
-  if (!writeCalibrationToSensor(step, calPoints[idx].phValue))
-    return;
+  phCalLastMsg = "Gagal menulis kalibrasi ke register sensor.";
+  static const char *kunciSw[3] = {"sw_r1", "sw_r2", "sw_r3"};
+  bool tulisKeSensorOk = false;
+  String kode = "titik tengah, tidak ditulis ke sensor";
+  if (step != 0) {
+    tulisKeSensorOk = writeCalibrationToSensor(step, calPoints[idx].phValue);
+    if (!tulisKeSensorOk)
+      kode = phCalLastMsg; // berisi kode Modbus dari fungsi tulis
+  }
+  if (tulisKeSensorOk) {
+    // Sensor menerima: sensor yang mengoreksi, koreksi software dimatikan.
+    for (int i = 0; i < 3; i++) {
+      swRaw[i] = NAN;
+      prefs.remove(kunciSw[i]);
+    }
+    prefs.putBool("sw_on", false);
+    hitungKoreksiSoft();
+    phCalLastMsg = String(label) + " tertulis ke sensor (pembacaan " +
+                   String(ph, 2) + " pH).";
+  } else {
+    // Sensor menolak / titik tengah: simpan titik mentah, pakai koreksi
+    // linear di ESP32 dari titik yang sudah ada.
+    swRaw[idx] = ph;
+    prefs.putDouble(kunciSw[idx], ph);
+    prefs.putBool("sw_on", true);
+    hitungKoreksiSoft();
+    phCalLastMsg = String(label) + " tersimpan sebagai koreksi software (" +
+                   kode + ").";
+    if (softOn)
+      phCalLastMsg += String(" Koreksi aktif: pH = ") + String(softM, 4) +
+                      " x pH_sensor " + (softB >= 0 ? "+ " : "- ") +
+                      String(fabs(softB), 3);
+    else
+      phCalLastMsg += " Butuh titik lain (kemiringan belum wajar/titik "
+                      "terlalu dekat) agar koreksi aktif.";
+  }
+  phCalLastOk = true;
 
   calPoints[idx].reading =
       ph; // pembacaan SEBELUM koefisien baru berlaku (dokumentasi)
@@ -343,18 +498,15 @@ static void calibratePoint(int idx, uint16_t step, const char *label,
   calPoints[idx].valid = true;
   savePoint(prefsKey, calPoints[idx]);
 
-  Serial.printf("\n%s TERTULIS ke sensor (0x%04X=%u, 0x%04X=%ld). Pembacaan "
-                "saat itu %.2f pH.\n",
-                label, CAL_REGISTER_CMD, step, CAL_REGISTER_VALUE,
-                lround(calPoints[idx].phValue * 100.0), ph);
+  Serial.printf("\n%s\n", phCalLastMsg.c_str());
 
-  calibrated = calPoints[0].valid && calPoints[2].valid;
+  calibrated = jumlahTitikValid() >= 2;
   if (calibrated) {
     lastCalibrated = epochNow();
     prefs.putULong("calts", lastCalibrated);
     clearVerification(); // verifikasi lama tidak berlaku lagi
-    Serial.println(F("Kedua titik selesai. Lanjut verifikasi: 'A' (4.01), '7' "
-                     "(6.86), 'C' (9.18)."));
+    Serial.println(F("Minimal 2 titik selesai. Lanjut verifikasi: 'A' (4.01), "
+                     "'7' (6.86), 'C' (9.18)."));
   }
 }
 
@@ -366,6 +518,8 @@ static void verifyPoint(int idx, const char *label, const char *prefsKey) {
   const char *titikDb = (idx == 0) ? "ph4" : (idx == 1) ? "ph7" : "ph10";
   double ph = 0, mv = NAN;
   bool wasStable = false;
+  phCalLastOk = false;
+  phCalLastMsg = "Gagal membaca sensor pH (Modbus tidak menjawab).";
   if (!collectStableReading(ph, mv, wasStable, label, titikDb, "verifikasi"))
     return;
 
@@ -377,6 +531,10 @@ static void verifyPoint(int idx, const char *label, const char *prefsKey) {
 
   Serial.printf("\n%s: sensor %.3f vs referensi %.2f  (error %+.3f)\n", label,
                 ph, verifPoints[idx].phValue, ph - verifPoints[idx].phValue);
+  phCalLastOk = true;
+  phCalLastMsg = String("Verifikasi ") + label + ": sensor " + String(ph, 3) +
+                 " vs ref " + String(verifPoints[idx].phValue, 2) + " (error " +
+                 String(ph - verifPoints[idx].phValue, 3) + ")";
   computeVerification();
   showHealthReport();
 }
@@ -385,11 +543,12 @@ static void verifyPoint(int idx, const char *label, const char *prefsKey) {
 // Perintah dipanggil dari loop()
 // ---------------------------------------------------------------------
 void calibratePH4() { calibratePoint(0, 1, "pH 4.01", "cal4"); }
-void calibratePH10() { calibratePoint(2, 2, "pH 9.01", "cal10"); }
+void calibratePH10() { calibratePoint(2, 2, "pH 9.18", "cal10"); }
 void verifyPH4() { verifyPoint(0, "pH 4.01", "vf4"); }
-void verifyPH7() { verifyPoint(1, "pH 7.01", "vf7"); }
-void verifyPH10() { verifyPoint(2, "pH 9.01", "vf10"); }
-void calibratePH7() { verifyPH7(); } // 7.01 hanya untuk verifikasi
+void verifyPH7() { verifyPoint(1, "pH 6.86", "vf7"); }
+void verifyPH10() { verifyPoint(2, "pH 9.18", "vf10"); }
+// Titik tengah 6.86: ikut koreksi software (tidak ada langkah tulis sensor).
+void calibratePH7() { calibratePoint(1, 0, "pH 6.86", "cal7"); }
 
 // Regresi least squares pH_ref = m * pH_sensor + b, R^2, RMSE, error maks
 // (bagian 4.2).
@@ -472,16 +631,23 @@ void showHealthReport() {
   Serial.println(F("   LAPORAN KALIBRASI & VERIFIKASI"));
   Serial.println(F("================================"));
 
-  if (calPoints[0].valid && calPoints[2].valid && !isnan(calPoints[0].mv) &&
-      !isnan(calPoints[2].mv)) {
-    double S = (calPoints[0].mv - calPoints[2].mv) /
-               (calPoints[2].phValue - calPoints[0].phValue);
-    double E0 = calPoints[0].mv + S * calPoints[0].phValue;
+  int lo = -1, hi = -1;
+  for (int i = 0; i < 3; i++)
+    if (calPoints[i].valid && !isnan(calPoints[i].mv)) {
+      if (lo < 0)
+        lo = i;
+      hi = i;
+    }
+  if (lo >= 0 && hi > lo) {
+    double S = (calPoints[lo].mv - calPoints[hi].mv) /
+               (calPoints[hi].phValue - calPoints[lo].phValue);
+    double E0 = calPoints[lo].mv + S * calPoints[lo].phValue;
     double tc = isnan(lastTempC) ? 25.0 : lastTempC;
     double eff = phSlopeEfficiencyPct(S, tc);
     Serial.printf(
-        "E(4.01)=%.1f mV  E(9.18)=%.1f mV  (register 0x%04X, dugaan)\n",
-        calPoints[0].mv, calPoints[2].mv, MV_REGISTER_ADDRESS);
+        "E(%.2f)=%.1f mV  E(%.2f)=%.1f mV  (register 0x%04X, dugaan)\n",
+        calPoints[lo].phValue, calPoints[lo].mv, calPoints[hi].phValue,
+        calPoints[hi].mv, MV_REGISTER_ADDRESS);
     Serial.printf("Slope S        : %.2f mV/pH   (Nernst %.1f C = %.2f)\n", S,
                   tc, nernstSlopeMv(tc));
     Serial.printf("Zero point E0  : %.1f mV\n", E0);
@@ -491,11 +657,17 @@ void showHealthReport() {
                                            : "SEHAT");
   } else {
     Serial.println(
-        F("Efisiensi slope: belum ada 2 titik kalibrasi dengan data mV."));
+        F("Efisiensi slope: belum ada 2 titik kalibrasi berbeda dengan data mV."));
   }
 
+  if (softOn)
+    Serial.printf("Koreksi software AKTIF: pH = %.4f x pH_sensor %+.3f\n", softM,
+                  softB);
+  else
+    Serial.println(F("Koreksi software: tidak aktif."));
+
   Serial.println(F("\nVerifikasi (pH_ref = m * pH_sensor + b):"));
-  const char *labels[3] = {"pH 4.01", "pH 7.01", "pH 9.01"};
+  const char *labels[3] = {"pH 4.01", "pH 6.86", "pH 9.18"};
   for (int i = 0; i < 3; i++) {
     Serial.printf("  %-8s : ", labels[i]);
     if (!verifPoints[i].valid) {
@@ -529,6 +701,11 @@ void showHealthReport() {
 
 void resetCalibration() {
   prefs.clear();
+  swRaw[0] = swRaw[1] = swRaw[2] = NAN;
+  softOn = false;
+  softM = 1.0;
+  softB = 0.0;
+  swOff = 0.0;
   for (int i = 0; i < 3; i++) {
     calPoints[i].valid = false;
     calPoints[i].reading = 0;
@@ -549,14 +726,19 @@ void resetCalibration() {
 
 void showStatus() {
   Serial.println(F("\n=== STATUS SENSOR ==="));
-  Serial.printf("Titik 1 (4.01): %s\n",
+  Serial.printf("Titik 4.01    : %s\n",
                 calPoints[0].valid ? String(calPoints[0].reading, 3).c_str()
                                    : "BELUM");
-  Serial.printf("Titik 2 (9.18): %s\n",
+  Serial.printf("Titik 6.86    : %s\n",
+                calPoints[1].valid ? String(calPoints[1].reading, 3).c_str()
+                                   : "BELUM");
+  Serial.printf("Titik 9.18    : %s\n",
                 calPoints[2].valid ? String(calPoints[2].reading, 3).c_str()
                                    : "BELUM");
-  Serial.printf("Kalibrasi     : %s\n",
-                calibrated ? "DITULIS ke sensor" : "BELUM");
+  Serial.printf("Kalibrasi     : %s (%d titik)\n",
+                calibrated ? "SELESAI" : "BELUM", jumlahTitikValid());
+  Serial.printf("Koreksi soft  : %s, offset manual %+.2f pH\n",
+                softOn ? "AKTIF" : "tidak aktif", swOff);
   Serial.printf("Verifikasi    : %d/3 titik, %s\n", verif.n,
                 verif.pass ? "LULUS" : "belum lulus");
   Serial.printf("Suhu terakhir : %.1f C\n", lastTempC);
@@ -564,24 +746,31 @@ void showStatus() {
                 sensorOnline ? "ONLINE" : "TIDAK MERESPONS");
 }
 
-// Diagnostik: cetak holding register 0x0000..0x000F.
+// Diagnostik: cetak holding register. Rentang rendah 0x0000..0x007F lalu
+// 0x0100..0x013F (area kalibrasi), blok 8 register; blok yang ditolak sensor
+// (alamat tidak ada) hanya dicetak satu baris. Dipakai mencari register mV.
 void dumpModbusRegisters() {
   Serial.println(F("\n=== DUMP REGISTER MODBUS (holding) ==="));
   Serial.println(F("addr   raw(dec)  raw(hex)  signed   /10     /100"));
-  for (uint16_t base = 0x0000; base < 0x0010; base += 8) {
-    uint8_t result = node.readHoldingRegisters(base, 8);
-    if (result != node.ku8MBSuccess) {
-      Serial.printf("0x%04X..0x%04X : gagal, kode 0x%02X\n", base, base + 7,
-                    result);
-      continue;
+  const uint16_t awal[2] = {0x0000, 0x0100};
+  const uint16_t akhir[2] = {0x0080, 0x0140};
+  for (int rentang = 0; rentang < 2; rentang++) {
+    for (uint16_t base = awal[rentang]; base < akhir[rentang]; base += 8) {
+      uint8_t result = node.readHoldingRegisters(base, 8);
+      if (result != node.ku8MBSuccess) {
+        Serial.printf("0x%04X..0x%04X : gagal, kode 0x%02X\n", base, base + 7,
+                      result);
+        delay(30);
+        continue;
+      }
+      for (uint8_t i = 0; i < 8; i++) {
+        uint16_t r = node.getResponseBuffer(i);
+        int16_t sg = (int16_t)r;
+        Serial.printf("0x%04X  %6u    0x%04X   %6d  %7.1f  %7.2f\n", base + i,
+                      r, r, sg, sg / 10.0, sg / 100.0);
+      }
+      delay(50);
     }
-    for (uint8_t i = 0; i < 8; i++) {
-      uint16_t r = node.getResponseBuffer(i);
-      int16_t s = (int16_t)r;
-      Serial.printf("0x%04X  %6u    0x%04X   %6d  %7.1f  %7.2f\n", base + i, r,
-                    r, s, s / 10.0, s / 100.0);
-    }
-    delay(50);
   }
   Serial.println();
 }
@@ -596,11 +785,17 @@ void setupSensor() {
 
   prefs.begin("ph-cal", false);
   loadPoint("cal4", calPoints[0]);
+  loadPoint("cal7", calPoints[1]);
   loadPoint("cal10", calPoints[2]);
   loadPoint("vf4", verifPoints[0]);
   loadPoint("vf7", verifPoints[1]);
   loadPoint("vf10", verifPoints[2]);
+  swRaw[0] = prefs.getDouble("sw_r1", NAN);
+  swRaw[1] = prefs.getDouble("sw_r2", NAN);
+  swRaw[2] = prefs.getDouble("sw_r3", NAN);
+  swOff = prefs.getDouble("sw_off", 0.0);
+  hitungKoreksiSoft();
   lastCalibrated = prefs.getULong("calts", 0);
-  calibrated = calPoints[0].valid && calPoints[2].valid;
+  calibrated = jumlahTitikValid() >= 2;
   computeVerification();
 }

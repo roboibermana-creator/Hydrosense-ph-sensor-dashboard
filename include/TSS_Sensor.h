@@ -39,6 +39,8 @@ public:
 
   void begin();
   float readTSS();
+  bool readSuhu(float &suhuC); // float di register 2-3 (REG_TSS_TEMPERATURE)
+  bool readNtu(float &ntu);    // float di register 6-7 (REG_TSS_NTU, dugaan)
   float readCalibratedTSS();
 
   // Software-side linear correction.
@@ -49,15 +51,12 @@ public:
   void setCalibration(float slope, float offset);
   void getCalibration(float &slope, float &offset);
 
-  void setScrapingTime(uint16_t minutes);
-  void startScraping();
   void readStatus();
 
   // Kept for source compatibility, but deliberately disabled: these routines
   // target slave ID 1, which Config.h assigns to the pH sensor in this project.
-  // Do not issue ID-change or wiper commands to ID 1 on the shared bus.
+  // Do not issue ID-change commands to ID 1 on the shared bus.
   void changeSlaveIdToOneToTwo();
-  void testWiperOnSlaveOne();
 
   // Register 13 is a measurement parameter, not a generic status.
   bool bacaParameterPengukuran(int16_t &parameter);
@@ -65,6 +64,10 @@ public:
   bool bacaKelembabanProbe(int16_t &kelembaban);
 
   bool tulisFactor(float factor);
+  bool bacaFaktor(float &faktor); // Float32 CDAB di REG_CAL_FACTOR (alamat 4-5)
+  // Baca saja (aman): fc 1=coil, 2=discrete input, 3=holding, 4=input register.
+  // Membaca 32 bit (fc 1/2) atau 16 register (fc 3/4) mulai `alamat`.
+  bool bacaFc(uint8_t fc, uint16_t alamat, String &laporan);
   bool keluarModeKalibrasi();
   bool setModeKalibrasi(uint16_t mode);
   bool setTitikKalibrasi(uint16_t titik);

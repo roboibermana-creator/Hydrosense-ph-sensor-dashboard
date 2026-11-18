@@ -19,6 +19,17 @@ static const unsigned long MIN_INTERVAL_AKSI_MS = 3000;
 Valve_Controller::Valve_Controller() {
   valve1Status = false;
   waktuAksiTerakhir = 0;
+  relayAktif = false;
+  waktuRelayNyala = 0;
+}
+
+void Valve_Controller::update() {
+  if (relayAktif && millis() - waktuRelayNyala >= VALVE_TRAVEL_MS) {
+    digitalWrite(VALVE1_OPEN_PIN, V1_OFF);
+    digitalWrite(VALVE1_CLOSE_PIN, V1_OFF);
+    relayAktif = false;
+    Serial.println("[VALVE] Waktu jalan motor selesai -> relay dimatikan.");
+  }
 }
 
 void Valve_Controller::begin() {
@@ -42,6 +53,8 @@ bool Valve_Controller::openValve1() {
   digitalWrite(VALVE1_OPEN_PIN, V1_ON);
   valve1Status = true;
   waktuAksiTerakhir = millis();
+  waktuRelayNyala = waktuAksiTerakhir;
+  relayAktif = true;
   Serial.println("✓ Valve 1 OPENING");
   return true;
 }
@@ -57,6 +70,8 @@ bool Valve_Controller::closeValve1() {
   digitalWrite(VALVE1_CLOSE_PIN, V1_ON);
   valve1Status = false;
   waktuAksiTerakhir = millis();
+  waktuRelayNyala = waktuAksiTerakhir;
+  relayAktif = true;
   Serial.println("✓ Valve 1 CLOSING");
   return true;
 }

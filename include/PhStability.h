@@ -318,7 +318,7 @@ inline void phPrintHealthReport(double slope, double intercept,
 
   Serial.println(F("--------------------------------"));
   Serial.println(F("Prediksi tegangan (untuk verifikasi):"));
-  const double checkPh[3] = {4.01, 7.01, 9.01};
+  const double checkPh[3] = {4.01, 6.86, 9.18};
   for (int i = 0; i < 3; i++) {
     Serial.print(F("  pH "));
     Serial.print(checkPh[i], 2);

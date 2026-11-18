@@ -22,6 +22,8 @@ private:
   unsigned long
       waktuAksiTerakhir; // debounce -- cegah motor dibalik arah di tengah jalan
                          // kalau diklik cepat berturut-turut
+  bool relayAktif;       // true selama salah satu relay arah sedang diberi tegangan
+  unsigned long waktuRelayNyala; // kapan relay arah terakhir dinyalakan
 
 public:
   Valve_Controller();
@@ -32,6 +34,10 @@ public:
   openValve1(); // return false kalau diabaikan (debounce, motor masih jalan)
   bool
   closeValve1(); // return false kalau diabaikan (debounce, motor masih jalan)
+
+  // Matikan kedua relay setelah VALVE_TRAVEL_MS (motor sudah sampai ujung) --
+  // relay tidak dibiarkan diberi tegangan terus. Non-blocking, panggil rutin.
+  void update();
 
   bool getValve1Status();
 

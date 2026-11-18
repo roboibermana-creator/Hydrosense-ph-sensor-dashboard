@@ -76,16 +76,17 @@ float TSS_Sensor::readTSS() {
     if (result == node.ku8MBSuccess) {
       const uint16_t word0 = node.getResponseBuffer(0);
       const uint16_t word1 = node.getResponseBuffer(1);
-      const float tssValue = convertRegistersToFloat(word0, word1);
+      const float tssValue =
+          convertRegistersToFloat(word0, word1) * TSS_VALUE_SCALE;
 
       if (validPhysicalTSS(tssValue)) {
         return tssValue;
       }
 
       Serial.printf(
-          "TSS INVALID: word0=0x%04X, word1=0x%04X, value=%.7g; "
+          "TSS INVALID: reg=0x%04X, value=%.7g; "
           "range expected 0..50000 mg/L\n",
-          word0, word1, static_cast<double>(tssValue));
+          word0, static_cast<double>(tssValue));
     } else {
       Serial.printf("TSS Modbus read failed: attempt %u/3, error=0x%02X\n",
                     static_cast<unsigned>(attempt + 1), result);
@@ -98,6 +99,47 @@ float TSS_Sensor::readTSS() {
 
   Serial.println("ERROR: TSS read failed or decoded value was invalid.");
   return -1.0f;
+}
+
+// Suhu air dari sensor TSS (register 2). false kalau Modbus gagal.
+bool TSS_Sensor::readSuhu(float &suhuC) {
+  // Float32 CDAB di alamat 2-3 (terverifikasi: ~29.9 C).
+  for (uint8_t attempt = 0; attempt < 2; ++attempt) {
+    const uint8_t result = node.readHoldingRegisters(REG_TSS_TEMPERATURE, 2);
+    if (result == node.ku8MBSuccess) {
+      const float t = convertRegistersToFloat(node.getResponseBuffer(0),
+                                              node.getResponseBuffer(1)) *
+                      TSS_TEMP_SCALE;
+      if (isfinite(t) && t > -10.0f && t < 100.0f) {
+        suhuC = t;
+        return true;
+      }
+    }
+    if (attempt < 1) {
+      delay(100);
+    }
+  }
+  return false;
+}
+
+// Turbidity (NTU) dari register 6-7 -- DUGAAN, hanya untuk dibandingkan di
+// dashboard. false kalau Modbus gagal / nilai tidak masuk akal.
+bool TSS_Sensor::readNtu(float &ntu) {
+  for (uint8_t attempt = 0; attempt < 2; ++attempt) {
+    const uint8_t result = node.readHoldingRegisters(REG_TSS_NTU, 2);
+    if (result == node.ku8MBSuccess) {
+      const float v = convertRegistersToFloat(node.getResponseBuffer(0),
+                                              node.getResponseBuffer(1));
+      if (isfinite(v) && v > -1000.0f && v < 100000.0f) {
+        ntu = v;
+        return true;
+      }
+    }
+    if (attempt < 1) {
+      delay(100);
+    }
+  }
+  return false;
 }
 
 float TSS_Sensor::readCalibratedTSS() {
@@ -242,51 +284,6 @@ bool TSS_Sensor::bacaKelembabanProbe(int16_t &kelembaban) {
   return bacaSingleRegister(REG_KELEMBABAN_PROBE, kelembaban);
 }
 
-void TSS_Sensor::setScrapingTime(uint16_t minutes) {
-  if (minutes == 0) {
-    Serial.println("ERROR: brushing interval must be a non-zero minute value.");
-    return;
-  }
-
-  int16_t mode = -1;
-  if (isMultiPointCalibrationActive(&mode)) {
-    Serial.printf(
-        "BLOCKED: cannot write brushing interval while calibration mode is "
-        "active/unknown (register 27=%d).\n", mode);
-    return;
-  }
-
-  const uint8_t result = node.writeSingleRegister(REG_AUTO_SCRAPING_INTERVAL,
-                                                   minutes);
-  if (result == node.ku8MBSuccess) {
-    Serial.printf("Brushing interval set to %u minute(s).\n",
-                  static_cast<unsigned>(minutes));
-  } else {
-    Serial.printf("Failed to set brushing interval; Modbus error=0x%02X\n",
-                  result);
-  }
-}
-
-void TSS_Sensor::startScraping() {
-  int16_t mode = -1;
-  if (isMultiPointCalibrationActive(&mode)) {
-    Serial.printf(
-        "BLOCKED: register 20 is used for calibration target in mode 2/3, "
-        "or calibration mode could not be read (register 27=%d).\n", mode);
-    return;
-  }
-
-  const uint8_t result = node.writeSingleRegister(REG_MANUAL_SCRAPING,
-                                                   TSS_MANUAL_SCRAPING_VALUE);
-  if (result == node.ku8MBSuccess) {
-    Serial.println("Manual brushing command acknowledged by Modbus.");
-    Serial.println("ACK does not prove the wiper motor physically moved.");
-  } else {
-    Serial.printf("Manual brushing command failed; Modbus error=0x%02X\n",
-                  result);
-  }
-}
-
 void TSS_Sensor::readStatus() {
   Serial.println();
   Serial.println("========== TSS SENSOR DIAGNOSTICS ==========");
@@ -387,6 +384,58 @@ bool TSS_Sensor::tulisFloatRegister(uint16_t startReg, float value) {
     return false;
   }
   return true;
+}
+
+bool TSS_Sensor::bacaFc(uint8_t fc, uint16_t alamat, String &laporan) {
+  uint8_t r = 0;
+  const bool bit = (fc == 1 || fc == 2);
+  if (fc == 1) {
+    r = node.readCoils(alamat, 32);
+  } else if (fc == 2) {
+    r = node.readDiscreteInputs(alamat, 32);
+  } else if (fc == 3) {
+    r = node.readHoldingRegisters(alamat, 16);
+  } else if (fc == 4) {
+    r = node.readInputRegisters(alamat, 16);
+  } else {
+    laporan = "Function code " + String(fc) + " tidak didukung (1,2,3,4).";
+    return false;
+  }
+  if (r != node.ku8MBSuccess) {
+    laporan = "FC" + String(fc) + " alamat " + String(alamat) +
+              ": Modbus error=0x" + String(r, HEX) +
+              (r == 0x01   ? " (function tidak didukung sensor)"
+               : r == 0x02 ? " (alamat tidak ada)"
+               : r == 0xE2 ? " (timeout)"
+                           : "");
+    return false;
+  }
+  laporan = "FC" + String(fc) + " alamat " + String(alamat) + ": ";
+  if (bit) {
+    for (int i = 0; i < 32; i++) {
+      uint16_t w = node.getResponseBuffer(i / 16);
+      laporan += ((w >> (i % 16)) & 1) ? '1' : '0';
+      if (i % 8 == 7 && i < 31)
+        laporan += ' ';
+    }
+  } else {
+    for (int i = 0; i < 16; i++) {
+      laporan += String(node.getResponseBuffer(i));
+      if (i < 15)
+        laporan += ',';
+    }
+  }
+  return true;
+}
+
+bool TSS_Sensor::bacaFaktor(float &faktor) {
+  const uint8_t result = node.readHoldingRegisters(REG_CAL_FACTOR, 2);
+  if (result != node.ku8MBSuccess) {
+    return false;
+  }
+  faktor = convertRegistersToFloat(node.getResponseBuffer(0),
+                                   node.getResponseBuffer(1));
+  return isfinite(faktor);
 }
 
 bool TSS_Sensor::tulisFactor(float factor) {
@@ -493,9 +542,4 @@ void TSS_Sensor::changeSlaveIdToOneToTwo() {
   // Deliberately disabled: slave ID 1 is assigned to the pH sensor in this
   // project. Writing register 17 at ID 1 could change the pH sensor's address.
   Serial.println("BLOCKED: ID-change routine targets slave ID 1, which is the pH sensor in this configuration. Isolate hardware and use a vendor-approved procedure if an address change is truly required.");
-}
-
-void TSS_Sensor::testWiperOnSlaveOne() {
-  // Deliberately disabled for the same reason as changeSlaveIdToOneToTwo().
-  Serial.println("BLOCKED: wiper test targets slave ID 1 (pH sensor), not the TSS sensor at ID 2.");
 }

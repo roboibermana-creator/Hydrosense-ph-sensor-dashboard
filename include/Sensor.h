@@ -16,6 +16,7 @@ struct PhReading {
   bool valid;     // >= 1 sampel lolos gerbang validitas
   double ph;      // median, 2 desimal
   double tempC;   // median, 1 desimal
+  double mv;      // median tegangan elektroda (mV), NAN bila tak ada
   uint16_t rawPh; // sampel valid terakhir (diagnostik)
   int16_t rawTemp;
   int sampleCount;      // sampel valid yang masuk median
@@ -61,9 +62,17 @@ bool readModbusSensor(double &ph, double &tempC, uint16_t *rawPh = nullptr,
                       int16_t *rawTemp = nullptr,
                       double *mv = nullptr); // 1 transaksi + gerbang validitas
 
-void calibratePH4();  // tulis titik 1 (4.01) ke sensor
-void calibratePH10(); // tulis titik 2 (9.18) ke sensor
-void calibratePH7();  // = verifyPH7 (dipertahankan untuk perintah web "7")
+// Hasil proses kalibrasi/verifikasi pH terakhir (untuk dilaporkan ke web).
+extern bool phCalLastOk;
+// id perintah web yang sedang dijalankan (-1 = dari Serial), untuk lapor progres.
+extern long phCalIdPerintahWeb;
+extern String phCalLastMsg;
+// Titik kalibrasi bebas: 4.01 / 6.86 / 9.18, minimal 1 (offset) atau 2+ (slope).
+void calibratePH4();  // titik 4.01 (coba tulis ke sensor, kalau ditolak -> software)
+void calibratePH10(); // titik 9.18 (idem)
+void calibratePH7();  // titik 6.86 (selalu koreksi software)
+void setOffsetPhManual(double nilai); // trim offset manual (pH), 0 = hapus
+double getOffsetPhManual();
 void verifyPH4();
 void verifyPH7();
 void verifyPH10();

@@ -6,9 +6,10 @@
 // PIN
 extern const uint8_t PUMP_RELAY_PIN;
 
-// KONFIGURASI RELAY (Active HIGH)
-#define RELAY_ON HIGH
-#define RELAY_OFF LOW
+// KONFIGURASI RELAY (Active LOW) -- modul relay pompa menyala saat pin LOW
+// (terbukti: pompa nyala sendiri saat boot ketika OFF = LOW).
+#define RELAY_ON LOW
+#define RELAY_OFF HIGH
 
 // PARAMETER MODE OTOMATIS
 extern const unsigned long PUMP_ON_TIME;

@@ -1,6 +1,7 @@
+// Lane "Mode Manual" (state_machine.workflow.json):
+//   Poll DB -> Aman? -> Eksekusi -> Kirim Hasil -> (kembali ke Poll DB)
 #include "Modes.h"
 #include "Pompa.h"
-#include <Preferences.h>
 
 // Mode manual (dipicu dari web via kolom "mode" di Supabase): relay HARUS
 // langsung nurut command terbaru secepat mungkin, TANPA syarat/interlock
@@ -16,33 +17,22 @@
 // logging data di mode manual dilewati dulu.
 static String valveTerakhirDieksekusi = "";
 static String pumpTerakhirDieksekusi = "";
-// Wiper TSS itu aksi momentary (sekali sapu), bukan status level seperti
-// valve/pompa, jadi dilacak pakai id baris (bukan teks command) supaya tiap
-// penekanan tombol baru di web (baris baru di Supabase) tetap memicu sapuan
-// meski teksnya sama ("bersihkan").
-//
-// Disimpan di NVS (Preferences), BUKAN cuma variabel RAM -- device ini pernah
-// kedapatan reboot berulang (brownout/watchdog, lihat "[SISTEM] Alasan reset
-// terakhir" di Serial Monitor) yang sebelumnya bikin wiper ke-trigger ULANG
-// tiap reboot karena command lama di Supabase masih "bersihkan" dan pelacak
-// RAM-nya ikut ke-reset ke -1.
-static Preferences wiperPrefs;
-static long wiperIdTerakhirDieksekusi = -1;
-static bool wiperPrefsSiap = false;
-
-static void pastikanWiperPrefsSiap() {
-  if (wiperPrefsSiap)
-    return;
-  wiperPrefs.begin("tss-wiper", false);
-  wiperIdTerakhirDieksekusi = wiperPrefs.getLong("last_id", -1);
-  wiperPrefsSiap = true;
-}
-
 // ---------------- Baca & Eksekusi Command Manual (Valve & Pompa via Supabase)
 // ----------------
 static KontrolManual perintahTerakhir;
+// id baris command yang sudah ada saat boot (-2 = belum diketahui). Selama
+// command aktif masih baris ini, aktuator ditahan (lihat terimaKontrolAwal).
+static long idCommandBoot = -2;
+static bool tahanAktuatorBoot = true;
 
 void handleModeManual() {
+  // KUNCI MUTLAK: float switch HIGH -> pompa langsung dimatikan SEKARANG,
+  // tidak menunggu siklus poll perintah (INTERVAL_POLL_MS). Selama float
+  // HIGH, pompa tetap terkunci OFF walau command web = "jalan".
+  if (pumpState && bacaFloatSwitch()) {
+    pompaOff();
+    Serial.println("[INTERLOCK] Float switch HIGH -> pompa dimatikan & dikunci OFF");
+  }
   // Cek & eksekusi command SECEPAT mungkin (throttle hanya oleh
   // INTERVAL_POLL_MS di dalam bacaPerintahManual(), tidak ada gerbang lain).
   if (bacaPerintahManual()) {
@@ -57,6 +47,7 @@ void handleModeManual() {
       Serial.println(F("\n[MODE] Mode OTOMATIS terdeteksi dari web -> kembali "
                        "ke siklus otomatis."));
       modeOtomatis = true;
+      siklusPertama = true; // dipindah ke otomatis dari web = siklus langsung mulai
       state = STATE_A_BACA_MODE;
       return;
     }
@@ -67,10 +58,15 @@ void handleModeManual() {
 // Dipanggil dari STATE_A_BACA_MODE dengan data yang SUDAH di-fetch di sana --
 // langsung eksekusi tanpa fetch ulang, dan reset timer poll supaya siklus
 // poll berikutnya menunggu penuh INTERVAL_POLL_MS (bukan langsung fetch lagi).
+//
+// SAFETY BOOT: command yang SUDAH ada di Supabase saat boot TIDAK dieksekusi
+// (aktuator diam, pompa dianggap berhenti). Baru bergerak saat ada command
+// BARU (id baris lebih besar) dari dashboard. Boot hanya untuk WiFi/jaringan.
 void terimaKontrolAwal(KontrolManual k) {
   if (!k.ok)
     return;
   perintahTerakhir = k;
+  idCommandBoot = k.id;
   timerPollTerakhir = millis();
   jalankanPerintahPompaValve();
 }
@@ -91,7 +87,7 @@ bool bacaPerintahManual() {
 }
 
 // Interlock pompa (cegah pompa nyala saat chamber penuh) AKTIF di mode manual:
-// dipakai di jalankanPerintahPompaValve(). Valve dan wiper tetap tanpa syarat.
+// dipakai di jalankanPerintahPompaValve(). Valve tetap tanpa syarat.
 bool interlockAman() {
   if (perintahTerakhir.pumpCmd == "jalan" && bacaFloatSwitch()) {
     return false;
@@ -109,7 +105,11 @@ void jalankanPerintahPompaValve() {
   // relay tiap poll). valveTerakhirDieksekusi CUMA di-update kalau aksinya
   // BENERAN jalan (bukan diabaikan debounce) -- kalau tidak, command yang gagal
   // dieksekusi akan dianggap "sudah dijalankan" dan tidak pernah dicoba ulang.
-  if (perintahTerakhir.valveCmd != valveTerakhirDieksekusi) {
+  if (idCommandBoot == -2)
+    idCommandBoot = perintahTerakhir.id; // fetch awal gagal: command pertama = baseline
+  if (perintahTerakhir.id != idCommandBoot)
+    tahanAktuatorBoot = false; // ada command baru dari dashboard
+  if (!tahanAktuatorBoot && perintahTerakhir.valveCmd != valveTerakhirDieksekusi) {
     bool berhasil =
         (perintahTerakhir.valveCmd == "buka") ? valveBuka() : valveTutup();
     if (berhasil)
@@ -121,7 +121,7 @@ void jalankanPerintahPompaValve() {
   // jadi pompa juga berhenti kalau chamber penuh saat sedang berjalan, dan
   // otomatis jalan lagi kalau command masih "jalan" dan chamber sudah turun.
   static bool interlockSedangMenolak = false;
-  String pumpEfektif = perintahTerakhir.pumpCmd;
+  String pumpEfektif = tahanAktuatorBoot ? "berhenti" : perintahTerakhir.pumpCmd;
   if (INTERLOCK_POMPA_MANUAL && pumpEfektif == "jalan" && !interlockAman()) {
     pumpEfektif = "berhenti";
     if (!interlockSedangMenolak) {
@@ -157,21 +157,22 @@ void jalankanPerintahPompaValve() {
   // alat masih online (di mode manual data pH/TSS tidak dikirim).
   static unsigned long heartbeatTerakhir = 0;
   bool butuhHeartbeat = millis() - heartbeatTerakhir >= 30000UL;
-  if (laporanSekarang != laporanTerakhir || butuhHeartbeat) {
+  // Backoff: kalau kirim gagal (HTTPS putus-putus), jangan coba tiap poll --
+  // satu percobaan gagal bisa menahan loop sampai ~8 detik dan menunda
+  // eksekusi perintah pompa berikutnya.
+  static unsigned long percobaanTerakhir = 0;
+  static bool pernahMencoba = false;
+  bool bolehMencoba =
+      !pernahMencoba || millis() - percobaanTerakhir >= 10000UL;
+  if ((laporanSekarang != laporanTerakhir || butuhHeartbeat) && bolehMencoba) {
     const char *catatan = laporanSekarang == 2   ? "ditolak_chamber_penuh"
                           : laporanSekarang == 1 ? "jalan"
                                                  : "berhenti";
+    pernahMencoba = true;
+    percobaanTerakhir = millis();
     if (kirimStatusPompaKeSupabase(pumpState, catatan)) {
       laporanTerakhir = laporanSekarang;
       heartbeatTerakhir = millis();
     }
-  }
-
-  pastikanWiperPrefsSiap();
-  if (perintahTerakhir.wiperCmd == "bersihkan" &&
-      perintahTerakhir.id != wiperIdTerakhirDieksekusi) {
-    wiperMulai();
-    wiperIdTerakhirDieksekusi = perintahTerakhir.id;
-    wiperPrefs.putLong("last_id", wiperIdTerakhirDieksekusi);
   }
 }

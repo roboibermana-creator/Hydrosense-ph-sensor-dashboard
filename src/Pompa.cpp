@@ -24,8 +24,11 @@ unsigned long pumpPreviousMillis = 0;
 // FUNGSI INISIALISASI
 // ============================================================
 void pumpBegin() {
+  // SAFETY: Pompa harus OFF saat startup. Set level OFF SEBELUM pin dijadikan
+  // output supaya tidak ada glitch ON sesaat (penting untuk relay active LOW).
+  // Dipanggil di baris pertama setup() (main.cpp).
+  digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
   pinMode(PUMP_RELAY_PIN, OUTPUT);
-  // SAFETY: Pompa harus OFF saat startup
   digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
   pumpState = false;
 
@@ -37,6 +40,15 @@ void pumpBegin() {
 // FUNGSI POMPA ON
 // ============================================================
 void pumpON() {
+  // KUNCI MUTLAK: float switch HIGH (chamber penuh) -> pompa TIDAK BOLEH ON,
+  // apa pun modenya dan siapa pun yang memanggil (web, Serial, otomatis).
+  // Tidak memakai tinggi air dari sensor level sama sekali.
+  if (digitalRead(PIN_FLOAT_SWITCH) == HIGH) {
+    digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
+    pumpState = false;
+    Serial.println("[POMPA] ON ditolak: float switch HIGH -> pompa dikunci OFF");
+    return;
+  }
   digitalWrite(PUMP_RELAY_PIN, RELAY_ON);
   pumpState = true;
 
