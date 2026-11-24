@@ -2,7 +2,7 @@
 """Unggah firmware ke bucket Supabase "firmware" untuk update lewat dashboard.
 
 Pakai (setelah `pio run -e esp32-s3-devkitc-1`):
-    set SUPABASE_SERVICE_KEY=<service_role key dari Supabase > Project Settings > API>
+    set SUPABASE_SERVICE_KEY=<service_role (eyJ...) atau secret (sb_secret_...) dari Project Settings > API Keys>
     python tools/publish_firmware.py [versi]
 
 - Mengunggah .pio/build/esp32-s3-devkitc-1/firmware.bin sebagai firmware-<versi>.bin
@@ -22,18 +22,20 @@ KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 BIN = os.path.join(".pio", "build", "esp32-s3-devkitc-1", "firmware.bin")
 
 
+def header_auth(tipe):
+    h = {"apikey": KEY, "Content-Type": tipe, "x-upsert": "true", "Cache-Control": "no-cache"}
+    # Kunci baru "sb_secret_..." tidak boleh dikirim sebagai Bearer; service_role lama (JWT) boleh.
+    if not KEY.startswith("sb_secret_"):
+        h["Authorization"] = f"Bearer {KEY}"
+    return h
+
+
 def unggah(nama, data, tipe):
     req = urllib.request.Request(
         f"{URL}/storage/v1/object/firmware/{nama}",
         data=data,
         method="POST",
-        headers={
-            "Authorization": f"Bearer {KEY}",
-            "apikey": KEY,
-            "Content-Type": tipe,
-            "x-upsert": "true",
-            "Cache-Control": "no-cache",
-        },
+        headers=header_auth(tipe),
     )
     try:
         urllib.request.urlopen(req, timeout=120).read()
@@ -43,7 +45,7 @@ def unggah(nama, data, tipe):
 
 def main():
     if not KEY:
-        sys.exit("Set SUPABASE_SERVICE_KEY dulu (service_role key).")
+        sys.exit("Set SUPABASE_SERVICE_KEY dulu (service_role / secret key).")
     if not os.path.exists(BIN):
         sys.exit(f"{BIN} tidak ada. Jalankan: pio run -e esp32-s3-devkitc-1")
     versi = sys.argv[1] if len(sys.argv) > 1 else time.strftime("%Y%m%d-%H%M")
