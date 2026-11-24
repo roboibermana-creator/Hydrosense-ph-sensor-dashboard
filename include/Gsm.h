@@ -15,3 +15,11 @@ int gsmHttp(const char *metode, const String &path, const String &header,
 
 void gsmCetakStatus(); // perintah Serial 'U': diagnosa modem (AT, SIM, sinyal, operator, jam, tes Supabase)
 bool gsmPosisi(float *lat, float *lon); // true bila GNSS sudah dapat fix (derajat desimal)
+
+// Unduh satu potongan biner dari SUPABASE_URL lewat HTTP Range (untuk update firmware lewat GSM):
+// GET `path` dengan "Range: bytes=dari-sampai", isi badan ke `buf` (kapasitas `kap`). Hasil: 206
+// (sukses, *terbaca = byte diterima, *total = ukuran file penuh dari Content-Range), kode HTTP
+// lain bila server menolak/mengabaikan Range (200 = Range diabaikan), atau <=0 bila gagal.
+int gsmHttpRange(const String &path, long dari, long sampai, uint8_t *buf, size_t kap,
+                 size_t *terbaca, long *total);
+

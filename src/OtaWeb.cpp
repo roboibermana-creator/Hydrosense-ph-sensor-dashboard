@@ -9,11 +9,11 @@
 // Keamanan: alat hanya mengunduh dari bucket firmware milik proyek ini (URL dibangun dari
 // SUPABASE_URL + nama file yang dicek karakternya), bukan URL bebas dari command. Penulisan ke
 // bucket harus dibatasi pemilik (lihat migrasi 0015).
-// BATASAN: hanya lewat WiFi. Lewat GSM, gsmHttp() menampung respons di String dan tidak bisa
-// mengalirkan 1 MB biner; perlu unduhan berpotongan (HTTP Range) -- belum dibuat.
+// Jalur: WiFi bila tersambung (satu aliran), selain itu GSM (potongan HTTP Range, gsmHttpRange()).
 #include "OtaWeb.h"
 #include "Config.h"
 #include "HttpKlien.h"
+#include "Gsm.h"
 #include "Network.h"
 #include "OTA.h"
 #include "Pompa.h"
@@ -24,7 +24,6 @@
 
 static const unsigned long INTERVAL_CEK_OTA_MS = 20000UL;
 static unsigned long timerCekOtaTerakhir = 0;
-static unsigned long timerLogGsm = 0;
 
 static bool namaFileAman(const String &f) {
   if (f.length() == 0 || f.length() > 80 || !f.endsWith(".bin"))
@@ -63,9 +62,71 @@ static String hexSha(const uint8_t *h) {
   return s;
 }
 
-// true = firmware terpasang & siap reboot. Isi `galat` bila gagal.
-static bool unduhDanPasang(const String &file, const String &shaHarapan, String &galat) {
-  String url = String(SUPABASE_URL) + "/storage/v1/object/public/firmware/" + file;
+// Penulis firmware: tulis ke partisi OTA cadangan sambil menghitung SHA-256. Dipakai bersama
+// oleh jalur WiFi (satu aliran) dan GSM (potongan Range).
+struct Pemasang {
+  mbedtls_sha256_context sha;
+  bool dimulai = false;
+  void mulai(size_t ukuran, String &galat, bool &ok) {
+    ok = Update.begin(ukuran);
+    if (!ok) {
+      galat = String("Update.begin: ") + Update.errorString();
+      return;
+    }
+    mbedtls_sha256_init(&sha);
+    mbedtls_sha256_starts(&sha, 0);
+    dimulai = true;
+  }
+  bool tulis(const uint8_t *d, size_t n, String &galat) {
+    if (Update.write((uint8_t *)d, n) != n) {
+      galat = String("tulis flash: ") + Update.errorString();
+      return false;
+    }
+    mbedtls_sha256_update(&sha, d, n);
+    return true;
+  }
+  void batal() {
+    if (dimulai) {
+      mbedtls_sha256_free(&sha);
+      dimulai = false;
+    }
+    Update.abort();
+  }
+  // Periksa hash lalu ganti partisi boot hanya bila cocok.
+  bool selesai(const String &shaHarapan, String &galat) {
+    uint8_t hasil[32];
+    mbedtls_sha256_finish(&sha, hasil);
+    mbedtls_sha256_free(&sha);
+    dimulai = false;
+    if (!hexSha(hasil).equalsIgnoreCase(shaHarapan)) {
+      Update.abort();
+      galat = "SHA-256 tidak cocok";
+      return false;
+    }
+    if (!Update.end(false)) {
+      galat = String("Update.end: ") + Update.errorString();
+      return false;
+    }
+    return true;
+  }
+};
+
+static void logPersen(long selesai, long total) {
+  static unsigned int persenLog = 101;
+  if (selesai <= 0)
+    persenLog = 101;
+  unsigned int persen = (unsigned)(selesai * 100L / total);
+  if (persen / 10 != persenLog / 10) {
+    persenLog = persen;
+    Serial.printf("[OTA-WEB] %u%%\n", persen);
+  }
+}
+
+static const char *PATH_FIRMWARE = "/storage/v1/object/public/firmware/";
+
+// Jalur WiFi: satu aliran HTTPS langsung ke partisi OTA.
+static bool unduhWifi(const String &file, const String &shaHarapan, String &galat) {
+  String url = String(SUPABASE_URL) + PATH_FIRMWARE + file;
   HTTPClient http;
   http.setConnectTimeout(10000);
   http.setTimeout(20000);
@@ -86,28 +147,26 @@ static bool unduhDanPasang(const String &file, const String &shaHarapan, String 
     http.end();
     return false;
   }
-  if (!Update.begin(ukuran)) {
-    galat = String("Update.begin: ") + Update.errorString();
+  Pemasang pm;
+  bool ok;
+  pm.mulai(ukuran, galat, ok);
+  if (!ok) {
     http.end();
     return false;
   }
-  mbedtls_sha256_context sha;
-  mbedtls_sha256_init(&sha);
-  mbedtls_sha256_starts(&sha, 0);
-
   WiFiClient *s = http.getStreamPtr();
   uint8_t buf[1024];
   int sisa = ukuran;
   unsigned long terakhirAda = millis();
-  unsigned int persenLog = 101;
-  bool ok = true;
+  logPersen(0, ukuran);
   while (sisa > 0) {
     int ada = s->available();
     if (ada <= 0) {
       if (!http.connected() || millis() - terakhirAda > 20000UL) {
         galat = "unduhan terputus";
-        ok = false;
-        break;
+        http.end();
+        pm.batal();
+        return false;
       }
       delay(2);
       continue;
@@ -116,38 +175,84 @@ static bool unduhDanPasang(const String &file, const String &shaHarapan, String 
     if (n <= 0)
       continue;
     terakhirAda = millis();
-    if (Update.write(buf, n) != (size_t)n) {
-      galat = String("tulis flash: ") + Update.errorString();
-      ok = false;
-      break;
+    if (!pm.tulis(buf, n, galat)) {
+      http.end();
+      pm.batal();
+      return false;
     }
-    mbedtls_sha256_update(&sha, buf, n);
     sisa -= n;
-    unsigned int persen = (unsigned)((ukuran - sisa) * 100L / ukuran);
-    if (persen / 10 != persenLog / 10) {
-      persenLog = persen;
-      Serial.printf("[OTA-WEB] %u%%\n", persen);
-    }
+    logPersen(ukuran - sisa, ukuran);
     delay(1); // beri waktu task lain/watchdog
   }
   http.end();
-  uint8_t hasil[32];
-  mbedtls_sha256_finish(&sha, hasil);
-  mbedtls_sha256_free(&sha);
+  return pm.selesai(shaHarapan, galat);
+}
+
+// Jalur GSM: unduh per potongan (HTTP Range). Tiap potongan langsung ditulis ke flash dan
+// di-hash, jadi tidak ada penampung besar. Potongan yang gagal diulang tanpa mulai dari awal.
+// BELUM TERUJI di modem sungguhan (modem belum menjawab saat ini dibuat). Mengandalkan
+// Supabase Storage membalas 206 untuk header Range.
+static const size_t POTONGAN_GSM = 8192;
+static bool unduhGsm(const String &file, const String &shaHarapan, String &galat) {
+  String path = String(PATH_FIRMWARE) + file;
+  uint8_t *buf = (uint8_t *)malloc(POTONGAN_GSM);
+  if (!buf) {
+    galat = "memori habis (penampung potongan)";
+    return false;
+  }
+  Pemasang pm;
+  long total = 0, posisi = 0;
+  bool mulai = false;
+  bool ok = true;
+  while (!mulai || posisi < total) {
+    long sampai = posisi + (long)POTONGAN_GSM - 1;
+    size_t dapat = 0;
+    int kode = -1;
+    for (int coba = 0; coba < 5; coba++) {
+      long totalBaru = total;
+      kode = gsmHttpRange(path, posisi, sampai, buf, POTONGAN_GSM, &dapat, &totalBaru);
+      if (kode == 206) {
+        total = totalBaru;
+        break;
+      }
+      if (kode == 200 || (kode >= 400 && kode < 500))
+        break; // Range tidak didukung / berkas tidak ada: mengulang percuma
+      Serial.printf("[OTA-WEB] potongan @%ld gagal (kode %d), ulang %d/5\n", posisi, kode, coba + 1);
+      delay(2000);
+    }
+    if (kode != 206) {
+      galat = kode == 200 ? "server mengabaikan Range (butuh 206)"
+                          : "potongan @" + String(posisi) + " gagal, HTTP " + String(kode);
+      ok = false;
+      break;
+    }
+    if (!mulai) {
+      if (total <= 0 || total > 3000000L) {
+        galat = "ukuran firmware tidak valid: " + String(total);
+        ok = false;
+        break;
+      }
+      pm.mulai((size_t)total, galat, ok);
+      if (!ok)
+        break;
+      mulai = true;
+      logPersen(0, total);
+    }
+    if (!pm.tulis(buf, dapat, galat)) {
+      ok = false;
+      break;
+    }
+    posisi += (long)dapat;
+    logPersen(posisi, total);
+    delay(1);
+  }
+  free(buf);
   if (!ok) {
-    Update.abort();
+    if (mulai)
+      pm.batal();
     return false;
   }
-  if (!hexSha(hasil).equalsIgnoreCase(shaHarapan)) {
-    Update.abort();
-    galat = "SHA-256 tidak cocok";
-    return false;
-  }
-  if (!Update.end(false)) {
-    galat = String("Update.end: ") + Update.errorString();
-    return false;
-  }
-  return true;
+  return pm.selesai(shaHarapan, galat);
 }
 
 void cekPerintahOtaDariWeb() {
@@ -197,14 +302,6 @@ void cekPerintahOtaDariWeb() {
   if (id < 0)
     return;
 
-  if (!wifiTersambung()) {
-    // Belum bisa lewat GSM: biarkan 'pending' (tidak dibuang), cukup log jarang.
-    if (timerLogGsm == 0 || millis() - timerLogGsm > 300000UL) {
-      timerLogGsm = millis();
-      Serial.println(F("[OTA-WEB] Perintah update menunggu WiFi (GSM belum didukung)."));
-    }
-    return;
-  }
   if (!namaFileAman(file) || sha.length() != 64) {
     patchCommand(id, "gagal", "parameter tidak valid (file/sha256)");
     return;
@@ -217,7 +314,9 @@ void cekPerintahOtaDariWeb() {
   otaTandaiSibuk(true);
 
   String galat;
-  bool ok = unduhDanPasang(file, sha, galat);
+  bool lewatWifi = wifiTersambung();
+  Serial.printf("[OTA-WEB] Jalur unduhan: %s\n", lewatWifi ? "WiFi" : "GSM (potongan Range)");
+  bool ok = lewatWifi ? unduhWifi(file, sha, galat) : unduhGsm(file, sha, galat);
   otaTandaiSibuk(false);
   if (!ok) {
     Serial.printf("[OTA-WEB] GAGAL: %s -- firmware lama tetap dipakai\n", galat.c_str());

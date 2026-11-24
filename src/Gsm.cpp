@@ -502,6 +502,99 @@ int gsmHttp(const char *metode, const String &path, const String &header, const 
   return kode;
 }
 
+// Satu permintaan GET berrentang (Range) dengan badan biner ke `buf`. Memakai soket keep-alive
+// yang sama dengan satuPermintaan(). Dipanggil dengan gsmMutex dipegang.
+static int satuRange(const String &path, long dari, long sampai, uint8_t *buf, size_t kap,
+                     size_t *terbaca, long *total) {
+  *terbaca = 0;
+  String host = hostSupabase();
+  time_t now = time(nullptr);
+  if (now < 1700000000L)
+    return gagal("jam sistem belum tersinkron (TLS tidak bisa diverifikasi)");
+  if (!klien.connected()) {
+    klien.setVerificationTime((uint32_t)(now / 86400UL + 719528UL), (uint32_t)(now % 86400UL));
+    klien.setTimeout(15000);
+    if (!klien.connect(host.c_str(), 443))
+      return gagal("tidak bisa membuka koneksi TLS ke Supabase (sinyal/DNS/TLS)");
+  }
+  String req = String("GET ") + path + " HTTP/1.1\r\nHost: " + host +
+               "\r\nConnection: keep-alive\r\nRange: bytes=" + String(dari) + "-" + String(sampai) +
+               "\r\n\r\n";
+  klien.print(req);
+  klien.flush();
+
+  String baris;
+  if (!bacaBaris(baris, 20000))
+    return gagal("server tidak membalas dalam 20 dtk (sinyal lemah/putus)");
+  int sp = baris.indexOf(' ');
+  int kode = sp > 0 ? baris.substring(sp + 1).toInt() : -1;
+  if (kode <= 0)
+    return gagal("balasan HTTP tidak dikenali");
+  long panjang = -1;
+  bool chunked = false;
+  while (bacaBaris(baris, 20000) && baris.length()) {
+    baris.toLowerCase();
+    if (baris.startsWith("content-length:"))
+      panjang = baris.substring(15).toInt();
+    else if (baris.startsWith("content-range:")) {
+      int g = baris.indexOf('/');
+      if (g > 0)
+        *total = baris.substring(g + 1).toInt();
+    } else if (baris.startsWith("transfer-encoding:") && baris.indexOf("chunked") > 0)
+      chunked = true;
+  }
+  if (kode == 200 && panjang > 0)
+    *total = panjang; // Range diabaikan server: pemanggil memutuskan
+  if (kode != 206 || chunked || panjang <= 0 || (size_t)panjang > kap) {
+    klien.stop(); // badan tidak dibaca: buang soket supaya sinkron
+    return kode == 206 ? gagal("potongan firmware tidak dikenali (chunked/ukuran)") : kode;
+  }
+  unsigned long t0 = millis();
+  size_t n = 0;
+  while ((long)n < panjang && millis() - t0 < 30000UL) {
+    int ada = klien.available();
+    if (ada > 0) {
+      int baca = klien.read(buf + n, min((size_t)ada, (size_t)panjang - n));
+      if (baca > 0) {
+        n += baca;
+        t0 = millis();
+      }
+    } else if (!klien.connected()) {
+      break;
+    } else {
+      delay(2);
+    }
+  }
+  if ((long)n != panjang) {
+    klien.stop();
+    return gagal("potongan firmware terputus di tengah");
+  }
+  *terbaca = n;
+  return 206;
+}
+
+int gsmHttpRange(const String &path, long dari, long sampai, uint8_t *buf, size_t kap,
+                 size_t *terbaca, long *total) {
+  *terbaca = 0;
+  if (!gsmMutex || !online)
+    return -1;
+  if (xSemaphoreTake(gsmMutex, pdMS_TO_TICKS(90000)) != pdTRUE)
+    return gagal("modem terus sibuk >90 dtk (unduh firmware)");
+  char ket[72];
+  snprintf(ket, sizeof(ket), "RANGE %ld-%ld", dari, sampai);
+  pegang(ket);
+  int kode = satuRange(path, dari, sampai, buf, kap, terbaca, total);
+  if (kode <= 0) { // soket basi: buang lalu coba sekali lagi
+    klien.stop();
+    kode = satuRange(path, dari, sampai, buf, kap, terbaca, total);
+  }
+  if (kode <= 0)
+    klien.stop();
+  lepas();
+  xSemaphoreGive(gsmMutex);
+  return kode;
+}
+
 #else // PAKAI_GSM == 0
 
 bool gsmSiap() { return false; }
@@ -509,6 +602,7 @@ void gsmMulai() {}
 int gsmRssiDbm() { return 0; }
 const char *gsmStatusTeks() { return "nonaktif (PAKAI_GSM 0)"; }
 int gsmHttp(const char *, const String &, const String &, const String &, String &) { return -1; }
+int gsmHttpRange(const String &, long, long, uint8_t *, size_t, size_t *, long *) { return -1; }
 bool gsmPosisi(float *, float *) { return false; }
 void gsmCetakStatus() { Serial.println(F("GSM NONAKTIF (PAKAI_GSM 0)")); }
 
