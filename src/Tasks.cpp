@@ -40,6 +40,7 @@ static void langkahKontrol() {
     cekKalibrasiTSSDariWeb();
     cekJadwalOtomatisDariWeb();
     cekMinAirDariWeb();
+    cekPerintahOtaDariWeb();
     break;
   }
   // 2. Jalankan State Machine -- dibagi per lane sesuai

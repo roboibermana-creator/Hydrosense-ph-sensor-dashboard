@@ -30,6 +30,9 @@ void cekJadwalOtomatisDariWeb();
 void cekMinAirDariWeb();
 void cekPerintahModbusDariWeb();
 
+// --- OtaWeb.cpp ---
+void cekPerintahOtaDariWeb();
+
 // --- SerialMenu.cpp ---
 void tampilkanMenuSerial();
 void prosesPerintahSerial(char command); // pemanggil memegang mutex Modbus

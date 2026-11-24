@@ -8,6 +8,7 @@
 static volatile bool otaAktif = false;
 
 bool otaSedangBerjalan() { return otaAktif; }
+void otaTandaiSibuk(bool b) { otaAktif = b; }
 
 static void siapkanOTA() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
