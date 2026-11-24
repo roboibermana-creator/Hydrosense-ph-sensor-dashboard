@@ -48,18 +48,31 @@ def unggah(nama, data, tipe):
 
 
 def main():
-    if not KEY:
-        sys.exit("Set SUPABASE_SERVICE_KEY dulu (service_role / secret key).")
+    lokal = "--lokal" in sys.argv
+    args = [x for x in sys.argv[1:] if x != "--lokal"]
+    if not KEY and not lokal:
+        sys.exit("Set SUPABASE_SERVICE_KEY dulu (service_role), atau pakai --lokal (tanpa kunci).")
     if not os.path.exists(BIN):
         sys.exit(f"{BIN} tidak ada. Jalankan: pio run -e esp32-s3-devkitc-1")
-    versi = sys.argv[1] if len(sys.argv) > 1 else time.strftime("%Y%m%d-%H%M")
+    versi = args[0] if args else time.strftime("%Y%m%d-%H%M")
     data = open(BIN, "rb").read()
     sha = hashlib.sha256(data).hexdigest()
     nama = f"firmware-{versi}.bin"
-    unggah(nama, data, "application/octet-stream")
     meta = {"file": nama, "sha256": sha, "size": len(data), "versi": versi}
+    if lokal:
+        # Cadangan tanpa kunci: siapkan 2 file di folder firmware_unggah/ untuk diunggah MANUAL
+        # lewat dashboard Supabase > Storage > bucket "firmware" > Upload file.
+        os.makedirs("firmware_unggah", exist_ok=True)
+        open(os.path.join("firmware_unggah", nama), "wb").write(data)
+        open(os.path.join("firmware_unggah", "latest.json"), "w").write(json.dumps(meta))
+        print(f"Siap di folder firmware_unggah/: {nama} dan latest.json (sha256 {sha}).")
+        print("Unggah KEDUANYA manual ke bucket firmware, lalu tekan CEK di dashboard.")
+        return
+    unggah(nama, data, "application/octet-stream")
     unggah("latest.json", json.dumps(meta).encode(), "application/json")
-    print(f"OK: {nama} ({len(data)} byte)\nsha256 {sha}\nSekarang tekan 'Update firmware' di dashboard.")
+    print(f"OK: {nama} ({len(data)} byte)
+sha256 {sha}
+Sekarang tekan 'Update firmware' di dashboard.")
 
 
 if __name__ == "__main__":
