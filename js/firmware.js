@@ -1,7 +1,7 @@
 // Update firmware alat lewat Supabase Storage (bucket publik "firmware").
 // Operator mengunggah firmware dengan tools/publish_firmware.py (menulis latest.json), lalu
 // tombol di sini mengirim device_commands type='ota' {file, sha256, versi}. Alat mengunduh,
-// memeriksa SHA-256, memasang, dan reboot (lihat src/OtaWeb.cpp). Hanya lewat WiFi.
+// memeriksa SHA-256, memasang, dan reboot (lihat src/OtaWeb.cpp). Lewat WiFi atau GSM (GSM belum teruji).
 import { supabase, DEVICE_ID, el } from "./core.js";
 
 const BASE = "https://vupbropaxsqireeullbm.supabase.co/storage/v1/object/public/firmware/";
@@ -60,7 +60,7 @@ export function initFirmware() {
 
   async function kirim() {
     if (!meta) return;
-    if (!confirm("Pasang firmware " + meta.versi + " ke alat? Pompa dimatikan dan alat reboot. Hanya lewat WiFi.")) return;
+    if (!confirm("Pasang firmware " + meta.versi + " ke alat? Pompa dimatikan dan alat reboot. Lewat WiFi atau GSM (GSM belum teruji).")) return;
     btnKirim.disabled = true;
     try {
       const { data, error } = await supabase
