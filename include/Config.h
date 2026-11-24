@@ -36,7 +36,14 @@
 #define PIN_FLOAT_SWITCH \
   5 // GPIO4 = RAIN_PIN, GPIO9 = ADC_PIN (radar 4-20mA) -> JANGAN dipakai ganda.
     // Wiring: kabel kuning 1 -> GPIO5, kabel kuning 2 -> GND (INPUT_PULLUP).
-#define INTERLOCK_POMPA_MANUAL 1 // float switch HIGH = pompa dikunci OFF (mutlak)
+#define INTERLOCK_POMPA_MANUAL 1 // 1 = laporan "ditolak" ke web saat float HIGH. Kunci OFF di pumpON() SELALU aktif.
+// Pengaman pompa mode MANUAL: pompa mati otomatis bila menyala terus lebih dari batas ini,
+// atau bila command web tidak berhasil dibaca selama batas komunikasi. Setelah itu pompa
+// terkunci OFF sampai command web diubah ke "berhenti" lalu "jalan" lagi.
+#define POMPA_MANUAL_MAKS_MS (10UL * 60UL * 1000UL)
+#define POMPA_MANUAL_PUTUS_MS (60UL * 1000UL)
+// Float switch HIGH harus stabil selama ini sebelum fase isi otomatis dianggap penuh.
+#define FLOAT_DEBOUNCE_MS 500UL
 #define PIN_LED_ERROR 2
 
 // --- SD CARD (slot di Shield ESP32-S3 Pro, SPI) ---
@@ -66,7 +73,7 @@
 // Wiring: TX ESP (GPIO18) -> RXD modem, RX ESP (GPIO1) <- TXD modem, GND bersama,
 // PWRKEY modem <- GPIO48. Catu modem 5 V TERPISAH, arus puncak ~2 A (jangan dari 3V3 ESP).
 // OTA ArduinoOTA hanya berjalan lewat WiFi; lewat GSM firmware di-flash via USB.
-#define PAKAI_GSM 0 // sementara 0: uji WiFi saja (kembalikan ke 1 bila modem terpasang)
+#define PAKAI_GSM 1 // sementara 0: uji WiFi saja (kembalikan ke 1 bila modem terpasang)
 #define GSM_APN "internet"         // Telkomsel (simPATI/kartuHALO): "internet"; user/pass kosong
 #define GSM_APN_USER ""
 #define GSM_APN_PASS ""

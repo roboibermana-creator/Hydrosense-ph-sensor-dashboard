@@ -11,21 +11,12 @@ extern const uint8_t PUMP_RELAY_PIN;
 #define RELAY_ON LOW
 #define RELAY_OFF HIGH
 
-// PARAMETER MODE OTOMATIS
-extern const unsigned long PUMP_ON_TIME;
-extern const unsigned long PUMP_OFF_TIME;
-
 // VARIABLE GLOBAL
-extern bool pumpAutoMode;
 extern bool pumpState;
-extern unsigned long pumpPreviousMillis;
 
 // FUNGSI
 void pumpBegin();
 void pumpON();
 void pumpOFF();
-void pumpShowStatus();
-void pumpShowMenu();
-void pumpUpdateAuto();
 
 #endif

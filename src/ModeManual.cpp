@@ -25,7 +25,35 @@ static KontrolManual perintahTerakhir;
 static long idCommandBoot = -2;
 static bool tahanAktuatorBoot = true;
 
+// Pengaman pompa manual (lihat POMPA_MANUAL_* di Config.h).
+static unsigned long pompaManualMulai = 0;   // 0 = pompa sedang mati
+static unsigned long pollSuksesTerakhir = 0; // millis() fetch command terakhir yang berhasil
+static bool kunciPengamanPompa = false;      // true = pompa terkunci OFF sampai command diulang
+
+static void periksaPengamanPompaManual() {
+  if (!pumpState) {
+    pompaManualMulai = 0;
+    return;
+  }
+  if (pompaManualMulai == 0)
+    pompaManualMulai = millis();
+  const char *alasan = nullptr;
+  if (millis() - pompaManualMulai >= POMPA_MANUAL_MAKS_MS)
+    alasan = "melewati batas waktu nyala manual";
+  else if (millis() - pollSuksesTerakhir >= POMPA_MANUAL_PUTUS_MS)
+    alasan = "command web tidak terbaca (komunikasi putus)";
+  if (alasan) {
+    pompaOff();
+    kunciPengamanPompa = true;
+    pompaManualMulai = 0;
+    Serial.printf("[PENGAMAN] Pompa dimatikan: %s. Kirim 'berhenti' lalu 'jalan' "
+                  "dari web untuk menyalakan lagi.\n",
+                  alasan);
+  }
+}
+
 void handleModeManual() {
+  periksaPengamanPompaManual();
   // KUNCI MUTLAK: float switch HIGH -> pompa langsung dimatikan SEKARANG,
   // tidak menunggu siklus poll perintah (INTERVAL_POLL_MS). Selama float
   // HIGH, pompa tetap terkunci OFF walau command web = "jalan".
@@ -68,6 +96,7 @@ void terimaKontrolAwal(KontrolManual k) {
   perintahTerakhir = k;
   idCommandBoot = k.id;
   timerPollTerakhir = millis();
+  pollSuksesTerakhir = millis();
   jalankanPerintahPompaValve();
 }
 
@@ -83,6 +112,7 @@ bool bacaPerintahManual() {
     return false;
 
   perintahTerakhir = k;
+  pollSuksesTerakhir = millis();
   return true;
 }
 
@@ -122,6 +152,12 @@ void jalankanPerintahPompaValve() {
   // otomatis jalan lagi kalau command masih "jalan" dan chamber sudah turun.
   static bool interlockSedangMenolak = false;
   String pumpEfektif = tahanAktuatorBoot ? "berhenti" : perintahTerakhir.pumpCmd;
+  // Kunci pengaman dilepas hanya setelah command web bukan "jalan" (operator
+  // menekan berhenti), supaya pompa tidak menyala lagi sendiri.
+  if (perintahTerakhir.pumpCmd != "jalan")
+    kunciPengamanPompa = false;
+  if (kunciPengamanPompa)
+    pumpEfektif = "berhenti";
   if (INTERLOCK_POMPA_MANUAL && pumpEfektif == "jalan" && !interlockAman()) {
     pumpEfektif = "berhenti";
     if (!interlockSedangMenolak) {

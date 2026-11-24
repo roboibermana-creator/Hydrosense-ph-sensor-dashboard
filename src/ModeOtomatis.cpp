@@ -101,9 +101,19 @@ void handleModeOtomatis() {
   }
 
   case STATE_AUTO_ISI_CHAMBER: {
-    bool floatHigh = bacaFloatSwitch();
+    // Debounce: HIGH harus stabil FLOAT_DEBOUNCE_MS (riak air jangan dihitung penuh).
+    // Pompa sendiri tetap dikunci OFF seketika oleh pumpON().
+    static unsigned long floatHighSejak = 0;
+    if (!bacaFloatSwitch())
+      floatHighSejak = 0;
+    else if (floatHighSejak == 0)
+      floatHighSejak = millis();
+    bool floatHigh =
+        floatHighSejak != 0 && millis() - floatHighSejak >= FLOAT_DEBOUNCE_MS;
     bool timeout = (millis() - timerIsiChamberMulai) >= pompaMaksMs;
 
+    if (floatHigh || timeout)
+      floatHighSejak = 0; // reset untuk siklus berikutnya
     if (floatHigh) {
       pompaOff();
       timerStabilisasiMulai = millis();
