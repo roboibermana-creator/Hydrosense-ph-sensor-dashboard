@@ -70,9 +70,7 @@ def main():
         return
     unggah(nama, data, "application/octet-stream")
     unggah("latest.json", json.dumps(meta).encode(), "application/json")
-    print(f"OK: {nama} ({len(data)} byte)
-sha256 {sha}
-Sekarang tekan 'Update firmware' di dashboard.")
+    print(f"OK: {nama} ({len(data)} byte)\nsha256 {sha}\nSekarang tekan Update firmware di dashboard.")
 
 
 if __name__ == "__main__":
