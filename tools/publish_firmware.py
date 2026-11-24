@@ -23,11 +23,15 @@ BIN = os.path.join(".pio", "build", "esp32-s3-devkitc-1", "firmware.bin")
 
 
 def header_auth(tipe):
-    h = {"apikey": KEY, "Content-Type": tipe, "x-upsert": "true", "Cache-Control": "no-cache"}
-    # Kunci baru "sb_secret_..." tidak boleh dikirim sebagai Bearer; service_role lama (JWT) boleh.
-    if not KEY.startswith("sb_secret_"):
-        h["Authorization"] = f"Bearer {KEY}"
-    return h
+    # Storage API mewajibkan header Authorization. Untuk kunci "sb_secret_..." isinya harus sama
+    # dengan apikey; untuk service_role lama (JWT) juga dipakai sebagai Bearer.
+    return {
+        "apikey": KEY,
+        "Authorization": f"Bearer {KEY}",
+        "Content-Type": tipe,
+        "x-upsert": "true",
+        "Cache-Control": "no-cache",
+    }
 
 
 def unggah(nama, data, tipe):
