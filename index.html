@@ -1080,6 +1080,29 @@
               &gt; KONTROL MANUAL VIA SUPABASE
             </p>
           </section>
+          <section class="data-panel calibration-panel" id="firmware-panel">
+              <div class="panel-heading">
+                <span>UPDATE FIRMWARE</span
+                ><img
+                  class="pixel-icon mini-icon"
+                  src="gambarpixel/ikon-pengaturan-kecil.svg"
+                  alt=""
+                />
+              </div>
+              <div class="calibration-rows">
+                <div><span>Firmware tersedia</span><b id="fwInfo">--</b></div>
+              </div>
+              <div style="display: flex; gap: 6px; margin-top: 8px">
+                <button type="button" id="fwCek" class="calibrate-button" style="flex: 1">CEK</button>
+                <button type="button" id="fwKirim" class="calibrate-button" style="flex: 1" disabled>PASANG KE ALAT</button>
+              </div>
+              <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
+                Unggah firmware dengan tools/publish_firmware.py, lalu tekan
+                PASANG. Alat mengunduh lewat WiFi (GSM belum didukung),
+                memeriksa SHA-256, lalu reboot. Pompa dimatikan selama proses.
+              </div>
+              <div class="warning" id="fwLog">&gt; BELUM DICEK</div>
+            </section>
           <section class="data-panel calibration-panel" id="mode-panel">
               <div class="panel-heading">
                 <span>MODE OPERASI</span

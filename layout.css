@@ -153,14 +153,20 @@ html[data-nav-dir="back"]::view-transition-new(page) {
   margin-left: auto;
   margin-right: auto;
 }
+#page-control-valve #firmware-panel {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  align-self: start;
+}
 #page-control-valve .right-stack {
   grid-column: 3;
-  grid-row: 1 / 3;
+  grid-row: 1 / 4;
 }
 @media (max-width: 690px) {
   #page-control-valve .control-panel,
   #page-control-valve #mode-panel,
   #page-control-valve #auto-schedule-panel,
+  #page-control-valve #firmware-panel,
   #page-control-valve .right-stack {
     grid-column: auto;
     grid-row: auto;
