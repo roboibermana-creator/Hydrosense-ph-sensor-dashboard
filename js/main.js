@@ -66,7 +66,6 @@ if (role === "operator") {
     { initSchedule },
     { initLayoutEditor },
     { initMinAir },
-    { initFirmware },
   ] = await Promise.all([
     import("./control.js"),
     import("./calibration-tss.js"),
@@ -77,7 +76,6 @@ if (role === "operator") {
     import("./schedule.js"),
     import("./layout-editor.js"),
     import("./min-air.js?v=20261111c"),
-    import("./firmware.js"),
   ]);
 
   initControl();
@@ -89,5 +87,4 @@ if (role === "operator") {
   initSchedule();
   initLayoutEditor();
   initMinAir();
-  initFirmware();
 }
