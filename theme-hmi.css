@@ -743,6 +743,7 @@
   border-radius: 10px;
 }
 /* nilai angka (slope/offset/raw) tampil sebagai angka, bukan badge */
+#tssSlopePanel .calibration-rows b,
 #tssCalFactorPanel .calibration-rows b,
 #tssCalSamplePanel .calibration-rows b,
 #tssHwCalPanel .calibration-rows b {

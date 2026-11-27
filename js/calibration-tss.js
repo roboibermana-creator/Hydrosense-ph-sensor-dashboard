@@ -27,7 +27,15 @@ export function initCalibrationTss() {
     const offsetEl = el("tssCalOffsetNow");
     const metaEl = el("tssCalMetaNow");
 
-    if (error || !data || data.length === 0) {
+    if (error) {
+      // Gagal baca bukan berarti belum ada kalibrasi: jangan tampilkan 1 / 0.
+      if (slopeEl) slopeEl.textContent = "--";
+      if (offsetEl) offsetEl.textContent = "--";
+      if (metaEl) metaEl.textContent = "! GAGAL MEMUAT: " + error.message;
+      return;
+    }
+
+    if (!data || data.length === 0) {
       if (slopeEl) slopeEl.textContent = "1.000000";
       if (offsetEl) offsetEl.textContent = "0.000000";
       if (metaEl)
@@ -147,14 +155,38 @@ export function initCalibrationTss() {
     }
   }
 
+  function setTssSlopeLog(text, isError) {
+    const box = el("tssSlopeLog");
+    if (!box) return;
+    box.textContent = "> " + text;
+    box.style.color = isError ? "var(--orange)" : "";
+  }
+
+  // Terima koma desimal (Excel Indonesia) dan tanda minus hasil salin-tempel
+  // rumus. Kolom kosong = tidak valid, bukan 0 (Number("") menghasilkan 0).
+  function bacaAngka(id) {
+    const teks = (el(id)?.value || "")
+      .trim()
+      .replace(/[−–]/g, "-")
+      .replace(/\s+/g, "")
+      .replace(",", ".");
+    return teks === "" ? NaN : Number(teks);
+  }
+
   async function simpanKalibrasiTssManual() {
     const btn = el("btnSimpanManualTss");
-    const slope = Number(el("inputManualSlope")?.value);
-    const offset = Number(el("inputManualOffset")?.value);
+    const slope = bacaAngka("inputManualSlope");
+    const offset = bacaAngka("inputManualOffset");
     if (!Number.isFinite(slope) || !Number.isFinite(offset)) {
-      setTssCalLog("Isi slope & offset dengan angka yang valid.", true);
+      setTssSlopeLog("Isi slope & offset dengan angka yang valid.", true);
       return;
     }
+    if (slope <= 0) {
+      setTssSlopeLog("Slope harus lebih besar dari 0.", true);
+      return;
+    }
+    const rumus = `TSS = ${slope} × raw ${offset < 0 ? "-" : "+"} ${Math.abs(offset)}`;
+    if (!confirm(`Simpan dan pakai di alat?\n${rumus}`)) return;
     if (btn) btn.disabled = true;
     try {
       const { error } = await supabase
@@ -168,13 +200,10 @@ export function initCalibrationTss() {
           source: "manual",
         });
       if (error) throw error;
-      setTssCalLog(
-        `Kalibrasi manual disimpan: Y = ${slope}X + ${offset}`,
-        false,
-      );
+      setTssSlopeLog(`Tersimpan: ${rumus}`, false);
       await muatKalibrasiTssAktif();
     } catch (err) {
-      setTssCalLog("Gagal simpan manual: " + err.message, true);
+      setTssSlopeLog("Gagal simpan: " + err.message, true);
     } finally {
       if (btn) btn.disabled = false;
     }

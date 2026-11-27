@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css?v=20261101d" />
     <link rel="stylesheet" href="layout.css?v=20261105b" />
     <link rel="stylesheet" href="theme-industrial.css?v=20261101d" />
-    <link rel="stylesheet" href="theme-hmi.css?v=20261108a" />
+    <link rel="stylesheet" href="theme-hmi.css?v=20261127a" />
     <link rel="stylesheet" href="edit-layout.css?v=20261105b" />
     <link rel="stylesheet" href="access.css?v=20261106a" />
   </head>
@@ -817,6 +817,62 @@
               </section>
           </div>
           <div class="cal-col">
+              <!-- SLOPE & OFFSET TSS: diisi manual dari hasil regresi linear (mis. Excel) -->
+              <section class="data-panel calibration-panel" id="tssSlopePanel">
+                <div class="panel-heading">
+                  <span>SLOPE &amp; OFFSET TSS</span
+                  ><img
+                    class="pixel-icon mini-icon"
+                    src="gambarpixel/ikon-pengaturan-kecil.svg"
+                    alt=""
+                  />
+                </div>
+                <div class="calibration-rows">
+                  <div>
+                    <span>Slope aktif</span
+                    ><b id="tssCalSlopeNow" style="color: var(--neon)">--</b>
+                  </div>
+                  <div>
+                    <span>Offset aktif</span
+                    ><b id="tssCalOffsetNow" style="color: var(--neon)">--</b>
+                  </div>
+                </div>
+                <div class="warning" id="tssCalMetaNow">&gt; Memuat…</div>
+                <div style="margin-top: 10px">
+                  <label style="display: block; font-size: 12px"
+                    >Slope
+                    <input
+                      type="text"
+                      inputmode="decimal"
+                      autocomplete="off"
+                      id="inputManualSlope"
+                      placeholder="contoh: 0,207679"
+                      style="width: 100%"
+                  /></label>
+                  <label style="display: block; font-size: 12px; margin-top: 8px"
+                    >Offset (pakai tanda minus kalau negatif)
+                    <input
+                      type="text"
+                      autocomplete="off"
+                      id="inputManualOffset"
+                      placeholder="contoh: -2,651147"
+                      style="width: 100%"
+                  /></label>
+                  <button
+                    type="button"
+                    id="btnSimpanManualTss"
+                    class="calibrate-button"
+                    style="width: 100%; margin-top: 8px"
+                  >
+                    SIMPAN SLOPE &amp; OFFSET
+                  </button>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; opacity: 0.8">
+                  TSS = slope × raw + offset. Nilai tetap sampai disimpan ulang.
+                  Alat mengambil nilai baru dalam sekitar 5 menit.
+                </div>
+                <div class="warning" id="tssSlopeLog"></div>
+              </section>
           </div>
           <div class="cal-col">
               <!-- INPUT SAMPLE KALIBRASI TSS (raw sensor + nilai gravimetri manual) -->
@@ -1276,6 +1332,6 @@
         </div>
       </form>
     </dialog>
-    <script type="module" src="js/main.js?v=20261116a"></script>
+    <script type="module" src="js/main.js?v=20261127a"></script>
   </body>
 </html>

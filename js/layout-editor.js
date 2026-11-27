@@ -14,7 +14,7 @@
 // ditambah, dihapus, atau diurutkan ulang. Layout hanya berlaku di layar >= 1101px
 // (CSS-nya di edit-layout.css); di bawah itu tata letak bawaan yang responsif dipakai.
 
-const VERSION = 2;
+const VERSION = 3;
 const KEY = "hydrosense.layout";
 const CARD_SEL = ".data-panel, .hmi-card";
 const COLS = 60; // 60 habis dibagi 2,3,4,5,6: 5 kartu KPI pun bisa dibagi rata
@@ -40,6 +40,12 @@ const wide = () => window.innerWidth >= MIN_VIEWPORT;
 function load() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY));
+    // v3 menambah kartu di halaman kalibrasi (id kartu di sana bergeser):
+    // buang hanya tata letak halaman itu, halaman lain dipertahankan.
+    if (v && v.version === 2 && v.pages) {
+      delete v.pages["page-kalibrasi"];
+      v.version = VERSION;
+    }
     if (v && v.version === VERSION) return v;
   } catch (_) {
     /* abaikan data rusak */

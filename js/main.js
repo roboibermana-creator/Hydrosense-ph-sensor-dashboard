@@ -68,13 +68,13 @@ if (role === "operator") {
     { initMinAir },
   ] = await Promise.all([
     import("./control.js"),
-    import("./calibration-tss.js"),
+    import("./calibration-tss.js?v=20261127a"),
     import("./tss-factor.js?v=20261108c"),
     import("./ph-calibration.js?v=20261106g"),
     import("./mode.js"),
     import("./countdown.js"),
     import("./schedule.js"),
-    import("./layout-editor.js"),
+    import("./layout-editor.js?v=20261127a"),
     import("./min-air.js?v=20261111c"),
   ]);
 
